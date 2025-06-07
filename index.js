@@ -32,8 +32,16 @@ const PORT = process.env.PORT || 8080;
   await page.getByText('Clientes', { exact: true }).click();
 
   // Criar registro
-  await page.waitForSelector('button:has-text("Criar registro")');
-  await page.click('button:has-text("Criar registro")');
+  await page.waitForSelector('text="Criar registro"', { timeout: 10000 });
+
+  // Fechar overlay se necessário
+  const overlay = await page.$('div[data-testid="start-form-header-layer-close"]');
+  if (overlay) {
+    await overlay.click();
+    await page.waitForTimeout(500);
+  }
+
+  await page.locator('text="Criar registro"').first().click();
 
   // Dados para preenchimento (sem Estado Civil)
   const dados = {
@@ -52,22 +60,24 @@ const PORT = process.env.PORT || 8080;
   // Buscar arquivos dinamicamente
   const arquivos = fs.readdirSync(__dirname);
   const arquivoCNH = arquivos.find(nome => nome.toLowerCase().includes('cnh'));
-  const arquivosProc = arquivos.filter(nome => nome.toLowerCase().includes('procuracao') || nome.toLowerCase().includes('procuração'));
+  const arquivosProc = arquivos.filter(nome =>
+    nome.toLowerCase().includes('procuracao') || nome.toLowerCase().includes('procuração')
+  );
 
   // Anexar CNH (se encontrado)
-  if (arquivoCNH) {
-    const inputFiles = await page.$$('input[type="file"]');
+  const inputFiles = await page.$$('input[type="file"]');
+  if (arquivoCNH && inputFiles.length > 0) {
     await inputFiles[0].setInputFiles(path.resolve(__dirname, arquivoCNH));
   }
 
   // Anexar Procurações (se encontrados)
-  if (arquivosProc.length > 0) {
-    const inputFiles = await page.$$('input[type="file"]');
+  if (arquivosProc.length > 0 && inputFiles.length > 1) {
     await inputFiles[1].setInputFiles(arquivosProc.map(nome => path.resolve(__dirname, nome)));
   }
 
   // Clicar em "Criar registro"
-  await page.click('button:has-text("Criar registro")');
+  const criarBtn = page.locator('text="Criar registro"').nth(1);
+  await criarBtn.click();
   console.log('✅ Registro criado com sucesso.');
 
   // Esperar e tirar print
