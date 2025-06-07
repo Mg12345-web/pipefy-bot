@@ -1,6 +1,7 @@
 const { chromium } = require('playwright');
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 8080;
 
@@ -48,15 +49,22 @@ const PORT = process.env.PORT || 8080;
     await page.getByLabel(campo).fill(valor);
   }
 
-  // Anexar CNH
-  const inputFiles = await page.$$('input[type="file"]');
-  await inputFiles[0].setInputFiles(path.resolve(__dirname, 'CNH'));
+  // Buscar arquivos dinamicamente
+  const arquivos = fs.readdirSync(__dirname);
+  const arquivoCNH = arquivos.find(nome => nome.toLowerCase().includes('cnh'));
+  const arquivosProc = arquivos.filter(nome => nome.toLowerCase().includes('procuracao') || nome.toLowerCase().includes('procuração'));
 
-  // Anexar 2 arquivos de Procuração
-  await inputFiles[1].setInputFiles([
-    path.resolve(__dirname, 'PROCURACAO'),
-    path.resolve(__dirname, 'PROCURACAO')
-  ]);
+  // Anexar CNH (se encontrado)
+  if (arquivoCNH) {
+    const inputFiles = await page.$$('input[type="file"]');
+    await inputFiles[0].setInputFiles(path.resolve(__dirname, arquivoCNH));
+  }
+
+  // Anexar Procurações (se encontrados)
+  if (arquivosProc.length > 0) {
+    const inputFiles = await page.$$('input[type="file"]');
+    await inputFiles[1].setInputFiles(arquivosProc.map(nome => path.resolve(__dirname, nome)));
+  }
 
   // Clicar em "Criar registro"
   await page.click('button:has-text("Criar registro")');
