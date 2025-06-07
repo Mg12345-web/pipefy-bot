@@ -26,16 +26,16 @@ const PORT = process.env.PORT || 8080;
   await page.waitForNavigation({ waitUntil: 'load' });
   console.log('✅ Login feito com sucesso.');
 
-  // Navegar até "Clientes"
+  // Acessar a database "Clientes"
   await page.evaluate(() => window.scrollBy(0, 1000));
   await page.getByText('Databases', { exact: true }).click();
   await page.getByText('Clientes', { exact: true }).click();
 
-  // Criar registro (abrir formulário)
+  // Abrir o formulário
   await page.waitForSelector('button:has-text("Criar registro")', { timeout: 15000 });
   await page.click('button:has-text("Criar registro")');
 
-  // Dados para preenchimento
+  // Preencher os dados do formulário
   const dados = {
     'Nome Completo': 'ADRIANO ANTONIO DE SOUZA',
     'CPF OU CNPJ': '039.174.906-60',
@@ -52,26 +52,30 @@ const PORT = process.env.PORT || 8080;
   // Buscar arquivos dinamicamente
   const arquivos = fs.readdirSync(__dirname);
   const arquivoCNH = arquivos.find(nome => nome.toLowerCase().includes('cnh'));
-  const arquivosProc = arquivos.filter(nome => 
+  const arquivosProc = arquivos.filter(nome =>
     nome.toLowerCase().includes('procuracao') || nome.toLowerCase().includes('procuração')
   );
 
-  // Anexar CNH (se encontrado)
-  if (arquivoCNH) {
-    const inputFiles = await page.$$('input[type="file"]');
+  const inputFiles = await page.$$('input[type="file"]');
+
+  // Anexar CNH
+  if (arquivoCNH && inputFiles[0]) {
     await inputFiles[0].setInputFiles(path.resolve(__dirname, arquivoCNH));
+    console.log('📎 CNH enviada, aguardando processamento...');
+    await page.waitForTimeout(15000);
   }
 
-  // Anexar Procurações (se encontrados)
-  if (arquivosProc.length > 0) {
-    const inputFiles = await page.$$('input[type="file"]');
+  // Anexar Procuração
+  if (arquivosProc.length > 0 && inputFiles[1]) {
     await inputFiles[1].setInputFiles(arquivosProc.map(nome => path.resolve(__dirname, nome)));
+    console.log('📎 Procurações enviadas, aguardando processamento...');
+    await page.waitForTimeout(15000);
   }
 
-  // Clicar no botão final de "Criar registro"
+  // Clicar em "Criar registro"
   await page.locator('button[data-testid="create-record-fab-button"]').click();
 
-  // Verificar se o formulário fechou (confirmando criação)
+  // Verificação visual de sucesso
   await page.waitForTimeout(3000);
   const formStillOpen = await page.$('input[placeholder="Nome Completo"]');
   if (formStillOpen) {
