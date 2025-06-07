@@ -1,6 +1,7 @@
 const { chromium } = require('playwright');
 const express = require('express');
 const fs = require('fs');
+const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 8080;
 
@@ -25,48 +26,68 @@ const PORT = process.env.PORT || 8080;
   await page.waitForNavigation({ waitUntil: 'load' });
   console.log('✅ Login feito com sucesso.');
 
-  // Role até o menu Databases e clique
+  // Rolar e acessar "Databases"
   await page.evaluate(() => window.scrollBy(0, 1000));
-  await page.waitForSelector('text=Databases', { timeout: 60000 });
+  await page.waitForSelector('text=Databases');
   await page.click('text=Databases');
 
-  // Aguarde carregar a lista e clique em "Clientes"
-  await page.waitForSelector('text=Clientes', { timeout: 60000 });
+  // Acessar "Clientes"
+  await page.waitForSelector('text=Clientes');
   await page.click('text=Clientes');
 
-  // Espera o botão “Criar registro”
-  const botaoCriar = await page.waitForSelector('button:has-text("Criar registro")', { timeout: 60000 });
+  // Aguardar botão "Criar registro"
+  await page.waitForSelector('button:has-text("Criar registro")');
+  await page.click('button:has-text("Criar registro")');
 
-  if (botaoCriar) {
-    console.log('🟢 Botão "Criar registro" encontrado com sucesso.');
+  // Preencher os campos com base na procuração
+  await page.waitForSelector('input[placeholder="Digite aqui ..."]');
 
-    // Clica no botão
-    await botaoCriar.click();
-    await page.waitForTimeout(4000); // Aguarda a nova tela carregar
+  const nome = "ADRIANO ANTONIO DE SOUZA";
+  const cpf = "039.174.906-60";
+  const estadoCivil = "Casado(a)";
+  const profissao = "Vigilante";
+  const email = "jonas1gui@gmail.com";
+  const telefone = "31988429016";
+  const endereco = "Rua Luzia de Jesus, 135, Jardim dos Comerciários, Ribeirão das Neves - MG";
 
-    // Tira o print
-    await page.screenshot({ path: 'print_criar_registro.png', fullPage: true });
-    console.log('📸 Print tirado com sucesso!');
-  } else {
-    console.log('🔴 Botão "Criar registro" não encontrado.');
-  }
+  const inputFields = await page.$$('input[placeholder="Digite aqui ..."]');
+  await inputFields[0].fill(nome);          // Nome Completo
+  await inputFields[1].fill(cpf);           // CPF
+  await page.locator('text=Estado Civil').click();
+  await page.locator(`text=${estadoCivil}`).click();
+  await inputFields[2].fill(profissao);     // Profissão
+  await inputFields[3].fill(email);         // Email
+  await inputFields[4].fill(telefone);      // Telefone
+  await inputFields[5].fill(endereco);      // Endereço
+
+  // Anexar CNH
+  const cnhInput = await page.locator('input[type="file"]').nth(0);
+  await cnhInput.setInputFiles(path.resolve(__dirname, 'CNH-e.pdf.pdf'));
+
+  // Anexar Procuração (duas vezes)
+  const procuraçãoInput = await page.locator('input[type="file"]').nth(1);
+  await procuraçãoInput.setInputFiles([
+    path.resolve(__dirname, 'PROCURAÇÃO.pdf'),
+    path.resolve(__dirname, 'PROCURAÇÃO.pdf')
+  ]);
+
+  // Clicar em "Criar registro"
+  await page.click('button:has-text("Criar registro")');
+  console.log('✅ Registro criado com sucesso.');
+
+  // Tirar print de confirmação
+  await page.waitForTimeout(4000);
+  await page.screenshot({ path: 'registro_final.png' });
 
   await browser.close();
 })();
 
-// Página inicial com link para download do print
 app.get('/', (req, res) => {
-  res.send(`<h2>✅ Robô executado</h2><p><a href="/print">📥 Clique aqui para baixar o print</a></p>`);
+  res.send(`<h2>✅ Robô executado</h2><p><a href="/print">📥 Baixar print de confirmação</a></p>`);
 });
 
-// Rota para download do print
 app.get('/print', (req, res) => {
-  const filePath = 'print_criar_registro.png';
-  if (fs.existsSync(filePath)) {
-    res.download(filePath);
-  } else {
-    res.status(404).send('❌ Print não encontrado');
-  }
+  res.download('registro_final.png');
 });
 
 app.listen(PORT, () => {
