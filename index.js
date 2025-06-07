@@ -38,6 +38,15 @@ const PORT = process.env.PORT || 8080;
 
   if (botaoCriar) {
     console.log('🟢 Botão "Criar registro" encontrado com sucesso.');
+
+    // Clica no botão
+    await botaoCriar.click();
+    await page.waitForTimeout(4000); // Aguarda a nova tela carregar
+
+    // Lê o conteúdo da tela após o clique
+    const conteudo = await page.content();
+    console.log('🧠 Conteúdo após clicar em "Criar registro":\n');
+    console.log(conteudo);
   } else {
     console.log('🔴 Botão "Criar registro" não encontrado.');
   }
