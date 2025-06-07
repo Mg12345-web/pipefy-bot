@@ -1,7 +1,7 @@
 const { chromium } = require('playwright');
 const express = require('express');
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 
 (async () => {
   const browser = await chromium.launch({ headless: true });
@@ -34,7 +34,7 @@ const PORT = process.env.PORT || 3000;
 
   await browser.close();
 
-  // Após fechar o navegador, inicia o servidor Express
+  // Inicia servidor após o print
   app.get('/', (req, res) => {
     res.send(`<h2>✅ Robô executado com sucesso</h2><p><a href="/print">📥 Clique aqui para baixar o print</a></p>`);
   });
