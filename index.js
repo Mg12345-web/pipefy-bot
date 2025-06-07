@@ -33,17 +33,17 @@ const PORT = process.env.PORT || 3000;
   console.log('📸 Print tirado com sucesso!');
 
   await browser.close();
+
+  // Após fechar o navegador, inicia o servidor Express
+  app.get('/', (req, res) => {
+    res.send(`<h2>✅ Robô executado com sucesso</h2><p><a href="/print">📥 Clique aqui para baixar o print</a></p>`);
+  });
+
+  app.get('/print', (req, res) => {
+    res.download('print_pipefy.png');
+  });
+
+  app.listen(PORT, () => {
+    console.log(`🖥️ Servidor disponível em http://localhost:${PORT}`);
+  });
 })();
-
-// Servidor para download
-app.get('/', (req, res) => {
-  res.send(`<h2>✅ Robô executado com sucesso</h2><p><a href="/print">📥 Clique aqui para baixar o print</a></p>`);
-});
-
-app.get('/print', (req, res) => {
-  res.download('print_pipefy.png');
-});
-
-app.listen(PORT, () => {
-  console.log(`🖥️ Servidor disponível em http://localhost:${PORT}`);
-});
