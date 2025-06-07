@@ -5,6 +5,15 @@ const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 8080;
 
+async function rolarAteCampo(page, textoAlvo) {
+  for (let i = 0; i < 15; i++) {
+    const visivel = await page.locator(`text="${textoAlvo}"`).first().isVisible().catch(() => false);
+    if (visivel) return;
+    await page.keyboard.press('PageDown');
+    await page.waitForTimeout(300);
+  }
+}
+
 async function enviarArquivo(page, labelTexto, arquivoLocal, statusCampos) {
   try {
     const nomeArquivo = path.basename(arquivoLocal);
@@ -90,11 +99,9 @@ async function enviarArquivo(page, labelTexto, arquivoLocal, statusCampos) {
     }
   }
 
-  // Rolar até o final para garantir que CNH e Procuração apareçam
-  for (let i = 0; i < 5; i++) {
-    await page.evaluate(() => window.scrollBy(0, 300));
-    await page.waitForTimeout(500);
-  }
+  // Rolar até os campos de upload
+  await rolarAteCampo(page, '* CNH');
+  await rolarAteCampo(page, '* Procuração');
 
   // Buscar arquivos
   const arquivos = fs.readdirSync(__dirname);
