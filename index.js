@@ -35,7 +35,7 @@ const PORT = process.env.PORT || 8080;
 
   const dados = {
     'Nome Completo': 'ADRIANO ANTONIO DE SOUZA',
-    'CPF OU CNPJ': '414.746.148-41',  // ✅ CPF atualizado
+    'CPF OU CNPJ': '414.746.148-41',
     'Profissão': 'Vigilante',
     'Email': 'jonas1gui@gmail.com',
     'Número de telefone': '31988429016',
@@ -68,14 +68,23 @@ const PORT = process.env.PORT || 8080;
 
   await page.screenshot({ path: 'erro_antes_do_click.png' });
 
-  try {
-    await page.locator('button[data-testid="create-record-fab-button"]').click({ timeout: 5000 });
-  } catch (e) {
-    console.log('⚠️ Clique normal falhou. Tentando forçar com JavaScript...');
-    await page.evaluate(() => {
-      const btn = document.querySelector('button[data-testid="create-record-fab-button"]');
-      if (btn) btn.click();
-    });
+  // Verifica se o botão está habilitado antes de tentar clicar
+  const botaoCriar = await page.locator('button[data-testid="create-record-fab-button"]');
+  const habilitado = await botaoCriar.isEnabled();
+
+  if (habilitado) {
+    try {
+      await botaoCriar.click({ timeout: 5000 });
+      console.log('✅ Clique no botão Criar registro realizado.');
+    } catch (e) {
+      console.log('⚠️ Clique normal falhou. Tentando forçar com JavaScript...');
+      await page.evaluate(() => {
+        const btn = document.querySelector('button[data-testid="create-record-fab-button"]');
+        if (btn) btn.click();
+      });
+    }
+  } else {
+    console.log('❌ Botão "Criar registro" está desabilitado. Pode haver erro em algum campo.');
   }
 
   await page.waitForTimeout(5000);
