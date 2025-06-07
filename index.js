@@ -1,3 +1,10 @@
+from pathlib import Path
+
+# Simplesmente limpando a área antes de reescrever o novo código JS
+index_path = Path("/mnt/data/index.js")
+index_path.write_text("")  # Limpa conteúdo antigo para evitar conflitos
+
+index_code = """
 const { chromium } = require('playwright');
 const express = require('express');
 const fs = require('fs');
@@ -26,20 +33,16 @@ const PORT = process.env.PORT || 8080;
   await page.waitForNavigation({ waitUntil: 'load' });
   console.log('✅ Login feito com sucesso.');
 
-  // Rolar e acessar "Databases"
   await page.evaluate(() => window.scrollBy(0, 1000));
   await page.waitForSelector('text=Databases');
   await page.click('text=Databases');
 
-  // Acessar "Clientes"
   await page.waitForSelector('text=Clientes');
   await page.click('text=Clientes');
 
-  // Aguardar botão "Criar registro"
   await page.waitForSelector('button:has-text("Criar registro")');
   await page.click('button:has-text("Criar registro")');
 
-  // Preencher os campos com base na procuração
   await page.waitForSelector('input[placeholder="Digite aqui ..."]');
 
   const nome = "ADRIANO ANTONIO DE SOUZA";
@@ -51,31 +54,27 @@ const PORT = process.env.PORT || 8080;
   const endereco = "Rua Luzia de Jesus, 135, Jardim dos Comerciários, Ribeirão das Neves - MG";
 
   const inputFields = await page.$$('input[placeholder="Digite aqui ..."]');
-  await inputFields[0].fill(nome);          // Nome Completo
-  await inputFields[1].fill(cpf);           // CPF
-  await page.locator('text=Estado Civil').click();
+  await inputFields[0].fill(nome);
+  await inputFields[1].fill(cpf);
+  await page.locator('label:has-text("Estado Civil")').click();
   await page.locator(`text=${estadoCivil}`).click();
-  await inputFields[2].fill(profissao);     // Profissão
-  await inputFields[3].fill(email);         // Email
-  await inputFields[4].fill(telefone);      // Telefone
-  await inputFields[5].fill(endereco);      // Endereço
+  await inputFields[2].fill(profissao);
+  await inputFields[3].fill(email);
+  await inputFields[4].fill(telefone);
+  await inputFields[5].fill(endereco);
 
-  // Anexar CNH
   const cnhInput = await page.locator('input[type="file"]').nth(0);
   await cnhInput.setInputFiles(path.resolve(__dirname, 'CNH-e.pdf.pdf'));
 
-  // Anexar Procuração (duas vezes)
-  const procuraçãoInput = await page.locator('input[type="file"]').nth(1);
-  await procuraçãoInput.setInputFiles([
+  const procuraInput = await page.locator('input[type="file"]').nth(1);
+  await procuraInput.setInputFiles([
     path.resolve(__dirname, 'PROCURAÇÃO.pdf'),
     path.resolve(__dirname, 'PROCURAÇÃO.pdf')
   ]);
 
-  // Clicar em "Criar registro"
   await page.click('button:has-text("Criar registro")');
   console.log('✅ Registro criado com sucesso.');
 
-  // Tirar print de confirmação
   await page.waitForTimeout(4000);
   await page.screenshot({ path: 'registro_final.png' });
 
@@ -83,7 +82,7 @@ const PORT = process.env.PORT || 8080;
 })();
 
 app.get('/', (req, res) => {
-  res.send(`<h2>✅ Robô executado</h2><p><a href="/print">📥 Baixar print de confirmação</a></p>`);
+  res.send('<h2>✅ Robô executado</h2><p><a href="/print">📥 Baixar print de confirmação</a></p>');
 });
 
 app.get('/print', (req, res) => {
@@ -93,3 +92,7 @@ app.get('/print', (req, res) => {
 app.listen(PORT, () => {
   console.log(`🖥️ Servidor escutando em http://localhost:${PORT}`);
 });
+"""
+
+index_path.write_text(index_code.strip())
+index_path
