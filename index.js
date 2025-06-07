@@ -1,24 +1,28 @@
 const { chromium } = require('playwright');
 
 (async () => {
-  const browser = await chromium.launch({ headless: true }); // Mude para true se quiser invisível
+  const browser = await chromium.launch({ headless: true }); // ou false para ver
   const context = await browser.newContext();
   const page = await context.newPage();
 
   console.log('🔐 Acessando o login real do Pipefy...');
   await page.goto('https://signin.pipefy.com/realms/pipefy/protocol/openid-connect/auth?client_id=pipefy-auth&redirect_uri=https%3A%2F%2Fapp-auth.pipefy.com%2Fauth_callback&response_type=code&scope=openid+email+profile', { waitUntil: 'load' });
 
-  // Espera o campo de e-mail aparecer e preenche
+  // Passo 1: Preenche e-mail
   await page.waitForSelector('input[name="username"]', { timeout: 60000 });
   await page.fill('input[name="username"]', 'juridicomgmultas@gmail.com');
-  await page.click('button[type="submit"]');
 
-  // Espera o campo de senha aparecer e preenche
+  await page.waitForSelector('button:has-text("Continuar")', { timeout: 60000 });
+  await page.click('button:has-text("Continuar")');
+
+  // Passo 2: Espera o campo de senha
   await page.waitForSelector('input[name="password"]', { timeout: 60000 });
   await page.fill('input[name="password"]', 'Mg.12345@');
-  await page.click('button[type="submit"]');
 
-  // Aguarda redirecionamento
+  await page.waitForSelector('button:has-text("Acessar o Pipefy")', { timeout: 60000 });
+  await page.click('button:has-text("Acessar o Pipefy")');
+
+  // Espera redirecionar
   await page.waitForNavigation({ waitUntil: 'networkidle' });
 
   console.log('✅ Login feito com sucesso. Acessando o Pipe...');
