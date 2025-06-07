@@ -50,12 +50,12 @@ const PORT = process.env.PORT || 8080;
 
   // Anexar CNH
   const inputFiles = await page.$$('input[type="file"]');
-  await inputFiles[0].setInputFiles(path.resolve(__dirname, 'CNH-e.pdf.pdf'));
+  await inputFiles[0].setInputFiles(path.resolve(__dirname, 'CNH'));
 
   // Anexar 2 arquivos de Procuração
   await inputFiles[1].setInputFiles([
-    path.resolve(__dirname, 'PROCURAÇÃO.pdf'),
-    path.resolve(__dirname, 'PROCURAÇÃO.pdf')
+    path.resolve(__dirname, 'PROCURACAO'),
+    path.resolve(__dirname, 'PROCURACAO')
   ]);
 
   // Clicar em "Criar registro"
