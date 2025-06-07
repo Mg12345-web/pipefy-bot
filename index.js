@@ -42,8 +42,19 @@ const PORT = process.env.PORT || 8080;
     'Endereço Completo': 'Rua Luzia de Jesus, 135, Jardim dos Comerciários, Ribeirão das Neves - MG'
   };
 
+  const statusCampos = [];
+
   for (const [campo, valor] of Object.entries(dados)) {
-    await page.getByLabel(campo).fill(valor);
+    try {
+      const label = await page.getByLabel(campo);
+      await label.scrollIntoViewIfNeeded();
+      await label.fill(valor);
+      console.log(`✅ ${campo} preenchido`);
+      statusCampos.push(`✅ ${campo}`);
+    } catch (error) {
+      console.log(`❌ Erro ao preencher o campo: ${campo}`);
+      statusCampos.push(`❌ ${campo}`);
+    }
   }
 
   const arquivos = fs.readdirSync(__dirname);
@@ -52,37 +63,26 @@ const PORT = process.env.PORT || 8080;
     nome.toLowerCase().includes('procuracao') || nome.toLowerCase().includes('procuração')
   );
 
-  // Rolagem automática para localizar campos de upload
-  const scrollAndFindInput = async (keyword) => {
-    let scrollY = 0;
-    let inputFound = null;
-    for (let i = 0; i < 10; i++) {
-      const inputs = await page.$$('input[type="file"]');
-      for (const input of inputs) {
-        const label = await input.evaluate(el => el.closest('div')?.innerText || '');
-        if (label.toLowerCase().includes(keyword)) {
-          return input;
-        }
-      }
-      scrollY += 500;
-      await page.mouse.wheel(0, scrollY);
-      await page.waitForTimeout(500);
-    }
-    return null;
-  };
+  const inputFiles = await page.$$('input[type="file"]');
 
-  const inputCNH = await scrollAndFindInput('cnh');
-  if (arquivoCNH && inputCNH) {
-    await inputCNH.setInputFiles(path.resolve(__dirname, arquivoCNH));
+  if (arquivoCNH && inputFiles[0]) {
+    await inputFiles[0].scrollIntoViewIfNeeded();
+    await inputFiles[0].setInputFiles(path.resolve(__dirname, arquivoCNH));
     console.log('📎 CNH enviada');
+    statusCampos.push('📎 CNH enviada');
     await page.waitForTimeout(15000);
+  } else {
+    statusCampos.push('❌ CNH não encontrada');
   }
 
-  const inputProc = await scrollAndFindInput('procuracao');
-  if (arquivosProc.length > 0 && inputProc) {
-    await inputProc.setInputFiles(arquivosProc.map(nome => path.resolve(__dirname, nome)));
+  if (arquivosProc.length > 0 && inputFiles[1]) {
+    await inputFiles[1].scrollIntoViewIfNeeded();
+    await inputFiles[1].setInputFiles(arquivosProc.map(nome => path.resolve(__dirname, nome)));
     console.log('📎 Procuração enviada');
+    statusCampos.push('📎 Procuração enviada');
     await page.waitForTimeout(15000);
+  } else {
+    statusCampos.push('❌ Procuração não encontrada');
   }
 
   await page.screenshot({ path: 'erro_antes_do_click.png' });
@@ -101,16 +101,20 @@ const PORT = process.env.PORT || 8080;
   const formStillOpen = await page.$('input[placeholder="Nome Completo"]');
   if (formStillOpen) {
     console.log('⚠️ Formulário ainda aberto. Registro pode não ter sido criado.');
+    statusCampos.push('⚠️ Formulário ainda aberto. Registro pode não ter sido criado.');
   } else {
     console.log('✅ Registro realmente criado com sucesso.');
+    statusCampos.push('✅ Registro criado com sucesso');
   }
 
   await page.screenshot({ path: 'registro_final.png' });
+  fs.writeFileSync('status.txt', statusCampos.join('\n'));
   await browser.close();
 })();
 
 app.get('/', (req, res) => {
-  res.send(`<h2>✅ Robô executado</h2><p><a href="/print">📥 Baixar print final</a><br><a href="/antes">📥 Ver print antes do clique</a></p>`);
+  const status = fs.existsSync('status.txt') ? fs.readFileSync('status.txt', 'utf8') : 'Sem status.';
+  res.send(`<h2>✅ Robô executado</h2><pre>${status}</pre><p><a href="/print">📥 Baixar print final</a><br><a href="/antes">📥 Ver print antes do clique</a></p>`);
 });
 
 app.get('/print', (req, res) => {
