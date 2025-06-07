@@ -26,16 +26,13 @@ const PORT = process.env.PORT || 8080;
   await page.waitForNavigation({ waitUntil: 'load' });
   console.log('✅ Login feito com sucesso.');
 
-  // Acessar a database "Clientes"
   await page.evaluate(() => window.scrollBy(0, 1000));
   await page.getByText('Databases', { exact: true }).click();
   await page.getByText('Clientes', { exact: true }).click();
 
-  // Abrir o formulário
   await page.waitForSelector('button:has-text("Criar registro")', { timeout: 15000 });
   await page.click('button:has-text("Criar registro")');
 
-  // Preencher os dados do formulário
   const dados = {
     'Nome Completo': 'ADRIANO ANTONIO DE SOUZA',
     'CPF OU CNPJ': '039.174.906-60',
@@ -49,7 +46,6 @@ const PORT = process.env.PORT || 8080;
     await page.getByLabel(campo).fill(valor);
   }
 
-  // Buscar arquivos dinamicamente
   const arquivos = fs.readdirSync(__dirname);
   const arquivoCNH = arquivos.find(nome => nome.toLowerCase().includes('cnh'));
   const arquivosProc = arquivos.filter(nome =>
@@ -58,24 +54,24 @@ const PORT = process.env.PORT || 8080;
 
   const inputFiles = await page.$$('input[type="file"]');
 
-  // Anexar CNH
   if (arquivoCNH && inputFiles[0]) {
     await inputFiles[0].setInputFiles(path.resolve(__dirname, arquivoCNH));
     console.log('📎 CNH enviada, aguardando processamento...');
     await page.waitForTimeout(15000);
   }
 
-  // Anexar Procuração
   if (arquivosProc.length > 0 && inputFiles[1]) {
     await inputFiles[1].setInputFiles(arquivosProc.map(nome => path.resolve(__dirname, nome)));
     console.log('📎 Procurações enviadas, aguardando processamento...');
     await page.waitForTimeout(15000);
   }
 
-  // Clicar em "Criar registro"
-  await page.locator('button[data-testid="create-record-fab-button"]').click();
+  // Tirar print antes do clique
+  await page.screenshot({ path: 'antes_criar_registro.png' });
 
-  // Verificação visual de sucesso
+  // Tentar clique forçado no botão "Criar registro"
+  await page.locator('button[data-testid="create-record-fab-button"]').click({ force: true });
+
   await page.waitForTimeout(3000);
   const formStillOpen = await page.$('input[placeholder="Nome Completo"]');
   if (formStillOpen) {
@@ -89,11 +85,19 @@ const PORT = process.env.PORT || 8080;
 })();
 
 app.get('/', (req, res) => {
-  res.send(`<h2>✅ Robô executado</h2><p><a href="/print">📥 Baixar print de confirmação</a></p>`);
+  res.send(`
+    <h2>✅ Robô executado</h2>
+    <p><a href="/print">📥 Baixar print final</a></p>
+    <p><a href="/antes">🕵️ Ver print antes do clique final</a></p>
+  `);
 });
 
 app.get('/print', (req, res) => {
   res.download('registro_final.png');
+});
+
+app.get('/antes', (req, res) => {
+  res.download('antes_criar_registro.png');
 });
 
 app.listen(PORT, () => {
