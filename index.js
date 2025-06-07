@@ -5,6 +5,26 @@ const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 8080;
 
+async function enviarArquivo(page, labelTexto, arquivoLocal, statusCampos) {
+  try {
+    const labelEl = await page.locator(`text="${labelTexto}"`).first();
+    await labelEl.scrollIntoViewIfNeeded();
+    const uploadButton = labelEl.locator('..').locator('text=Adicionar novos arquivos');
+
+    const [fileChooser] = await Promise.all([
+      page.waitForEvent('filechooser'),
+      uploadButton.click()
+    ]);
+
+    await fileChooser.setFiles(arquivoLocal);
+    console.log(`📎 ${labelTexto} enviado`);
+    statusCampos.push(`📎 ${labelTexto} enviado`);
+  } catch (err) {
+    console.log(`❌ Falha ao enviar ${labelTexto}`);
+    statusCampos.push(`❌ Falha ao enviar ${labelTexto}`);
+  }
+}
+
 (async () => {
   console.log(`🖥️ Servidor disponível em http://localhost:${PORT}`);
   console.log('🔐 Acessando o login do Pipefy...');
@@ -57,32 +77,23 @@ const PORT = process.env.PORT || 8080;
     }
   }
 
+  // Buscar arquivos
   const arquivos = fs.readdirSync(__dirname);
-  const arquivoCNH = arquivos.find(nome => nome.toLowerCase().includes('cnh'));
-  const arquivosProc = arquivos.filter(nome =>
-    nome.toLowerCase().includes('procuracao') || nome.toLowerCase().includes('procuração')
+  const cnh = arquivos.find(f => f.toLowerCase().includes('cnh'));
+  const proc = arquivos.find(f =>
+    f.toLowerCase().includes('procuracao') || f.toLowerCase().includes('procuração')
   );
 
-  const inputFiles = await page.$$('input[type="file"]');
-
-  if (arquivoCNH && inputFiles[0]) {
-    await inputFiles[0].scrollIntoViewIfNeeded();
-    await inputFiles[0].setInputFiles(path.resolve(__dirname, arquivoCNH));
-    console.log('📎 CNH enviada');
-    statusCampos.push('📎 CNH enviada');
-    await page.waitForTimeout(15000);
+  if (cnh) {
+    await enviarArquivo(page, '* CNH', path.resolve(__dirname, cnh), statusCampos);
   } else {
-    statusCampos.push('❌ CNH não encontrada');
+    statusCampos.push('❌ Arquivo CNH não encontrado');
   }
 
-  if (arquivosProc.length > 0 && inputFiles[1]) {
-    await inputFiles[1].scrollIntoViewIfNeeded();
-    await inputFiles[1].setInputFiles(arquivosProc.map(nome => path.resolve(__dirname, nome)));
-    console.log('📎 Procuração enviada');
-    statusCampos.push('📎 Procuração enviada');
-    await page.waitForTimeout(15000);
+  if (proc) {
+    await enviarArquivo(page, '* Procuração', path.resolve(__dirname, proc), statusCampos);
   } else {
-    statusCampos.push('❌ Procuração não encontrada');
+    statusCampos.push('❌ Arquivo Procuração não encontrado');
   }
 
   await page.screenshot({ path: 'erro_antes_do_click.png' });
