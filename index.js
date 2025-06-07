@@ -1,5 +1,6 @@
 const { chromium } = require('playwright');
 const express = require('express');
+const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 8080;
 
@@ -43,10 +44,9 @@ const PORT = process.env.PORT || 8080;
     await botaoCriar.click();
     await page.waitForTimeout(4000); // Aguarda a nova tela carregar
 
-    // Lê o conteúdo da tela após o clique
-    const conteudo = await page.content();
-    console.log('🧠 Conteúdo após clicar em "Criar registro":\n');
-    console.log(conteudo);
+    // Tira o print
+    await page.screenshot({ path: 'print_criar_registro.png', fullPage: true });
+    console.log('📸 Print tirado com sucesso!');
   } else {
     console.log('🔴 Botão "Criar registro" não encontrado.');
   }
@@ -54,8 +54,19 @@ const PORT = process.env.PORT || 8080;
   await browser.close();
 })();
 
+// Página inicial com link para download do print
 app.get('/', (req, res) => {
-  res.send(`<h2>✅ Robô executado</h2>`);
+  res.send(`<h2>✅ Robô executado</h2><p><a href="/print">📥 Clique aqui para baixar o print</a></p>`);
+});
+
+// Rota para download do print
+app.get('/print', (req, res) => {
+  const filePath = 'print_criar_registro.png';
+  if (fs.existsSync(filePath)) {
+    res.download(filePath);
+  } else {
+    res.status(404).send('❌ Print não encontrado');
+  }
 });
 
 app.listen(PORT, () => {
