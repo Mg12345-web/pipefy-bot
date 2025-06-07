@@ -1,13 +1,5 @@
-from pathlib import Path
-
-# Simplesmente limpando a área antes de reescrever o novo código JS
-index_path = Path("/mnt/data/index.js")
-index_path.write_text("")  # Limpa conteúdo antigo para evitar conflitos
-
-index_code = """
 const { chromium } = require('playwright');
 const express = require('express');
-const fs = require('fs');
 const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -33,18 +25,17 @@ const PORT = process.env.PORT || 8080;
   await page.waitForNavigation({ waitUntil: 'load' });
   console.log('✅ Login feito com sucesso.');
 
+  // Navegar até a Database "Clientes"
   await page.evaluate(() => window.scrollBy(0, 1000));
-  await page.waitForSelector('text=Databases');
   await page.click('text=Databases');
-
   await page.waitForSelector('text=Clientes');
   await page.click('text=Clientes');
 
+  // Clicar em "Criar registro"
   await page.waitForSelector('button:has-text("Criar registro")');
   await page.click('button:has-text("Criar registro")');
 
-  await page.waitForSelector('input[placeholder="Digite aqui ..."]');
-
+  // Dados extraídos da procuração
   const nome = "ADRIANO ANTONIO DE SOUZA";
   const cpf = "039.174.906-60";
   const estadoCivil = "Casado(a)";
@@ -53,36 +44,42 @@ const PORT = process.env.PORT || 8080;
   const telefone = "31988429016";
   const endereco = "Rua Luzia de Jesus, 135, Jardim dos Comerciários, Ribeirão das Neves - MG";
 
-  const inputFields = await page.$$('input[placeholder="Digite aqui ..."]');
-  await inputFields[0].fill(nome);
-  await inputFields[1].fill(cpf);
-  await page.locator('label:has-text("Estado Civil")').click();
-  await page.locator(`text=${estadoCivil}`).click();
-  await inputFields[2].fill(profissao);
-  await inputFields[3].fill(email);
-  await inputFields[4].fill(telefone);
-  await inputFields[5].fill(endereco);
+  // Preencher campos de texto
+  const inputs = await page.$$('input[placeholder="Digite aqui ..."]');
+  await inputs[0].fill(nome);
+  await inputs[1].fill(cpf);
 
-  const cnhInput = await page.locator('input[type="file"]').nth(0);
-  await cnhInput.setInputFiles(path.resolve(__dirname, 'CNH-e.pdf.pdf'));
+  // Estado Civil
+  await page.click('label:has-text("Estado Civil")');
+  await page.click(`text=${estadoCivil}`);
 
-  const procuraInput = await page.locator('input[type="file"]').nth(1);
-  await procuraInput.setInputFiles([
-    path.resolve(__dirname, 'PROCURAÇÃO.pdf'),
-    path.resolve(__dirname, 'PROCURAÇÃO.pdf')
+  await inputs[2].fill(profissao);
+  await inputs[3].fill(email);
+  await inputs[4].fill(telefone);
+  await inputs[5].fill(endereco);
+
+  // Upload dos arquivos (CNH e 2x procuração)
+  const arquivos = await page.$$('input[type="file"]');
+  await arquivos[0].setInputFiles(path.join(__dirname, 'CNH-e.pdf.pdf'));
+  await arquivos[1].setInputFiles([
+    path.join(__dirname, 'PROCURAÇÃO.pdf'),
+    path.join(__dirname, 'PROCURAÇÃO.pdf')
   ]);
 
+  // Clicar em "Criar registro"
   await page.click('button:has-text("Criar registro")');
   console.log('✅ Registro criado com sucesso.');
 
-  await page.waitForTimeout(4000);
+  // Print final
+  await page.waitForTimeout(3000);
   await page.screenshot({ path: 'registro_final.png' });
 
   await browser.close();
 })();
 
+// Rota para baixar print
 app.get('/', (req, res) => {
-  res.send('<h2>✅ Robô executado</h2><p><a href="/print">📥 Baixar print de confirmação</a></p>');
+  res.send(`<h2>✅ Robô executado com sucesso</h2><p><a href="/print">📥 Baixar print</a></p>`);
 });
 
 app.get('/print', (req, res) => {
@@ -92,7 +89,3 @@ app.get('/print', (req, res) => {
 app.listen(PORT, () => {
   console.log(`🖥️ Servidor escutando em http://localhost:${PORT}`);
 });
-"""
-
-index_path.write_text(index_code.strip())
-index_path
