@@ -47,20 +47,20 @@ const PORT = process.env.PORT || 8080;
 
   for (const [campo, valor] of Object.entries(dados)) {
     if (campo === 'Estado Civil') {
-      // Abrir o primeiro dropdown (assumindo que é o certo)
-      const dropdowns = await page.$$('div[role="combobox"]');
-      await dropdowns[0].click();
+      // Localiza o input do tipo combobox e clica para abrir o dropdown
+      const combobox = await page.locator('input[role="combobox"]').first();
+      await combobox.click();
       await page.waitForTimeout(500);
 
-      // Fechar overlays se houverem
+      // Tenta fechar overlay se atrapalhar
       const overlay = await page.$('div[data-testid="start-form-header-layer-close"]');
       if (overlay) {
         await page.evaluate(el => el.click(), overlay);
         await page.waitForTimeout(500);
-        await dropdowns[0].click();
+        await combobox.click(); // Abre novamente após fechar overlay
       }
 
-      // Clicar na opção certa
+      // Seleciona a opção certa pelo título
       await page.locator(`div[title="${valor}"]`).first().click();
     } else {
       await page.getByLabel(campo).fill(valor);
