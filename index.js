@@ -31,19 +31,11 @@ const PORT = process.env.PORT || 8080;
   await page.getByText('Databases', { exact: true }).click();
   await page.getByText('Clientes', { exact: true }).click();
 
-  // Criar registro
-  await page.waitForSelector('text="Criar registro"', { timeout: 10000 });
+  // Criar registro (abrir formulário)
+  await page.waitForSelector('button:has-text("Criar registro")', { timeout: 15000 });
+  await page.click('button:has-text("Criar registro")');
 
-  // Fechar overlay se necessário
-  const overlay = await page.$('div[data-testid="start-form-header-layer-close"]');
-  if (overlay) {
-    await overlay.click();
-    await page.waitForTimeout(500);
-  }
-
-  await page.locator('text="Criar registro"').first().click();
-
-  // Dados para preenchimento (sem Estado Civil)
+  // Dados para preenchimento
   const dados = {
     'Nome Completo': 'ADRIANO ANTONIO DE SOUZA',
     'CPF OU CNPJ': '039.174.906-60',
@@ -60,30 +52,35 @@ const PORT = process.env.PORT || 8080;
   // Buscar arquivos dinamicamente
   const arquivos = fs.readdirSync(__dirname);
   const arquivoCNH = arquivos.find(nome => nome.toLowerCase().includes('cnh'));
-  const arquivosProc = arquivos.filter(nome =>
+  const arquivosProc = arquivos.filter(nome => 
     nome.toLowerCase().includes('procuracao') || nome.toLowerCase().includes('procuração')
   );
 
   // Anexar CNH (se encontrado)
-  const inputFiles = await page.$$('input[type="file"]');
-  if (arquivoCNH && inputFiles.length > 0) {
+  if (arquivoCNH) {
+    const inputFiles = await page.$$('input[type="file"]');
     await inputFiles[0].setInputFiles(path.resolve(__dirname, arquivoCNH));
   }
 
   // Anexar Procurações (se encontrados)
-  if (arquivosProc.length > 0 && inputFiles.length > 1) {
+  if (arquivosProc.length > 0) {
+    const inputFiles = await page.$$('input[type="file"]');
     await inputFiles[1].setInputFiles(arquivosProc.map(nome => path.resolve(__dirname, nome)));
   }
 
-  // Clicar em "Criar registro"
-  const criarBtn = page.locator('text="Criar registro"').nth(1);
-  await criarBtn.click();
-  console.log('✅ Registro criado com sucesso.');
+  // Clicar no botão final de "Criar registro"
+  await page.locator('button[data-testid="create-record-fab-button"]').click();
 
-  // Esperar e tirar print
-  await page.waitForTimeout(4000);
+  // Verificar se o formulário fechou (confirmando criação)
+  await page.waitForTimeout(3000);
+  const formStillOpen = await page.$('input[placeholder="Nome Completo"]');
+  if (formStillOpen) {
+    console.log('⚠️ O formulário ainda está aberto. O registro pode não ter sido criado.');
+  } else {
+    console.log('✅ Registro realmente criado com sucesso.');
+  }
+
   await page.screenshot({ path: 'registro_final.png' });
-
   await browser.close();
 })();
 
