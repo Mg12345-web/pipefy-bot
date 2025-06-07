@@ -26,19 +26,16 @@ const PORT = process.env.PORT || 8080;
   await page.waitForNavigation({ waitUntil: 'load' });
   console.log('✅ Login feito com sucesso.');
 
-  // Acessar "Clientes"
   await page.evaluate(() => window.scrollBy(0, 1000));
   await page.getByText('Databases', { exact: true }).click();
   await page.getByText('Clientes', { exact: true }).click();
 
-  // Abrir o formulário
   await page.waitForSelector('button:has-text("Criar registro")', { timeout: 15000 });
   await page.click('button:has-text("Criar registro")');
 
-  // Preencher os dados
   const dados = {
     'Nome Completo': 'ADRIANO ANTONIO DE SOUZA',
-    'CPF OU CNPJ': '039.174.906-60',
+    'CPF OU CNPJ': '414.746.148-41',  // ✅ CPF atualizado
     'Profissão': 'Vigilante',
     'Email': 'jonas1gui@gmail.com',
     'Número de telefone': '31988429016',
@@ -49,7 +46,6 @@ const PORT = process.env.PORT || 8080;
     await page.getByLabel(campo).fill(valor);
   }
 
-  // Buscar arquivos
   const arquivos = fs.readdirSync(__dirname);
   const arquivoCNH = arquivos.find(nome => nome.toLowerCase().includes('cnh'));
   const arquivosProc = arquivos.filter(nome =>
@@ -58,24 +54,20 @@ const PORT = process.env.PORT || 8080;
 
   const inputFiles = await page.$$('input[type="file"]');
 
-  // CNH
   if (arquivoCNH && inputFiles[0]) {
     await inputFiles[0].setInputFiles(path.resolve(__dirname, arquivoCNH));
     console.log('📎 CNH enviada');
     await page.waitForTimeout(15000);
   }
 
-  // Procuração
   if (arquivosProc.length > 0 && inputFiles[1]) {
     await inputFiles[1].setInputFiles(arquivosProc.map(nome => path.resolve(__dirname, nome)));
     console.log('📎 Procuração enviada');
     await page.waitForTimeout(15000);
   }
 
-  // 🔍 Tira print ANTES de clicar, para análise
   await page.screenshot({ path: 'erro_antes_do_click.png' });
 
-  // Força clique via JS se necessário
   try {
     await page.locator('button[data-testid="create-record-fab-button"]').click({ timeout: 5000 });
   } catch (e) {
@@ -86,7 +78,6 @@ const PORT = process.env.PORT || 8080;
     });
   }
 
-  // Verifica se o formulário fechou
   await page.waitForTimeout(5000);
   const formStillOpen = await page.$('input[placeholder="Nome Completo"]');
   if (formStillOpen) {
