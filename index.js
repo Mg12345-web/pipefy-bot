@@ -52,7 +52,8 @@ const PORT = process.env.PORT || 8080;
       return parent ? parent.querySelector('input, textarea') : null;
     });
     if (input) {
-      await input.fill(valor);
+      const inputLocator = page.locator(await input.evaluate(el => el));
+      await inputLocator.fill(valor);
     } else if (campo === 'Estado Civil') {
       await label.click();
       await page.click(`text=${valor}`);
