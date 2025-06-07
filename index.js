@@ -34,11 +34,10 @@ const PORT = process.env.PORT || 8080;
   await page.waitForSelector('button:has-text("Criar registro")');
   await page.click('button:has-text("Criar registro")');
 
-  // Dados para preenchimento
+  // Dados para preenchimento (sem Estado Civil)
   const dados = {
     'Nome Completo': 'ADRIANO ANTONIO DE SOUZA',
     'CPF OU CNPJ': '039.174.906-60',
-    'Estado Civil': 'Casado(a)',
     'Profissão': 'Vigilante',
     'Email': 'jonas1gui@gmail.com',
     'Número de telefone': '31988429016',
@@ -46,25 +45,7 @@ const PORT = process.env.PORT || 8080;
   };
 
   for (const [campo, valor] of Object.entries(dados)) {
-    if (campo === 'Estado Civil') {
-      // Localiza o input do tipo combobox e clica para abrir o dropdown
-      const combobox = await page.locator('input[role="combobox"]').first();
-      await combobox.click();
-      await page.waitForTimeout(500);
-
-      // Tenta fechar overlay se atrapalhar
-      const overlay = await page.$('div[data-testid="start-form-header-layer-close"]');
-      if (overlay) {
-        await page.evaluate(el => el.click(), overlay);
-        await page.waitForTimeout(500);
-        await combobox.click(); // Abre novamente após fechar overlay
-      }
-
-      // Seleciona a opção certa pelo título
-      await page.locator(`div[title="${valor}"]`).first().click();
-    } else {
-      await page.getByLabel(campo).fill(valor);
-    }
+    await page.getByLabel(campo).fill(valor);
   }
 
   // Anexar CNH
