@@ -1,4 +1,3 @@
-
 const { chromium } = require('playwright');
 
 (async () => {
@@ -7,7 +6,10 @@ const { chromium } = require('playwright');
   const page = await context.newPage();
 
   console.log('🔐 Acessando o login do Pipefy...');
-  await page.goto('https://app.pipefy.com/login');
+  await page.goto('https://app.pipefy.com/login', { waitUntil: 'load' });
+
+  // Espera o campo de e-mail aparecer
+  await page.waitForSelector('input[name=email]', { timeout: 60000 });
 
   await page.fill('input[name=email]', 'juridicomgmultas@gmail.com');
   await page.click('button[type=submit]');
