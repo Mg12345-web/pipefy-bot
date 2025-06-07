@@ -5,18 +5,18 @@ const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-async function enviarArquivo(page, labelTexto, arquivoLocal, statusCampos) {
+async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, statusCampos) {
   try {
     const nomeArquivo = path.basename(arquivoLocal);
-    const labelEl = await page.locator(`text="${labelTexto}"`).first();
-    await labelEl.scrollIntoViewIfNeeded();
-    await page.waitForTimeout(500);
+    const botoesUpload = await page.locator('button[data-testid="attachments-dropzone-button"]');
+    const botao = botoesUpload.nth(index);
 
-    const uploadButton = labelEl.locator('..').locator('text=Adicionar novos arquivos');
+    await botao.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(1000);
 
     const [fileChooser] = await Promise.all([
       page.waitForEvent('filechooser'),
-      uploadButton.evaluate(el => el.click()) // clique forçado
+      botao.evaluate(el => el.click()) // clique forçado
     ]);
 
     await fileChooser.setFiles(arquivoLocal);
@@ -27,7 +27,7 @@ async function enviarArquivo(page, labelTexto, arquivoLocal, statusCampos) {
 
     if (sucessoUpload) {
       await page.screenshot({ path: `upload_${labelTexto.replace(/\*/g, '').trim().toLowerCase()}.png` });
-      await page.waitForTimeout(15000); // aguarda 15 segundos após envio
+      await page.waitForTimeout(15000); // tempo de espera extra
       console.log(`✅ ${labelTexto} enviado com sucesso`);
       statusCampos.push(`✅ ${labelTexto} enviado`);
     } else {
@@ -92,7 +92,7 @@ async function enviarArquivo(page, labelTexto, arquivoLocal, statusCampos) {
     }
   }
 
-  // Rolar até o final para garantir que CNH e Procuração apareçam
+  // Rolar até o final para garantir visibilidade dos campos
   for (let i = 0; i < 5; i++) {
     await page.evaluate(() => window.scrollBy(0, 300));
     await page.waitForTimeout(500);
@@ -106,13 +106,13 @@ async function enviarArquivo(page, labelTexto, arquivoLocal, statusCampos) {
   );
 
   if (cnh) {
-    await enviarArquivo(page, '* CNH', path.resolve(__dirname, cnh), statusCampos);
+    await enviarArquivoPorOrdem(page, 0, '* CNH', path.resolve(__dirname, cnh), statusCampos);
   } else {
     statusCampos.push('❌ Arquivo CNH não encontrado');
   }
 
   if (proc) {
-    await enviarArquivo(page, '* Procuração', path.resolve(__dirname, proc), statusCampos);
+    await enviarArquivoPorOrdem(page, 1, '* Procuração', path.resolve(__dirname, proc), statusCampos);
   } else {
     statusCampos.push('❌ Arquivo Procuração não encontrado');
   }
