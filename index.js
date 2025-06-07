@@ -7,8 +7,11 @@ const PORT = process.env.PORT || 8080;
 
 async function enviarArquivo(page, labelTexto, arquivoLocal, statusCampos) {
   try {
+    const nomeArquivo = path.basename(arquivoLocal);
     const labelEl = await page.locator(`text="${labelTexto}"`).first();
     await labelEl.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(500);
+
     const uploadButton = labelEl.locator('..').locator('text=Adicionar novos arquivos');
 
     const [fileChooser] = await Promise.all([
@@ -17,8 +20,18 @@ async function enviarArquivo(page, labelTexto, arquivoLocal, statusCampos) {
     ]);
 
     await fileChooser.setFiles(arquivoLocal);
-    console.log(`📎 ${labelTexto} enviado`);
-    statusCampos.push(`📎 ${labelTexto} enviado`);
+    console.log(`⏳ Enviando ${labelTexto}...`);
+    await page.waitForTimeout(2000);
+
+    const sucessoUpload = await page.locator(`text="${nomeArquivo}"`).first().isVisible({ timeout: 7000 });
+
+    if (sucessoUpload) {
+      console.log(`✅ ${labelTexto} enviado com sucesso`);
+      statusCampos.push(`✅ ${labelTexto} enviado`);
+    } else {
+      console.log(`❌ ${labelTexto} falhou (não visível após envio)`);
+      statusCampos.push(`❌ ${labelTexto} falhou (não visível após envio)`);
+    }
   } catch (err) {
     console.log(`❌ Falha ao enviar ${labelTexto}`);
     statusCampos.push(`❌ Falha ao enviar ${labelTexto}`);
@@ -75,6 +88,12 @@ async function enviarArquivo(page, labelTexto, arquivoLocal, statusCampos) {
       console.log(`❌ Erro ao preencher o campo: ${campo}`);
       statusCampos.push(`❌ ${campo}`);
     }
+  }
+
+  // Rolar até o final para garantir que CNH e Procuração apareçam
+  for (let i = 0; i < 5; i++) {
+    await page.evaluate(() => window.scrollBy(0, 300));
+    await page.waitForTimeout(500);
   }
 
   // Buscar arquivos
