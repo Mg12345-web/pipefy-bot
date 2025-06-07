@@ -1,5 +1,6 @@
 const { chromium } = require('playwright');
 const express = require('express');
+const fs = require('fs');
 const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -13,73 +14,77 @@ const PORT = process.env.PORT || 8080;
   const page = await context.newPage();
 
   await page.goto('https://signin.pipefy.com/realms/pipefy/protocol/openid-connect/auth?client_id=pipefy-auth&redirect_uri=https%3A%2F%2Fapp-auth.pipefy.com%2Fauth_callback&response_type=code&scope=openid+email+profile');
-
-  await page.waitForSelector('input[name="username"]', { timeout: 60000 });
+  await page.waitForSelector('input[name="username"]');
   await page.fill('input[name="username"]', 'juridicomgmultas@gmail.com');
   await page.click('#kc-login');
-
-  await page.waitForSelector('input[name="password"]', { timeout: 60000 });
+  await page.waitForSelector('input[name="password"]');
   await page.fill('input[name="password"]', 'Mg.12345@');
   await page.click('#kc-login');
 
   await page.waitForNavigation({ waitUntil: 'load' });
   console.log('✅ Login feito com sucesso.');
 
-  // Navegar até a Database "Clientes"
+  // Acessar Databases > Clientes
   await page.evaluate(() => window.scrollBy(0, 1000));
   await page.click('text=Databases');
-  await page.waitForSelector('text=Clientes');
   await page.click('text=Clientes');
 
-  // Clicar em "Criar registro"
+  // Abrir formulário
   await page.waitForSelector('button:has-text("Criar registro")');
   await page.click('button:has-text("Criar registro")');
+  await page.waitForTimeout(1000);
 
-  // Dados extraídos da procuração
-  const nome = "ADRIANO ANTONIO DE SOUZA";
-  const cpf = "039.174.906-60";
-  const estadoCivil = "Casado(a)";
-  const profissao = "Vigilante";
-  const email = "jonas1gui@gmail.com";
-  const telefone = "31988429016";
-  const endereco = "Rua Luzia de Jesus, 135, Jardim dos Comerciários, Ribeirão das Neves - MG";
+  // Dados da procuração
+  const dados = {
+    'Nome Completo': 'ADRIANO ANTONIO DE SOUZA',
+    'CPF OU CNPJ': '039.174.906-60',
+    'Estado Civil': 'Casado(a)',
+    'Profissão': 'Vigilante',
+    'Email': 'jonas1gui@gmail.com',
+    'Número de telefone': '31988429016',
+    'Endereço Completo': 'Rua Luzia de Jesus, 135, Jardim dos Comerciários, Ribeirão das Neves - MG'
+  };
 
-  // Preencher campos de texto
-  const inputs = await page.$$('input[placeholder="Digite aqui ..."]');
-  await inputs[0].fill(nome);
-  await inputs[1].fill(cpf);
+  for (const [campo, valor] of Object.entries(dados)) {
+    const label = await page.locator(`text=${campo}`).first();
+    const input = await label.evaluateHandle(el => {
+      const parent = el.closest('div');
+      return parent ? parent.querySelector('input, textarea') : null;
+    });
+    if (input) {
+      await input.fill(valor);
+    } else if (campo === 'Estado Civil') {
+      await label.click();
+      await page.click(`text=${valor}`);
+    }
+  }
 
-  // Estado Civil
-  await page.click('label:has-text("Estado Civil")');
-  await page.click(`text=${estadoCivil}`);
+  // Anexar arquivos
+  const arquivos = {
+    cnh: path.resolve(__dirname, 'CNH-e.pdf.pdf'),
+    procuracoes: [
+      path.resolve(__dirname, 'PROCURAÇÃO.pdf'),
+      path.resolve(__dirname, 'PROCURAÇÃO.pdf')
+    ]
+  };
 
-  await inputs[2].fill(profissao);
-  await inputs[3].fill(email);
-  await inputs[4].fill(telefone);
-  await inputs[5].fill(endereco);
+  const fileInputs = await page.locator('input[type="file"]');
+  await fileInputs.nth(0).setInputFiles(arquivos.cnh);
+  await fileInputs.nth(1).setInputFiles(arquivos.procuracoes);
 
-  // Upload dos arquivos (CNH e 2x procuração)
-  const arquivos = await page.$$('input[type="file"]');
-  await arquivos[0].setInputFiles(path.join(__dirname, 'CNH-e.pdf.pdf'));
-  await arquivos[1].setInputFiles([
-    path.join(__dirname, 'PROCURAÇÃO.pdf'),
-    path.join(__dirname, 'PROCURAÇÃO.pdf')
-  ]);
-
-  // Clicar em "Criar registro"
+  // Clicar no botão final
   await page.click('button:has-text("Criar registro")');
   console.log('✅ Registro criado com sucesso.');
 
-  // Print final
+  // Tirar print
   await page.waitForTimeout(3000);
   await page.screenshot({ path: 'registro_final.png' });
 
   await browser.close();
 })();
 
-// Rota para baixar print
 app.get('/', (req, res) => {
-  res.send(`<h2>✅ Robô executado com sucesso</h2><p><a href="/print">📥 Baixar print</a></p>`);
+  res.send(`<h2>✅ Robô executado</h2><p><a href="/print">📥 Baixar print de confirmação</a></p>`);
 });
 
 app.get('/print', (req, res) => {
