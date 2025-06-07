@@ -52,39 +52,49 @@ const PORT = process.env.PORT || 8080;
     nome.toLowerCase().includes('procuracao') || nome.toLowerCase().includes('procuração')
   );
 
-  const inputFiles = await page.$$('input[type="file"]');
+  // Rolagem automática para localizar campos de upload
+  const scrollAndFindInput = async (keyword) => {
+    let scrollY = 0;
+    let inputFound = null;
+    for (let i = 0; i < 10; i++) {
+      const inputs = await page.$$('input[type="file"]');
+      for (const input of inputs) {
+        const label = await input.evaluate(el => el.closest('div')?.innerText || '');
+        if (label.toLowerCase().includes(keyword)) {
+          return input;
+        }
+      }
+      scrollY += 500;
+      await page.mouse.wheel(0, scrollY);
+      await page.waitForTimeout(500);
+    }
+    return null;
+  };
 
-  if (arquivoCNH && inputFiles[0]) {
-    await inputFiles[0].setInputFiles(path.resolve(__dirname, arquivoCNH));
+  const inputCNH = await scrollAndFindInput('cnh');
+  if (arquivoCNH && inputCNH) {
+    await inputCNH.setInputFiles(path.resolve(__dirname, arquivoCNH));
     console.log('📎 CNH enviada');
     await page.waitForTimeout(15000);
   }
 
-  if (arquivosProc.length > 0 && inputFiles[1]) {
-    await inputFiles[1].setInputFiles(arquivosProc.map(nome => path.resolve(__dirname, nome)));
+  const inputProc = await scrollAndFindInput('procuracao');
+  if (arquivosProc.length > 0 && inputProc) {
+    await inputProc.setInputFiles(arquivosProc.map(nome => path.resolve(__dirname, nome)));
     console.log('📎 Procuração enviada');
     await page.waitForTimeout(15000);
   }
 
   await page.screenshot({ path: 'erro_antes_do_click.png' });
 
-  // Verifica se o botão está habilitado antes de tentar clicar
-  const botaoCriar = await page.locator('button[data-testid="create-record-fab-button"]');
-  const habilitado = await botaoCriar.isEnabled();
-
-  if (habilitado) {
-    try {
-      await botaoCriar.click({ timeout: 5000 });
-      console.log('✅ Clique no botão Criar registro realizado.');
-    } catch (e) {
-      console.log('⚠️ Clique normal falhou. Tentando forçar com JavaScript...');
-      await page.evaluate(() => {
-        const btn = document.querySelector('button[data-testid="create-record-fab-button"]');
-        if (btn) btn.click();
-      });
-    }
-  } else {
-    console.log('❌ Botão "Criar registro" está desabilitado. Pode haver erro em algum campo.');
+  try {
+    await page.locator('button[data-testid="create-record-fab-button"]').click({ timeout: 5000 });
+  } catch (e) {
+    console.log('⚠️ Clique normal falhou. Tentando forçar com JavaScript...');
+    await page.evaluate(() => {
+      const btn = document.querySelector('button[data-testid="create-record-fab-button"]');
+      if (btn) btn.click();
+    });
   }
 
   await page.waitForTimeout(5000);
