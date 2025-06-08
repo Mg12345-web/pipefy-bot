@@ -112,6 +112,43 @@ async function executarRobo() {
 
     await page.screenshot({ path: 'registro_final.png' });
     fs.writeFileSync('status.txt', statusCampos.join('\n'));
+    // 📁 Acessando database CRLV
+console.log('📄 Acessando banco CRLV...');
+await page.getByText('Databases', { exact: true }).click();
+await page.getByText('CRLV', { exact: true }).click();
+await page.click('button:has-text("Criar registro")');
+
+// Dados fictícios do CRLV — substitua depois com OCR real
+const dadosCRLV = {
+  'Placa': 'GKD0F82',
+  'CHASSI': '9C2KF4300NR006285',
+  'RENAVAM': '01292345630',
+  'Estado de emplacamento': 'SP'
+};
+
+// Preenchimento dos campos do CRLV
+for (const [campo, valor] of Object.entries(dadosCRLV)) {
+  try {
+    const label = await page.getByLabel(campo);
+    await label.scrollIntoViewIfNeeded();
+    await label.fill(valor);
+    console.log(`✅ ${campo} preenchido`);
+    statusCampos.push(`✅ ${campo} preenchido`);
+  } catch {
+    console.log(`❌ ${campo} não encontrado`);
+    statusCampos.push(`❌ ${campo} não encontrado`);
+  }
+}
+
+// Upload do CRLV (fixo para teste agora)
+const crlvPath = path.resolve(__dirname, 'cnh_teste.pdf');
+await enviarArquivoPorOrdem(page, 0, '* CRLV (teste)', crlvPath, statusCampos);
+
+// Finaliza CRLV
+await page.waitForTimeout(1000);
+await page.click('button:has-text("Criar registro")');
+console.log('✅ Registro CRLV criado com sucesso');
+statusCampos.push('✅ Registro CRLV criado com sucesso');
     await browser.close();
   } catch (err) {
     const msg = '❌ Erro durante execução: ' + err.message;
