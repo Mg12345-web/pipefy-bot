@@ -1,5 +1,3 @@
-// index.js - Orquestrador geral com logs visíveis no Railway
-
 const express = require('express');
 const { iniciarLogin, getPage } = require('./robo_login');
 const cadastrarClientes = require('./robo_clientes');
@@ -7,35 +5,33 @@ const cadastrarClientes = require('./robo_clientes');
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// Página inicial simples
 app.get('/', (req, res) => {
   res.send(`
     <h2>🚀 Robôs Pipefy</h2>
     <ul>
-      <li><a href="/executar/clientes">Clique aqui para rodar o robô de clientes</a></li>
+      <li><a href="/ping">/ping</a></li>
+      <li><a href="/executar/clientes">Cadastrar Cliente</a></li>
     </ul>
   `);
 });
 
-// Rota de execução do robô de clientes
-app.get('/executar/clientes', async (req, res) => {
-  res.send('<h3>⏳ Robô de clientes em execução. Veja os logs no Railway.</h3>');
+app.get('/ping', (req, res) => {
+  console.log('🔁 Ping recebido!');
+  res.send('✅ API ativa!');
+});
 
-  console.log('🚦 Iniciando fluxo do robô de clientes...');
+app.get('/executar/clientes', async (req, res) => {
+  console.log('🧠 Iniciando execução completa...');
+  res.send('<h3>⏳ Executando robô de clientes. Verifique os logs no Railway.</h3>');
   try {
-    await iniciarLogin(); // Login no Pipefy
+    await iniciarLogin();
     const page = getPage();
-    await cadastrarClientes(page); // Executa o cadastro
-    console.log('✅ Robô de clientes finalizado com sucesso.');
+    await cadastrarClientes(page);
   } catch (erro) {
-    console.error('❌ Erro durante execução do robô de clientes:', erro);
+    console.error('❌ Erro na execução:', erro);
   }
 });
 
-// Inicializa o servidor
-app.get('/ping', (req, res) => {
-  res.send('🔄 API ativa!');
-});
 app.listen(PORT, () => {
   console.log(`🖥️ Servidor rodando em http://localhost:${PORT}`);
 });
