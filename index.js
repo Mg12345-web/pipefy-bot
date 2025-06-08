@@ -3,7 +3,15 @@ const path = require('path');
 const fs = require('fs');
 const https = require('https');
 
+let rodando = false;
+
 (async () => {
+  if (rodando) {
+    console.log('⏳ Robô já está em execução. Abortando novo disparo.');
+    return;
+  }
+  rodando = true;
+
   const statusCampos = [];
   const log = (msg) => {
     statusCampos.push(msg);
@@ -107,6 +115,8 @@ const https = require('https');
   } catch (err) {
     log('❌ Erro durante execução: ' + err.message);
   }
+
+  rodando = false;
 })();
 
 function baixarArquivo(url, destino) {
