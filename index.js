@@ -1,3 +1,5 @@
+// index.js atualizado com clique direto no botão 17 (dentro do modal)
+
 const { chromium } = require('playwright');
 const express = require('express');
 const path = require('path');
@@ -39,36 +41,46 @@ async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, stat
     ]);
 
     await fileChooser.setFiles(arquivoLocal);
+    console.log(`⏳ Enviando ${labelTexto}...`);
     await page.waitForTimeout(2000);
 
     const sucessoUpload = await page.locator(`text="${nomeArquivo}"`).first().isVisible({ timeout: 7000 });
+
     if (sucessoUpload) {
       await page.waitForTimeout(15000);
+      console.log(`✅ ${labelTexto} enviado com sucesso`);
       statusCampos.push(`✅ ${labelTexto} enviado`);
     } else {
+      console.log(`❌ ${labelTexto} falhou (não visível após envio)`);
       statusCampos.push(`❌ ${labelTexto} falhou (não visível após envio)`);
     }
-  } catch {
+  } catch (err) {
+    console.log(`❌ Falha ao enviar ${labelTexto}`);
     statusCampos.push(`❌ Falha ao enviar ${labelTexto}`);
   }
 }
 
 (async () => {
+  console.log(`🖥️ Servidor disponível em http://localhost:${PORT}`);
+  console.log('🔐 Acessando o login do Pipefy...');
+
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext();
   const page = await context.newPage();
 
-  const statusCampos = [];
-
   await page.goto('https://signin.pipefy.com/realms/pipefy/protocol/openid-connect/auth?client_id=pipefy-auth&redirect_uri=https%3A%2F%2Fapp-auth.pipefy.com%2Fauth_callback&response_type=code&scope=openid+email+profile');
+  await page.waitForSelector('input[name="username"]', { timeout: 60000 });
   await page.fill('input[name="username"]', 'juridicomgmultas@gmail.com');
   await page.click('#kc-login');
+  await page.waitForSelector('input[name="password"]', { timeout: 60000 });
   await page.fill('input[name="password"]', 'Mg.12345@');
   await page.click('#kc-login');
   await page.waitForNavigation({ waitUntil: 'load' });
+  console.log('✅ Login feito com sucesso.');
 
   await page.getByText('Databases', { exact: true }).click();
   await page.getByText('Clientes', { exact: true }).click();
+  await page.waitForSelector('button:has-text("Criar registro")', { timeout: 15000 });
   await page.click('button:has-text("Criar registro")');
 
   const dados = {
@@ -80,15 +92,24 @@ async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, stat
     'Endereço Completo': 'Rua Luzia de Jesus, 135, Jardim dos Comerciários, Ribeirão das Neves - MG'
   };
 
+  const statusCampos = [];
+
   for (const [campo, valor] of Object.entries(dados)) {
     try {
       const label = await page.getByLabel(campo);
       await label.scrollIntoViewIfNeeded();
       await label.fill(valor);
+      console.log(`✅ ${campo} preenchido`);
       statusCampos.push(`✅ ${campo}`);
-    } catch {
+    } catch (error) {
+      console.log(`❌ Erro ao preencher o campo: ${campo}`);
       statusCampos.push(`❌ ${campo}`);
     }
+  }
+
+  for (let i = 0; i < 5; i++) {
+    await page.evaluate(() => window.scrollBy(0, 300));
+    await page.waitForTimeout(300);
   }
 
   await baixarArquivo(urlCNH, caminhoCNH);
@@ -109,32 +130,17 @@ async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, stat
   await page.screenshot({ path: 'print_antes_clique.png' });
 
   try {
-    const botoes = await page.$$('button');
-    let clicado = false;
-    let idx = 0;
-
-    for (const btn of botoes) {
-      const texto = await btn.innerText();
-      const box = await btn.boundingBox();
-
-      if (texto.trim() === 'Criar registro' && box && box.width > 200) {
-        await btn.scrollIntoViewIfNeeded();
-        await btn.screenshot({ path: `print_botao_${idx + 1}.png` });
-        await btn.click();
-        clicado = true;
-        statusCampos.push(`✅ Botão ${idx + 1} clicado com sucesso.`);
-        break;
-      }
-      idx++;
-    }
-
-    if (!clicado) {
-      statusCampos.push('❌ Nenhum botão com texto "Criar registro" visível e com largura adequada foi clicado.');
-    }
-
-    await page.waitForTimeout(4000);
-  } catch (err) {
-    statusCampos.push('❌ Erro ao tentar clicar no botão de registro.');
+    const botoes = await page.locator('button');
+    const botaoCerto = botoes.nth(17);
+    await botaoCerto.scrollIntoViewIfNeeded();
+    await botaoCerto.click();
+    await page.waitForTimeout(3000);
+    await botaoCerto.screenshot({ path: 'print_botao_clicado.png' });
+    console.log('✅ Botão 17 clicado com sucesso.');
+    statusCampos.push('✅ Botão 17 clicado com sucesso.');
+  } catch (e) {
+    console.log('❌ Erro ao clicar no botão.');
+    statusCampos.push('❌ Erro ao clicar no botão.');
   }
 
   const formStillOpen = await page.$('input[placeholder="Nome Completo"]');
@@ -157,14 +163,14 @@ app.get('/', (req, res) => {
     <p>
       <a href="/print">📥 Baixar print final</a><br>
       <a href="/antes">📷 Ver print antes do clique</a><br>
-      <a href="/botao1">📷 Botão clicado</a>
+      <a href="/clicado">📷 Botão clicado</a>
     </p>
   `);
 });
 
 app.get('/print', (req, res) => res.download('registro_final.png'));
 app.get('/antes', (req, res) => res.download('print_antes_clique.png'));
-app.get('/botao1', (req, res) => res.download('print_botao_1.png'));
+app.get('/clicado', (req, res) => res.download('print_botao_clicado.png'));
 
 app.listen(PORT, () => {
   console.log(`🖥️ Servidor escutando em http://localhost:${PORT}`);
