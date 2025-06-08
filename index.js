@@ -6,7 +6,7 @@ const https = require('https');
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-let rodando = false; // trava simples
+let rodando = false;
 
 app.get('/', async (req, res) => {
   if (rodando) {
@@ -52,7 +52,10 @@ app.get('/', async (req, res) => {
       }
     }
 
-    // 🔍 Buscar arquivos por nome aproximado
+    // Estado Civil flexível
+    await selecionarEstadoCivil(page, 'solteiro', statusCampos);
+
+    // Arquivos dinâmicos
     function buscarArquivos(parteNome) {
       const extensoes = ['.pdf', '.jpg', '.jpeg'];
       const arquivos = fs.readdirSync(__dirname);
@@ -69,14 +72,12 @@ app.get('/', async (req, res) => {
     const arquivosContrato = buscarArquivos('contrato');
     const arquivosProcContrato = [...arquivosProc, ...arquivosContrato];
 
-    // 📤 Enviar CNH
     if (arquivosCNH.length > 0) {
       await enviarArquivosPorOrdem(page, 0, '* CNH', arquivosCNH, statusCampos);
     } else {
       statusCampos.push('❌ Nenhum arquivo CNH encontrado');
     }
 
-    // 📤 Enviar Procuração + Contrato juntos
     if (arquivosProcContrato.length > 0) {
       await enviarArquivosPorOrdem(page, 1, '* Procuração', arquivosProcContrato, statusCampos);
     } else {
@@ -131,6 +132,39 @@ app.get('/', async (req, res) => {
     </p>
   `);
 });
+
+function normalizarTexto(texto) {
+  return texto
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // remove acentos
+    .replace(/\(.*?\)/g, "")         // remove parênteses como (a)
+    .toLowerCase()
+    .trim();
+}
+
+async function selecionarEstadoCivil(page, valorDesejado, statusCampos) {
+  try {
+    await page.locator('div:has-text("Estado Civil")').first().click();
+    await page.waitForTimeout(1000);
+
+    const opcoes = await page.locator('div[role="option"]').all();
+    const desejado = normalizarTexto(valorDesejado);
+
+    for (const opcao of opcoes) {
+      const texto = await opcao.textContent();
+      const textoNormalizado = normalizarTexto(texto || '');
+      if (textoNormalizado.includes(desejado)) {
+        await opcao.click();
+        statusCampos.push(`✅ Estado Civil selecionado: ${texto?.trim()}`);
+        return;
+      }
+    }
+
+    statusCampos.push(`❌ Estado Civil '${valorDesejado}' não encontrado nas opções`);
+  } catch (err) {
+    statusCampos.push(`❌ Erro ao selecionar Estado Civil (${valorDesejado}): ${err.message}`);
+  }
+}
 
 async function enviarArquivosPorOrdem(page, index, labelTexto, arquivosLocais, statusCampos) {
   try {
