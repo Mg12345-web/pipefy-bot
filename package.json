@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "login.js",
   "scripts": {
+    "postinstall": "npx playwright install chromium",
     "start": "node login.js",
     "cadastro": "node cadastro.js"
   },
