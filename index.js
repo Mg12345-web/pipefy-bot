@@ -1,4 +1,4 @@
-// ARQUIVO AJUSTADO: Login primeiro, depois execução simultânea de Clientes e CRLV
+// ARQUIVO AJUSTADO: Execução sequencial com uma única aba para evitar erro 502
 
 const { chromium } = require('playwright');
 const path = require('path');
@@ -27,26 +27,19 @@ async function executarRobo() {
 
     const browser = await chromium.launch({ headless: true });
     const context = await browser.newContext();
+    const page = await context.newPage();
 
-    // LOGIN ANTES DE ABRIR NOVAS ABAS
-    const pageLogin = await context.newPage();
     console.log('🔐 Acessando login...');
-    await pageLogin.goto('https://signin.pipefy.com/realms/pipefy/protocol/openid-connect/auth?client_id=pipefy-auth&redirect_uri=https%3A%2F%2Fapp-auth.pipefy.com%2Fauth_callback&response_type=code&scope=openid+email+profile');
-    await pageLogin.fill('input[name="username"]', 'juridicomgmultas@gmail.com');
-    await pageLogin.click('#kc-login');
-    await pageLogin.fill('input[name="password"]', 'Mg.12345@');
-    await pageLogin.click('#kc-login');
-    await pageLogin.waitForNavigation({ waitUntil: 'load' });
+    await page.goto('https://signin.pipefy.com/realms/pipefy/protocol/openid-connect/auth?client_id=pipefy-auth&redirect_uri=https%3A%2F%2Fapp-auth.pipefy.com%2Fauth_callback&response_type=code&scope=openid+email+profile');
+    await page.fill('input[name="username"]', 'juridicomgmultas@gmail.com');
+    await page.click('#kc-login');
+    await page.fill('input[name="password"]', 'Mg.12345@');
+    await page.click('#kc-login');
+    await page.waitForNavigation({ waitUntil: 'load' });
 
-    // AGORA O CONTEXTO ESTÁ LOGADO — PODE ABRIR AS DUAS ABAS
-    const paginaCliente = await context.newPage();
-    const paginaCRLV = await context.newPage();
-
-    // EXECUÇÃO PARALELA
-    await Promise.all([
-      cadastrarCliente(paginaCliente),
-      cadastrarCRLV(paginaCRLV)
-    ]);
+    // EXECUÇÃO SEQUENCIAL
+    await cadastrarCliente(page);
+    await cadastrarCRLV(page);
 
     await browser.close();
   } catch (err) {
