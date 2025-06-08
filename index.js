@@ -139,9 +139,11 @@ async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, stat
     await page.waitForTimeout(1000);
     await botaoCriar.click();
     console.log('✅ Clique no botão "Criar registro" efetuado');
-    await page.waitForTimeout(3000);
+
+    await page.waitForTimeout(1500);
     await page.screenshot({ path: 'print_depois_clique.png' });
   } catch (e) {
+    await page.screenshot({ path: 'print_forcado_clique.png' });
     console.log('⚠️ Clique normal falhou. Tentando forçar com JavaScript...');
     await page.evaluate(() => {
       const btn = document.querySelector('button[data-testid="create-record-fab-button"]');
@@ -150,9 +152,10 @@ async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, stat
         btn.click();
       }
     });
-    await page.waitForTimeout(3000);
-    await page.screenshot({ path: 'print_forcado_clique.png' });
+    await page.waitForTimeout(2000);
   }
+
+  await page.waitForTimeout(4000);
 
   const formStillOpen = await page.$('input[placeholder="Nome Completo"]');
   if (formStillOpen) {
@@ -170,20 +173,21 @@ async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, stat
 
 app.get('/', (req, res) => {
   const status = fs.existsSync('status.txt') ? fs.readFileSync('status.txt', 'utf8') : 'Sem status.';
-  res.send(`<h2>✅ Robô executado</h2><pre>${status}</pre>
+  res.send(`
+    <h2>✅ Robô executado</h2>
+    <pre>${status}</pre>
     <p>
       <a href="/print">📥 Baixar print final</a><br>
-      <a href="/antes">📥 Ver print antes do clique</a><br>
-      <a href="/antes_clique">📸 Antes do botão</a><br>
-      <a href="/depois_clique">📸 Depois do clique</a><br>
+      <a href="/antes">📸 Ver print antes do clique</a><br>
+      <a href="/depois">📸 Depois do clique</a><br>
       <a href="/forcado">📸 Clique forçado</a>
-    </p>`);
+    </p>
+  `);
 });
 
 app.get('/print', (req, res) => res.download('registro_final.png'));
-app.get('/antes', (req, res) => res.download('erro_antes_do_click.png'));
-app.get('/antes_clique', (req, res) => res.download('print_antes_clique.png'));
-app.get('/depois_clique', (req, res) => res.download('print_depois_clique.png'));
+app.get('/antes', (req, res) => res.download('print_antes_clique.png'));
+app.get('/depois', (req, res) => res.download('print_depois_clique.png'));
 app.get('/forcado', (req, res) => res.download('print_forcado_clique.png'));
 
 app.listen(PORT, () => {
