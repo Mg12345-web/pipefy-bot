@@ -8,6 +8,7 @@ const LOCK_PATH = path.join(os.tmpdir(), 'pipefy_robo.lock');
 const statusCampos = [];
 
 async function executarRobo() {
+  console.log('🧠 Função executarRobo() iniciada...');
   try {
   const lockFd = fs.openSync(LOCK_PATH, 'wx'); // wx = write, fail if exists
   fs.writeFileSync(lockFd, String(process.pid));
@@ -175,6 +176,7 @@ app.get('/', (req, res) => {
 });
 
 app.get('/start', async (req, res) => {
+  console.log('🌐 Rota /start acessada. Iniciando execução...');
   res.send('<h3>✅ Robô iniciado. Acompanhe os logs no Railway.</h3>');
   await executarRobo();
 });
