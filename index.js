@@ -48,24 +48,20 @@ async function executarRobo() {
       'Endereço Completo': 'Rua Luzia de Jesus, 135, Jardim dos Comerciários, Ribeirão das Neves - MG'
     };
 
-    // Preenchimento do campo "Estado Civil" via campo de texto (ignora dropdown)
+    // Preenchimento do campo "Estado Civil" com valor fixo
 try {
-  const estadoCivil = 'Solteiro(a)'; // ou variável vinda da procuração
+  const estadoCivil = 'Solteiro';
 
-  const labels = await page.locator('text=Estado Civil').all();
-  const label = labels[0]; // Pega o primeiro campo com esse nome (campo de texto)
+  const campoTexto = await page.locator('input[placeholder="Digite aqui ..."]').first();
+  await campoTexto.scrollIntoViewIfNeeded();
+  await campoTexto.fill(estadoCivil);
 
-  const input = await label.evaluateHandle(el => el.parentElement.querySelector('input'));
-  await input.scrollIntoViewIfNeeded();
-  await input.fill(estadoCivil);
-
-  console.log(`✅ Estado Civil (texto) preenchido`);
-  statusCampos.push(`✅ Estado Civil (texto) preenchido`);
+  console.log(`✅ Estado Civil preenchido com: ${estadoCivil}`);
+  statusCampos.push(`✅ Estado Civil preenchido com: ${estadoCivil}`);
 } catch (e) {
   console.log(`❌ Erro ao preencher Estado Civil (texto): ${e.message}`);
   statusCampos.push('❌ Erro ao preencher Estado Civil (texto)');
 }
-
     const arquivos = [
       { url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', local: 'cnh_teste.pdf', label: '* CNH' },
       { url: 'https://www.africau.edu/images/default/sample.pdf', local: 'proc_teste.pdf', label: '* Procuração' }
