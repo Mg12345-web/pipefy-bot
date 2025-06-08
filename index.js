@@ -163,5 +163,22 @@ async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, stat
   }
 }
 
-// Inicia automaticamente
-executarRobo();
+const express = require('express');
+const app = express();
+const PORT = process.env.PORT || 8080;
+
+app.get('/', (req, res) => {
+  res.send(`
+    <h2>🚀 Robô Pipefy</h2>
+    <p>Para iniciar o robô, acesse: <a href="/start">/start</a></p>
+  `);
+});
+
+app.get('/start', async (req, res) => {
+  res.send('<h3>✅ Robô iniciado. Acompanhe os logs no Railway.</h3>');
+  await executarRobo();
+});
+
+app.listen(PORT, () => {
+  console.log(`🖥️ Servidor escutando em http://localhost:${PORT}`);
+});
