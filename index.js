@@ -1,5 +1,3 @@
-// index.js atualizado com clique direto no botão 17 (dentro do modal)
-
 const { chromium } = require('playwright');
 const express = require('express');
 const path = require('path');
@@ -8,12 +6,14 @@ const https = require('https');
 const app = express();
 const PORT = process.env.PORT || 8080;
 
+// URLs dos arquivos de teste
 const urlCNH = 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
 const urlPROC = 'https://www.africau.edu/images/default/sample.pdf';
 
 const caminhoCNH = path.resolve(__dirname, 'cnh_teste.pdf');
 const caminhoPROC = path.resolve(__dirname, 'proc_teste.pdf');
 
+// Função para baixar arquivos PDF
 async function baixarArquivo(url, destino) {
   return new Promise((resolve, reject) => {
     const file = fs.createWriteStream(destino);
@@ -26,6 +26,7 @@ async function baixarArquivo(url, destino) {
   });
 }
 
+// Envio de arquivos para os campos do formulário
 async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, statusCampos) {
   try {
     const nomeArquivo = path.basename(arquivoLocal);
@@ -41,48 +42,40 @@ async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, stat
     ]);
 
     await fileChooser.setFiles(arquivoLocal);
-    console.log(`⏳ Enviando ${labelTexto}...`);
     await page.waitForTimeout(2000);
 
     const sucessoUpload = await page.locator(`text="${nomeArquivo}"`).first().isVisible({ timeout: 7000 });
-
     if (sucessoUpload) {
       await page.waitForTimeout(15000);
-      console.log(`✅ ${labelTexto} enviado com sucesso`);
       statusCampos.push(`✅ ${labelTexto} enviado`);
     } else {
-      console.log(`❌ ${labelTexto} falhou (não visível após envio)`);
       statusCampos.push(`❌ ${labelTexto} falhou (não visível após envio)`);
     }
-  } catch (err) {
-    console.log(`❌ Falha ao enviar ${labelTexto}`);
+  } catch {
     statusCampos.push(`❌ Falha ao enviar ${labelTexto}`);
   }
 }
 
 (async () => {
-  console.log(`🖥️ Servidor disponível em http://localhost:${PORT}`);
-  console.log('🔐 Acessando o login do Pipefy...');
-
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext();
   const page = await context.newPage();
+  const statusCampos = [];
 
+  // Login no Pipefy
   await page.goto('https://signin.pipefy.com/realms/pipefy/protocol/openid-connect/auth?client_id=pipefy-auth&redirect_uri=https%3A%2F%2Fapp-auth.pipefy.com%2Fauth_callback&response_type=code&scope=openid+email+profile');
-  await page.waitForSelector('input[name="username"]', { timeout: 60000 });
   await page.fill('input[name="username"]', 'juridicomgmultas@gmail.com');
   await page.click('#kc-login');
-  await page.waitForSelector('input[name="password"]', { timeout: 60000 });
   await page.fill('input[name="password"]', 'Mg.12345@');
   await page.click('#kc-login');
   await page.waitForNavigation({ waitUntil: 'load' });
-  console.log('✅ Login feito com sucesso.');
 
+  // Acesso ao banco de dados "Clientes"
   await page.getByText('Databases', { exact: true }).click();
   await page.getByText('Clientes', { exact: true }).click();
-  await page.waitForSelector('button:has-text("Criar registro")', { timeout: 15000 });
   await page.click('button:has-text("Criar registro")');
 
+  // Preenchimento dos campos
   const dados = {
     'Nome Completo': 'ADRIANO ANTONIO DE SOUZA',
     'CPF OU CNPJ': '414.746.148-41',
@@ -92,26 +85,18 @@ async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, stat
     'Endereço Completo': 'Rua Luzia de Jesus, 135, Jardim dos Comerciários, Ribeirão das Neves - MG'
   };
 
-  const statusCampos = [];
-
   for (const [campo, valor] of Object.entries(dados)) {
     try {
       const label = await page.getByLabel(campo);
       await label.scrollIntoViewIfNeeded();
       await label.fill(valor);
-      console.log(`✅ ${campo} preenchido`);
       statusCampos.push(`✅ ${campo}`);
-    } catch (error) {
-      console.log(`❌ Erro ao preencher o campo: ${campo}`);
+    } catch {
       statusCampos.push(`❌ ${campo}`);
     }
   }
 
-  for (let i = 0; i < 5; i++) {
-    await page.evaluate(() => window.scrollBy(0, 300));
-    await page.waitForTimeout(300);
-  }
-
+  // Baixar e anexar arquivos
   await baixarArquivo(urlCNH, caminhoCNH);
   await baixarArquivo(urlPROC, caminhoPROC);
 
@@ -129,18 +114,26 @@ async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, stat
 
   await page.screenshot({ path: 'print_antes_clique.png' });
 
+  // Clique dinâmico no botão correto
   try {
-    const botoes = await page.locator('button');
-    const botaoCerto = botoes.nth(17);
-    await botaoCerto.scrollIntoViewIfNeeded();
-    await botaoCerto.click();
+    const botoes = await page.$$('button');
+    let clicado = false;
+    for (let i = 0; i < botoes.length; i++) {
+      const texto = await botoes[i].innerText();
+      const box = await botoes[i].boundingBox();
+      if (texto.trim() === 'Criar registro' && box && box.width > 200) {
+        await botoes[i].scrollIntoViewIfNeeded();
+        await botoes[i].click();
+        await botoes[i].screenshot({ path: 'print_botao_clicado.png' });
+        statusCampos.push(`✅ Botão ${i + 1} clicado com sucesso.`);
+        clicado = true;
+        break;
+      }
+    }
+    if (!clicado) statusCampos.push('❌ Nenhum botão válido foi clicado.');
     await page.waitForTimeout(3000);
-    await botaoCerto.screenshot({ path: 'print_botao_clicado.png' });
-    console.log('✅ Botão 17 clicado com sucesso.');
-    statusCampos.push('✅ Botão 17 clicado com sucesso.');
-  } catch (e) {
-    console.log('❌ Erro ao clicar no botão.');
-    statusCampos.push('❌ Erro ao clicar no botão.');
+  } catch (err) {
+    statusCampos.push('❌ Erro ao tentar clicar no botão.');
   }
 
   const formStillOpen = await page.$('input[placeholder="Nome Completo"]');
@@ -155,6 +148,7 @@ async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, stat
   await browser.close();
 })();
 
+// Express para exibir resultado
 app.get('/', (req, res) => {
   const status = fs.existsSync('status.txt') ? fs.readFileSync('status.txt', 'utf8') : 'Sem status.';
   res.send(`
