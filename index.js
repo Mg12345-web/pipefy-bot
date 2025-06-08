@@ -1,22 +1,23 @@
 const { chromium } = require('playwright');
+const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const https = require('https');
+const app = express();
+const PORT = process.env.PORT || 8080;
 
-const LOCK_PATH = path.resolve(__dirname, 'execucao.lock');
-const statusCampos = [];
+let rodando = false; // trava simples para evitar execuções simultâneas
 
-async function executarRobo() {
-  if (fs.existsSync(LOCK_PATH)) {
-    console.log('⛔ Robô já em execução detectado via arquivo .lock. Abortando.');
-    return;
+app.get('/', async (req, res) => {
+  if (rodando) {
+    return res.send('<h2>⚠️ Robô já está em execução. Aguarde a finalização.</h2>');
   }
 
-  fs.writeFileSync(LOCK_PATH, 'executando');
+  rodando = true;
+  const statusCampos = [];
 
   try {
-    console.log('🔄 Iniciando robô automaticamente após deploy...');
-
+    console.log('🔄 Iniciando robô...');
     const browser = await chromium.launch({ headless: true });
     const context = await browser.newContext();
     const page = await context.newPage();
@@ -48,11 +49,11 @@ async function executarRobo() {
         const label = await page.getByLabel(campo);
         await label.scrollIntoViewIfNeeded();
         await label.fill(valor);
-        console.log(`✅ ${campo}`);
         statusCampos.push(`✅ ${campo}`);
+        console.log(`✅ ${campo}`);
       } catch {
-        console.log(`❌ ${campo}`);
         statusCampos.push(`❌ ${campo}`);
+        console.log(`❌ ${campo}`);
       }
     }
 
@@ -70,6 +71,10 @@ async function executarRobo() {
         statusCampos.push(`❌ Arquivo ${arquivos[i].label} não encontrado`);
       }
     }
+
+    // 🕒 Aguarda estabilidade da interface após anexos
+    console.log('⏳ Aguardando finalização do carregamento dos anexos...');
+    await page.waitForTimeout(5000);
 
     await page.screenshot({ path: 'print_antes_clique.png' });
 
@@ -104,14 +109,22 @@ async function executarRobo() {
     fs.writeFileSync('status.txt', statusCampos.join('\n'));
     await browser.close();
   } catch (err) {
-    const msg = '❌ Erro durante execução: ' + err.message;
-    console.log(msg);
-    statusCampos.push(msg);
+    statusCampos.push('❌ Erro durante execução: ' + err.message);
     fs.writeFileSync('status.txt', statusCampos.join('\n'));
   }
 
-  if (fs.existsSync(LOCK_PATH)) fs.unlinkSync(LOCK_PATH);
-}
+  rodando = false;
+
+  res.send(`
+    <h2>✅ Robô executado</h2>
+    <pre>${fs.readFileSync('status.txt')}</pre>
+    <p>
+      <a href="/print">📥 Baixar print final</a><br>
+      <a href="/antes">📷 Ver print antes do clique</a><br>
+      <a href="/clicado">📷 Botão clicado</a>
+    </p>
+  `);
+});
 
 function baixarArquivo(url, destino) {
   return new Promise((resolve, reject) => {
@@ -140,20 +153,27 @@ async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, stat
     ]);
 
     await fileChooser.setFiles(arquivoLocal);
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(3000);
 
     const sucessoUpload = await page.locator(`text="${nomeArquivo}"`).first().isVisible({ timeout: 7000 });
     if (sucessoUpload) {
-      await page.waitForTimeout(15000);
-      console.log(`✅ ${labelTexto} enviado`);
+      await page.waitForTimeout(5000);
       statusCampos.push(`✅ ${labelTexto} enviado`);
+      console.log(`✅ ${labelTexto} enviado`);
     } else {
       statusCampos.push(`❌ ${labelTexto} falhou (não visível após envio)`);
+      console.log(`❌ ${labelTexto} falhou (não visível após envio)`);
     }
   } catch {
     statusCampos.push(`❌ Falha ao enviar ${labelTexto}`);
+    console.log(`❌ Falha ao enviar ${labelTexto}`);
   }
 }
 
-// Inicia automaticamente
-executarRobo();
+app.get('/print', (req, res) => res.download('registro_final.png'));
+app.get('/antes', (req, res) => res.download('print_antes_clique.png'));
+app.get('/clicado', (req, res) => res.download('print_botao_clicado.png'));
+
+app.listen(PORT, () => {
+  console.log(`🖥️ Servidor escutando em http://localhost:${PORT}`);
+});
