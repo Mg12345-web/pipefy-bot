@@ -133,54 +133,53 @@ async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, stat
   await page.screenshot({ path: 'print_antes_clique.png' });
 
   try {
-    console.log('⏳ Procurando botão correto entre vários...');
+    console.log('⏳ Procurando botão correto entre dois...');
     const botoes = await page.locator('button', { hasText: 'Criar registro' }).all();
+
     console.log(`🔍 ${botoes.length} botões encontrados com texto "Criar registro"`);
 
-    let clicado = false;
+    if (botoes.length >= 2) {
+      // Testa o primeiro
+      await botoes[0].scrollIntoViewIfNeeded();
+      await botoes[0].screenshot({ path: 'print_botao_1.png' });
+      await botoes[0].click({ force: true });
+      await page.waitForTimeout(3000);
 
-    for (const botao of botoes) {
-      const dentroDoModal = await botao.evaluate(el => el.closest('[role="dialog"]') !== null);
-      const visivel = await botao.evaluate(el => {
-        const style = window.getComputedStyle(el);
-        return (
-          style.display !== 'none' &&
-          style.visibility !== 'hidden' &&
-          parseFloat(style.opacity) > 0
-        );
-      });
-      const habilitado = await botao.evaluate(el =>
-        !el.disabled && el.getAttribute('aria-disabled') !== 'true'
-      );
+      let formAindaAberto = await page.$('input[placeholder="Nome Completo"]');
+      if (formAindaAberto) {
+        statusCampos.push('⚠️ Primeiro botão não funcionou, testando o segundo...');
+        console.log('⚠️ Primeiro botão não funcionou, testando o segundo...');
 
-      if (dentroDoModal && visivel && habilitado) {
-        await botao.scrollIntoViewIfNeeded();
-        await botao.screenshot({ path: 'print_botao_modal.png' });
-        await page.waitForTimeout(500);
-        await botao.click({ force: true });
+        await botoes[1].scrollIntoViewIfNeeded();
+        await botoes[1].screenshot({ path: 'print_botao_2.png' });
+        await botoes[1].click({ force: true });
         await page.waitForTimeout(3000);
-        console.log('✅ Botão dentro do modal clicado com sucesso.');
-        statusCampos.push('✅ Botão dentro do modal clicado');
-        clicado = true;
-        break;
-      }
-    }
 
-    if (!clicado) {
-      console.log('❌ Nenhum botão visível dentro do modal foi clicado.');
-      statusCampos.push('❌ Nenhum botão visível dentro do modal foi clicado.');
+        formAindaAberto = await page.$('input[placeholder="Nome Completo"]');
+        if (formAindaAberto) {
+          console.log('❌ Nenhum dos dois botões funcionou.');
+          statusCampos.push('❌ Nenhum dos dois botões funcionou.');
+        } else {
+          console.log('✅ Segundo botão funcionou.');
+          statusCampos.push('✅ Segundo botão funcionou.');
+        }
+      } else {
+        console.log('✅ Primeiro botão funcionou.');
+        statusCampos.push('✅ Primeiro botão funcionou.');
+      }
+    } else {
+      console.log('❌ Menos de 2 botões encontrados.');
+      statusCampos.push('❌ Menos de 2 botões encontrados.');
     }
-  } catch (erro) {
-    console.log('❌ Erro inesperado ao tentar clicar no botão:', erro);
-    statusCampos.push('❌ Erro inesperado ao tentar clicar no botão');
+  } catch (e) {
+    console.log('❌ Erro ao tentar clicar nos botões:', e);
+    statusCampos.push('❌ Erro ao tentar clicar nos botões');
   }
 
   const formStillOpen = await page.$('input[placeholder="Nome Completo"]');
   if (formStillOpen) {
-    console.log('⚠️ Formulário ainda aberto. Registro pode não ter sido criado.');
     statusCampos.push('⚠️ Formulário ainda aberto. Registro pode não ter sido criado.');
   } else {
-    console.log('✅ Registro realmente criado com sucesso.');
     statusCampos.push('✅ Registro criado com sucesso');
   }
 
@@ -197,21 +196,16 @@ app.get('/', (req, res) => {
     <p>
       <a href="/print">📥 Baixar print final</a><br>
       <a href="/antes">📷 Ver print antes do clique</a><br>
-      <a href="/modal">📷 Botão clicado no modal</a>
+      <a href="/botao1">📷 Botão 1</a><br>
+      <a href="/botao2">📷 Botão 2</a>
     </p>
   `);
 });
 
 app.get('/print', (req, res) => res.download('registro_final.png'));
 app.get('/antes', (req, res) => res.download('print_antes_clique.png'));
-app.get('/modal', (req, res) => {
-  const caminho = 'print_botao_modal.png';
-  if (fs.existsSync(caminho)) {
-    res.download(caminho);
-  } else {
-    res.status(404).send('❌ Print não encontrado');
-  }
-});
+app.get('/botao1', (req, res) => res.download('print_botao_1.png'));
+app.get('/botao2', (req, res) => res.download('print_botao_2.png'));
 
 app.listen(PORT, () => {
   console.log(`🖥️ Servidor escutando em http://localhost:${PORT}`);
