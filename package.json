@@ -3,9 +3,7 @@
   "version": "1.0.0",
   "main": "login.js",
   "scripts": {
-    "start": "node login.js",
-    "cadastro": "node cadastro.js",
-    "servidor": "node cadastro_servidor.js"
+    "start": "node cadastro_servidor.js"
   },
   "dependencies": {
     "playwright": "^1.52.0",
