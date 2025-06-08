@@ -1,3 +1,4 @@
+// Novo index.js com logs em tempo real no Railway e sem res.send
 const { chromium } = require('playwright');
 const express = require('express');
 const path = require('path');
@@ -9,30 +10,30 @@ const PORT = process.env.PORT || 8080;
 let rodando = false;
 
 app.get('/', async (req, res) => {
-  if (rodando) {
-    process.stdout.write('⏳ Robô já está em execução. Aguardando finalizar...\n');
-    return res.send('<h2>⚠️ Robô já está em execução. Aguarde a finalização.</h2>');
-  }
-
+  if (rodando) return res.end('⚠️ Robô já está em execução.');
   rodando = true;
+
   const statusCampos = [];
+  const log = (msg) => {
+    statusCampos.push(msg);
+    process.stdout.write(msg + '\n');
+  };
 
   try {
-    process.stdout.write('🔄 Robô iniciado...\n');
-
+    log('🔄 Iniciando navegador...');
     const browser = await chromium.launch({ headless: true });
     const context = await browser.newContext();
     const page = await context.newPage();
 
-    process.stdout.write('🌐 Acessando página de login...\n');
-    await page.goto('https://signin.pipefy.com/realms/pipefy/protocol/openid-connect/auth?client_id=pipefy-auth&redirect_uri=https%3A%2F%2Fapp-auth.pipefy.com%2Fauth_callback&response_type=code&scope=openid+email+profile');
+    log('🌐 Acessando login do Pipefy...');
+    await page.goto('https://signin.pipefy.com/realms/pipefy/protocol/openid-connect/auth?...');
     await page.fill('input[name="username"]', 'juridicomgmultas@gmail.com');
     await page.click('#kc-login');
     await page.fill('input[name="password"]', 'Mg.12345@');
     await page.click('#kc-login');
     await page.waitForNavigation({ waitUntil: 'load' });
-    process.stdout.write('✅ Login realizado\n');
 
+    log('📁 Acessando database Clientes...');
     await page.getByText('Databases', { exact: true }).click();
     await page.getByText('Clientes', { exact: true }).click();
     await page.click('button:has-text("Criar registro")');
@@ -51,37 +52,41 @@ app.get('/', async (req, res) => {
         const label = await page.getByLabel(campo);
         await label.scrollIntoViewIfNeeded();
         await label.fill(valor);
-        statusCampos.push(`✅ ${campo}`);
-        process.stdout.write(`✅ Campo preenchido: ${campo}\n`);
+        log(`✅ ${campo}`);
       } catch {
-        statusCampos.push(`❌ ${campo}`);
-        process.stdout.write(`❌ Erro ao preencher: ${campo}\n`);
+        log(`❌ ${campo}`);
       }
     }
 
-    // Estado civil
+    log('🔽 Selecionando Estado Civil...');
     try {
-      const dropdown = await page.locator('div[role="button"]:has-text("Escolha uma opção")').first();
-      await dropdown.scrollIntoViewIfNeeded();
-      await dropdown.click();
-      await page.waitForTimeout(1000);
-      const opcoes = await page.locator('div[role="option"]').all();
-      for (const opcao of opcoes) {
-        const texto = await opcao.textContent();
-        if (texto && texto.toLowerCase().includes('solteiro')) {
-          await opcao.click();
-          statusCampos.push(`✅ Estado Civil selecionado: ${texto.trim()}`);
-          process.stdout.write(`✅ Estado Civil selecionado: ${texto.trim()}\n`);
-          break;
-        }
-      }
-    } catch (err) {
-      statusCampos.push('❌ Estado Civil não selecionado');
-      process.stdout.write(`❌ Erro ao selecionar Estado Civil: ${err.message}\n`);
+      const select = await page.getByRole('combobox');
+      await select.scrollIntoViewIfNeeded();
+      await select.click();
+      const opcao = await page.getByText(/solteir/i);
+      await opcao.click();
+      log('✅ Estado civil selecionado');
+    } catch {
+      log('❌ Estado civil não encontrado');
     }
 
-    // Finalizar
-    process.stdout.write('🚀 Clicando em Criar registro...\n');
+    log('🖼️ Enviando arquivos de teste...');
+    const arquivos = [
+      { url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', local: 'cnh_teste.pdf', label: '* CNH' },
+      { url: 'https://www.africau.edu/images/default/sample.pdf', local: 'proc_teste.pdf', label: '* Procuração' }
+    ];
+
+    for (let i = 0; i < arquivos.length; i++) {
+      const file = path.resolve(__dirname, arquivos[i].local);
+      await baixarArquivo(arquivos[i].url, file);
+      if (fs.existsSync(file)) {
+        await enviarArquivoPorOrdem(page, i, arquivos[i].label, file, log);
+      } else {
+        log(`❌ Arquivo ${arquivos[i].label} não encontrado`);
+      }
+    }
+
+    log('🖱️ Clicando em "Criar registro"...');
     const botoes = await page.$$('button');
     for (let i = 0; i < botoes.length; i++) {
       const texto = await botoes[i].innerText();
@@ -89,30 +94,63 @@ app.get('/', async (req, res) => {
       if (texto.trim() === 'Criar registro' && box && box.width > 200) {
         await botoes[i].scrollIntoViewIfNeeded();
         await botoes[i].click();
-        statusCampos.push('✅ Registro enviado');
-        process.stdout.write('✅ Botão Criar registro clicado\n');
+        log('✅ Registro criado com sucesso');
         break;
       }
     }
 
     await page.waitForTimeout(5000);
-    const aindaAberto = await page.$('input[placeholder="Nome Completo"]');
-    if (aindaAberto) {
-      statusCampos.push('⚠️ Formulário ainda aberto');
-    } else {
-      statusCampos.push('✅ Registro criado com sucesso');
-    }
-
     await browser.close();
-    process.stdout.write('🏁 Robô finalizado.\n');
-    statusCampos.forEach(item => process.stdout.write(item + '\n'));
+    fs.writeFileSync('status.txt', statusCampos.join('\n'));
+    log('✅ Robô finalizado.');
   } catch (err) {
-    process.stdout.write(`❌ Erro durante execução: ${err.message}\n`);
+    log('❌ Erro: ' + err.message);
   }
 
   rodando = false;
-  res.send('<h2>✅ Robô executado (confira o log do deploy para detalhes)</h2>');
+  res.end('✅ Execução finalizada. Veja o console/log para detalhes.');
 });
+
+function baixarArquivo(url, destino) {
+  return new Promise((resolve, reject) => {
+    const file = fs.createWriteStream(destino);
+    https.get(url, response => {
+      response.pipe(file);
+      file.on('finish', () => file.close(resolve));
+    }).on('error', err => {
+      fs.unlink(destino, () => reject(err));
+    });
+  });
+}
+
+async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, log) {
+  try {
+    const nomeArquivo = path.basename(arquivoLocal);
+    const botoesUpload = await page.locator('button[data-testid="attachments-dropzone-button"]');
+    const botao = botoesUpload.nth(index);
+
+    await botao.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(1000);
+
+    const [fileChooser] = await Promise.all([
+      page.waitForEvent('filechooser'),
+      botao.evaluate(el => el.click())
+    ]);
+
+    await fileChooser.setFiles(arquivoLocal);
+    await page.waitForTimeout(2000);
+
+    const sucessoUpload = await page.locator(`text="${nomeArquivo}"`).first().isVisible({ timeout: 7000 });
+    if (sucessoUpload) {
+      await page.waitForTimeout(2000);
+      log(`✅ ${labelTexto} enviado`);
+    } else {
+      log(`❌ ${labelTexto} falhou`);
+    }
+  } catch {
+    log(`❌ Erro ao enviar ${labelTexto}`);
+  }
+}
 
 app.listen(PORT, () => {
   process.stdout.write(`🖥️ Servidor escutando em http://localhost:${PORT}\n`);
