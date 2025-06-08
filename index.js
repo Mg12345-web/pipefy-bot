@@ -1,11 +1,21 @@
 const { chromium } = require('playwright');
+const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const https = require('https');
+const app = express();
+const PORT = process.env.PORT || 8080;
 
-async function iniciarRobo() {
+let rodando = false;
+
+app.get('/', async (req, res) => {
+  if (rodando) {
+    return res.send('<h2>⚠️ Robô já está em execução. Aguarde a finalização.</h2>');
+  }
+
+  rodando = true;
   const statusCampos = [];
-  console.log('Iniciando robo automaticamente após deploy...');
+  console.log('🔄 Iniciando robô...');
 
   try {
     const browser = await chromium.launch({ headless: true });
@@ -66,17 +76,29 @@ async function iniciarRobo() {
     await page.screenshot({ path: 'print_antes_clique.png' });
 
     const botoes = await page.$$('button');
+    let clicado = false;
+
     for (let i = 0; i < botoes.length; i++) {
       const texto = await botoes[i].innerText();
       const box = await botoes[i].boundingBox();
-      if (texto.trim() === 'Criar registro' && box && box.width > 200) {
-        await botoes[i].scrollIntoViewIfNeeded();
-        await botoes[i].click();
-        await botoes[i].screenshot({ path: 'print_botao_clicado.png' });
-        statusCampos.push(`✅ Botão ${i + 1} clicado com sucesso.`);
-        console.log(`✅ Botão ${i + 1} clicado com sucesso.`);
-        break;
+
+      if (texto.trim() === 'Criar registro' && box && box.width > 200 && box.height > 30) {
+        const pai = await botoes[i].evaluateHandle(el => el.closest('[role="dialog"]'));
+        if (pai) {
+          await botoes[i].scrollIntoViewIfNeeded();
+          await botoes[i].click();
+          await botoes[i].screenshot({ path: 'print_botao_clicado.png' });
+          statusCampos.push(`✅ Botão ${i + 1} clicado com sucesso (modal).`);
+          console.log(`✅ Botão ${i + 1} clicado com sucesso (modal).`);
+          clicado = true;
+          break;
+        }
       }
+    }
+
+    if (!clicado) {
+      statusCampos.push('❌ Nenhum botão válido "Criar registro" encontrado no modal.');
+      console.log('❌ Nenhum botão válido "Criar registro" encontrado no modal.');
     }
 
     for (let i = 0; i < 15; i++) {
@@ -98,11 +120,23 @@ async function iniciarRobo() {
     fs.writeFileSync('status.txt', statusCampos.join('\n'));
     await browser.close();
   } catch (err) {
-    console.log('❌ Erro durante execução:', err);
     statusCampos.push('❌ Erro durante execução: ' + err.message);
+    console.error('❌ Erro durante execução:', err);
     fs.writeFileSync('status.txt', statusCampos.join('\n'));
   }
-}
+
+  rodando = false;
+
+  res.send(`
+    <h2>✅ Robô executado</h2>
+    <pre>${fs.readFileSync('status.txt')}</pre>
+    <p>
+      <a href="/print">📥 Baixar print final</a><br>
+      <a href="/antes">📷 Ver print antes do clique</a><br>
+      <a href="/clicado">📷 Botão clicado</a>
+    </p>
+  `);
+});
 
 function baixarArquivo(url, destino) {
   return new Promise((resolve, reject) => {
@@ -142,10 +176,16 @@ async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, stat
       statusCampos.push(`❌ ${labelTexto} falhou (não visível após envio)`);
       console.log(`❌ ${labelTexto} falhou (não visível após envio)`);
     }
-  } catch {
+  } catch (err) {
     statusCampos.push(`❌ Falha ao enviar ${labelTexto}`);
-    console.log(`❌ Falha ao enviar ${labelTexto}`);
+    console.log(`❌ Falha ao enviar ${labelTexto}`, err);
   }
 }
 
-iniciarRobo();
+app.get('/print', (req, res) => res.download('registro_final.png'));
+app.get('/antes', (req, res) => res.download('print_antes_clique.png'));
+app.get('/clicado', (req, res) => res.download('print_botao_clicado.png'));
+
+app.listen(PORT, () => {
+  console.log(`🖥️ Servidor escutando em http://localhost:${PORT}`);
+});
