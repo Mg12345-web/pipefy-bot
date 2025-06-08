@@ -116,7 +116,20 @@ async function cadastrarCliente(page) {
 async function cadastrarCRLV(page) {
   console.log('📄 Acessando banco CRLV...');
   await page.goto('https://app.pipefy.com/apollo_databases/304722775');
-  await page.click('button:has-text("Criar registro")');
+
+  await page.waitForTimeout(3000);
+  await page.screenshot({ path: 'crlv_01_tela_banco.png' });
+
+  try {
+    await page.waitForSelector('button:has-text("Criar registro")', { timeout: 10000 });
+    await page.click('button:has-text("Criar registro")');
+    await page.waitForTimeout(2000);
+    await page.screenshot({ path: 'crlv_02_tela_formulario.png' });
+  } catch (err) {
+    console.log('❌ Erro ao abrir formulário CRLV');
+    statusCampos.push('❌ Erro ao abrir formulário CRLV');
+    return;
+  }
 
   const dadosCRLV = {
     'Placa': 'GKD0F82',
@@ -126,6 +139,7 @@ async function cadastrarCRLV(page) {
   };
 
   for (const [campo, valor] of Object.entries(dadosCRLV)) {
+    console.log(`⏳ Preenchendo campo CRLV: ${campo}`);
     try {
       const label = await page.getByLabel(campo);
       await label.scrollIntoViewIfNeeded();
@@ -141,6 +155,9 @@ async function cadastrarCRLV(page) {
   const crlvPath = path.resolve(__dirname, 'cnh_teste.pdf');
   await enviarArquivoPorOrdem(page, 0, '* CRLV (teste)', crlvPath, statusCampos);
 
+  await page.waitForTimeout(2000);
+  await page.screenshot({ path: 'crlv_03_antes_clique.png' });
+
   const botoes = await page.$$('button');
   for (let i = 0; i < botoes.length; i++) {
     const texto = await botoes[i].innerText();
@@ -148,11 +165,15 @@ async function cadastrarCRLV(page) {
     if (texto.trim() === 'Criar registro' && box && box.width > 200) {
       await botoes[i].scrollIntoViewIfNeeded();
       await botoes[i].click();
+      await page.waitForTimeout(2000);
+      await page.screenshot({ path: 'crlv_04_botao_clicado.png' });
       statusCampos.push(`✅ Botão CRLV ${i + 1} clicado com sucesso`);
       break;
     }
   }
 
+  await page.waitForTimeout(3000);
+  await page.screenshot({ path: 'crlv_05_final.png' });
   statusCampos.push('✅ Registro CRLV criado com sucesso');
 }
 
