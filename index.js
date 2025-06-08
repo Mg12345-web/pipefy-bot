@@ -45,33 +45,23 @@ async function executarRobo() {
       'Profissão': 'Vigilante',
       'Email': 'jonas1gui@gmail.com',
       'Número de telefone': '31988429016',
-      'Endereço Completo': 'Rua Luzia de Jesus, 135, Jardim dos Comerciários, Ribeirão das Neves - MG'
-    };
+      'Endereço Completo': 'Rua Luzia de Jesus, 135, Jardim dos Comerciários, Ribeirão das Neves - MG',
+      'Estado Civil': 'Solteiro'
+    
+  };
 
-    // Preenchimento do campo "Estado Civil" com valor fixo
-try {
-  const estadoCivil = 'Solteiro';
-
-  const todosInputs = await page.locator('input').all();
-
-for (const input of todosInputs) {
-  const label = await input.evaluate(el => {
-    const labelEl = el.closest('div').querySelector('label');
-    return labelEl ? labelEl.innerText : '';
-  });
-
-  if (label.includes('Estado Civil')) {
-    await input.scrollIntoViewIfNeeded();
-    await input.fill('Solteiro');
-    console.log('✅ Estado Civil preenchido');
-    statusCampos.push('✅ Estado Civil preenchido');
-        break;
-  }
-}
-} catch (e) {
-  console.log(`❌ Erro ao preencher Estado Civil: ${e.message}`);
-  statusCampos.push('❌ Erro ao preencher Estado Civil');
-}
+        for (const [campo, valor] of Object.entries(dados)) {
+      try {
+        const label = await page.getByLabel(campo);
+        await label.scrollIntoViewIfNeeded();
+        await label.fill(valor);
+        console.log(`✅ ${campo}`);
+        statusCampos.push(`✅ ${campo}`);
+      } catch {
+        console.log(`❌ ${campo}`);
+        statusCampos.push(`❌ ${campo}`);
+      }
+    }
 
     const arquivos = [
       { url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', local: 'cnh_teste.pdf', label: '* CNH' },
