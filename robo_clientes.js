@@ -7,6 +7,7 @@ const https = require('https');
 async function cadastrarClientes(page) {
   const statusCampos = [];
   console.log('📁 Acessando banco Clientes...');
+
   await page.getByText('Databases', { exact: true }).click();
   await page.getByText('Clientes', { exact: true }).click();
   await page.click('button:has-text("Criar registro")');
