@@ -48,18 +48,20 @@ async function executarRobo() {
       'Endereço Completo': 'Rua Luzia de Jesus, 135, Jardim dos Comerciários, Ribeirão das Neves - MG'
     };
 
-    for (const [campo, valor] of Object.entries(dados)) {
-      try {
-        const label = await page.getByLabel(campo);
-        await label.scrollIntoViewIfNeeded();
-        await label.fill(valor);
-        console.log(`✅ ${campo}`);
-        statusCampos.push(`✅ ${campo}`);
-      } catch {
-        console.log(`❌ ${campo}`);
-        statusCampos.push(`❌ ${campo}`);
-      }
-    }
+    // Preenchimento do campo "Estado Civil" de forma dinâmica
+try {
+  const estadoCivil = 'Solteiro(a)'; // Aqui você pode substituir por variável vinda da procuração
+
+  await page.getByText('Escolha uma opção').click(); // Abre o dropdown
+  await page.waitForTimeout(500); // Aguarda carregar as opções
+  await page.getByText(estadoCivil, { exact: true }).click(); // Seleciona a opção
+
+  console.log(`✅ Estado Civil (${estadoCivil}) selecionado`);
+  statusCampos.push(`✅ Estado Civil (${estadoCivil})`);
+} catch (e) {
+  console.log(`❌ Erro ao selecionar Estado Civil: ${e.message}`);
+  statusCampos.push('❌ Erro ao selecionar Estado Civil');
+}
 
     const arquivos = [
       { url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', local: 'cnh_teste.pdf', label: '* CNH' },
