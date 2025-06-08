@@ -28,39 +28,32 @@ app.listen(PORT, () => {
 });
 
 async function executarCadastroCliente() {
-  console.log('🧠 Função executarCadastroCliente() iniciada...');
+  console.log('🧐 Função executarCadastroCliente() iniciada...');
   try {
     const lockFd = fs.openSync(LOCK_PATH, 'wx');
     fs.writeFileSync(lockFd, String(process.pid));
     fs.closeSync(lockFd);
     console.log(`🔒 Lock criado com sucesso em: ${LOCK_PATH}`);
   } catch (e) {
-    console.log('⛔ Robô já está em execução. Lock já existe.');
+    console.log('❌ Robô já está em execução. Lock já existe.');
     return;
   }
 
   try {
-    console.log('🚀 Iniciando Chromium...');
-    const browser = await chromium.launch({
+    console.log('🚀 Iniciando Chromium com contexto persistente...');
+    const browser = await chromium.launchPersistentContext('./session', {
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
+    const page = await browser.newPage();
     console.log('✅ Chromium iniciado com sucesso.');
 
-    const context = await browser.newContext();
-    const page = await context.newPage();
-
-    console.log('🔐 Acessando página de login do Pipefy...');
+    console.log('🔐 Acessando login...');
     await page.goto('https://signin.pipefy.com/realms/pipefy/protocol/openid-connect/auth?client_id=pipefy-auth&redirect_uri=https%3A%2F%2Fapp-auth.pipefy.com%2Fauth_callback&response_type=code&scope=openid+email+profile');
-
-    console.log('📨 Preenchendo e-mail...');
     await page.fill('input[name="username"]', 'juridicomgmultas@gmail.com');
     await page.click('#kc-login');
-
-    console.log('🔒 Preenchendo senha...');
     await page.fill('input[name="password"]', 'Mg.12345@');
     await page.click('#kc-login');
-
     await page.waitForNavigation({ waitUntil: 'load' });
     console.log('✅ Login efetuado com sucesso.');
 
@@ -76,7 +69,7 @@ async function executarCadastroCliente() {
       'Profissão': 'Vigilante',
       'Email': 'jonas1gui@gmail.com',
       'Número de telefone': '31988429016',
-      'Endereço Completo': 'Rua Luzia de Jesus, 135, Jardim dos Comerciários, Ribeirão das Neves - MG',
+      'Endereço Completo': 'Rua Luzia de Jesus, 135, Jardim dos Comerciários, Ribeirão das Neves - MG'
     };
 
     for (const [campo, valor] of Object.entries(dados)) {
@@ -111,7 +104,7 @@ async function executarCadastroCliente() {
     await page.waitForTimeout(3000);
     await page.screenshot({ path: 'registro_cliente_final.png' });
     statusCampos.push('✅ Registro de cliente criado com sucesso');
-    console.log('✅ Cadastro de cliente concluído com sucesso!');
+    console.log('✅ Cadastro de cliente finalizado.');
 
     await browser.close();
   } catch (err) {
