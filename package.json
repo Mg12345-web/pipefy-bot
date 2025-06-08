@@ -1,9 +1,10 @@
 {
-  "name": "pipefy-login-bot",
+  "name": "pipefy-bots",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "login.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node login.js",
+    "cadastro": "node cadastro.js"
   },
   "dependencies": {
     "playwright": "^1.44.0"
