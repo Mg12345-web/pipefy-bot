@@ -39,47 +39,37 @@ async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, stat
     ]);
 
     await fileChooser.setFiles(arquivoLocal);
-    console.log(`⏳ Enviando ${labelTexto}...`);
     await page.waitForTimeout(2000);
 
     const sucessoUpload = await page.locator(`text="${nomeArquivo}"`).first().isVisible({ timeout: 7000 });
 
     if (sucessoUpload) {
       await page.waitForTimeout(15000);
-      console.log(`✅ ${labelTexto} enviado com sucesso`);
       statusCampos.push(`✅ ${labelTexto} enviado`);
     } else {
-      console.log(`❌ ${labelTexto} falhou (não visível após envio)`);
       statusCampos.push(`❌ ${labelTexto} falhou (não visível após envio)`);
     }
-  } catch (err) {
-    console.log(`❌ Falha ao enviar ${labelTexto}`);
+  } catch {
     statusCampos.push(`❌ Falha ao enviar ${labelTexto}`);
   }
 }
 
 (async () => {
-  console.log(`🖥️ Servidor disponível em http://localhost:${PORT}`);
-  console.log('🔐 Acessando o login do Pipefy...');
-
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext();
   const page = await context.newPage();
 
-  await page.goto('https://signin.pipefy.com/realms/pipefy/protocol/openid-connect/auth?client_id=pipefy-auth&redirect_uri=https%3A%2F%2Fapp-auth.pipefy.com%2Fauth_callback&response_type=code&scope=openid+email+profile');
+  const statusCampos = [];
 
+  await page.goto('https://signin.pipefy.com/realms/pipefy/protocol/openid-connect/auth?client_id=pipefy-auth&redirect_uri=https%3A%2F%2Fapp-auth.pipefy.com%2Fauth_callback&response_type=code&scope=openid+email+profile');
   await page.waitForSelector('input[name="username"]', { timeout: 60000 });
   await page.fill('input[name="username"]', 'juridicomgmultas@gmail.com');
   await page.click('#kc-login');
-
   await page.waitForSelector('input[name="password"]', { timeout: 60000 });
   await page.fill('input[name="password"]', 'Mg.12345@');
   await page.click('#kc-login');
-
   await page.waitForNavigation({ waitUntil: 'load' });
-  console.log('✅ Login feito com sucesso.');
 
-  await page.evaluate(() => window.scrollBy(0, 1000));
   await page.getByText('Databases', { exact: true }).click();
   await page.getByText('Clientes', { exact: true }).click();
 
@@ -95,17 +85,13 @@ async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, stat
     'Endereço Completo': 'Rua Luzia de Jesus, 135, Jardim dos Comerciários, Ribeirão das Neves - MG'
   };
 
-  const statusCampos = [];
-
   for (const [campo, valor] of Object.entries(dados)) {
     try {
       const label = await page.getByLabel(campo);
       await label.scrollIntoViewIfNeeded();
       await label.fill(valor);
-      console.log(`✅ ${campo} preenchido`);
       statusCampos.push(`✅ ${campo}`);
-    } catch (error) {
-      console.log(`❌ Erro ao preencher o campo: ${campo}`);
+    } catch {
       statusCampos.push(`❌ ${campo}`);
     }
   }
@@ -120,47 +106,42 @@ async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, stat
 
   if (fs.existsSync(caminhoCNH)) {
     await enviarArquivoPorOrdem(page, 0, '* CNH', caminhoCNH, statusCampos);
-  } else {
-    statusCampos.push('❌ Arquivo CNH não encontrado');
   }
 
   if (fs.existsSync(caminhoPROC)) {
     await enviarArquivoPorOrdem(page, 1, '* Procuração', caminhoPROC, statusCampos);
-  } else {
-    statusCampos.push('❌ Arquivo Procuração não encontrado');
   }
 
   await page.screenshot({ path: 'print_antes_clique.png' });
 
   try {
-    console.log('⏳ Procurando botão por texto visível...');
-    const botaoTexto = page.getByRole('button', { name: 'Criar registro' });
-    await botaoTexto.scrollIntoViewIfNeeded();
-    await botaoTexto.screenshot({ path: 'print_botao_por_texto.png' });
-    await page.waitForTimeout(1000);
-    await botaoTexto.click();
-    await page.waitForTimeout(3000);
-  } catch (erroTexto) {
-    try {
-      console.log('⚠️ Falha no clique por texto. Tentando clique direto via JavaScript...');
-      await page.evaluate(() => {
-        const botoes = Array.from(document.querySelectorAll('button'));
-        const alvo = botoes.find(btn => btn.innerText.trim() === 'Criar registro');
-        if (alvo) alvo.click();
-      });
+    const botoes = await page.$$eval('button', btns =>
+      btns.map(b => b.innerText.trim()).filter(t => t.length > 0)
+    );
+    fs.writeFileSync('botoes_detectados.txt', botoes.join('\n'));
+
+    const botaoEncontrado = await page.evaluateHandle(() => {
+      const botoes = Array.from(document.querySelectorAll('button'));
+      return botoes.find(btn => btn.innerText.trim() === 'Criar registro');
+    });
+
+    if (botaoEncontrado) {
+      await botaoEncontrado.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(1000);
+      await botaoEncontrado.click();
       await page.waitForTimeout(3000);
-    } catch (erroJS) {
-      console.log('❌ Erro ao tentar clicar no botão de registro:', erroJS);
-      statusCampos.push('❌ Erro ao tentar clicar no botão de registro');
+      statusCampos.push('✅ Clique no botão realizado');
+    } else {
+      statusCampos.push('❌ Botão "Criar registro" não encontrado');
     }
+  } catch (erro) {
+    statusCampos.push(`❌ Erro ao clicar: ${erro.message}`);
   }
 
   const formStillOpen = await page.$('input[placeholder="Nome Completo"]');
   if (formStillOpen) {
-    console.log('⚠️ Formulário ainda aberto. Registro pode não ter sido criado.');
     statusCampos.push('⚠️ Formulário ainda aberto. Registro pode não ter sido criado.');
   } else {
-    console.log('✅ Registro realmente criado com sucesso.');
     statusCampos.push('✅ Registro criado com sucesso');
   }
 
@@ -177,14 +158,21 @@ app.get('/', (req, res) => {
     <p>
       <a href="/print">📥 Baixar print final</a><br>
       <a href="/antes">📷 Ver print antes do clique</a><br>
-      <a href="/texto">📷 Botão por texto</a>
+      <a href="/botoes">📋 Botões detectados</a>
     </p>
   `);
 });
 
 app.get('/print', (req, res) => res.download('registro_final.png'));
 app.get('/antes', (req, res) => res.download('print_antes_clique.png'));
-app.get('/texto', (req, res) => res.download('print_botao_por_texto.png'));
+app.get('/botoes', (req, res) => {
+  const caminho = 'botoes_detectados.txt';
+  if (fs.existsSync(caminho)) {
+    res.download(caminho);
+  } else {
+    res.status(404).send('Nenhum botão detectado.');
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`🖥️ Servidor escutando em http://localhost:${PORT}`);
