@@ -3,7 +3,8 @@ const path = require('path');
 const fs = require('fs');
 const https = require('https');
 
-const LOCK_PATH = path.resolve(__dirname, 'execucao.lock');
+const os = require('os');
+const LOCK_PATH = path.join(os.tmpdir(), 'pipefy_robo.lock');
 const statusCampos = [];
 
 async function executarRobo() {
@@ -12,7 +13,8 @@ async function executarRobo() {
     return;
   }
 
-  fs.writeFileSync(LOCK_PATH, 'executando');
+  fs.writeFileSync(LOCK_PATH, String(process.pid));
+  console.log(`🔒 Lock criado em: ${LOCK_PATH} (PID: ${process.pid})`);
 
   try {
     console.log('🔄 Iniciando robô automaticamente após deploy...');
