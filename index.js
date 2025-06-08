@@ -112,10 +112,17 @@ async function executarRobo() {
 
     await page.screenshot({ path: 'registro_final.png' });
     fs.writeFileSync('status.txt', statusCampos.join('\n'));
-    // 📁 Acessando database CRLV
+    // Acessa banco CRLV via link direto
 console.log('📄 Acessando banco CRLV...');
-await page.getByText('Databases', { exact: true }).click();
 await page.goto('https://app.pipefy.com/apollo_databases/304722775');
+await page.waitForTimeout(5000);
+await page.screenshot({ path: 'crlv_01_tela_banco.png' });
+
+// Clica no botão "Criar registro"
+await page.waitForSelector('button:has-text("Criar registro")', { timeout: 10000 });
+await page.click('button:has-text("Criar registro")');
+await page.waitForTimeout(2000);
+await page.screenshot({ path: 'crlv_02_tela_formulario.png' });
 await page.waitForTimeout(10000); // Garante carregamento
 
 // ⏳ Espera botão de criar aparecer
