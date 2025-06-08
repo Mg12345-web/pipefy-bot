@@ -134,21 +134,30 @@ async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, stat
 
   try {
     console.log('⏳ Procurando botão correto entre vários...');
+    const botoes = await page.$$('button');
 
-    const botoes = await page.locator('button', { hasText: 'Criar registro' }).all();
-    console.log(`🔍 ${botoes.length} botões encontrados com texto "Criar registro"`);
+    const botoesValidos = [];
+
+    for (const botao of botoes) {
+      const texto = await botao.evaluate(el => el.innerText.trim());
+      if (texto === 'Criar registro') {
+        botoesValidos.push(botao);
+      }
+    }
+
+    console.log(`🔍 ${botoesValidos.length} botões encontrados com texto "Criar registro"`);
 
     let clicado = false;
-    for (const botao of botoes) {
-      const visivel = await botao.isVisible();
+    for (const botao of botoesValidos) {
       const dentroDoModal = await botao.evaluate(el => {
         return el.closest('[role="dialog"]') !== null;
       });
 
-      if (visivel && dentroDoModal) {
+      if (dentroDoModal) {
         await botao.scrollIntoViewIfNeeded();
         await botao.screenshot({ path: 'print_botao_modal.png' });
-        await botao.click();
+
+        await botao.click({ force: true }); // 👈 Clique forçado
         console.log('✅ Botão dentro do modal clicado com sucesso.');
         clicado = true;
         break;
@@ -157,13 +166,10 @@ async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, stat
 
     if (!clicado) {
       console.log('❌ Nenhum botão visível dentro do modal foi clicado.');
-      statusCampos.push('❌ Nenhum botão correto foi encontrado para clique');
-    } else {
-      await page.waitForTimeout(3000);
+      statusCampos.push('❌ Nenhum botão visível dentro do modal foi clicado.');
     }
-
-  } catch (erroClique) {
-    console.log('❌ Erro ao tentar clicar no botão de registro:', erroClique);
+  } catch (e) {
+    console.log('❌ Erro ao tentar clicar no botão de registro:', e);
     statusCampos.push('❌ Erro ao tentar clicar no botão de registro');
   }
 
@@ -189,7 +195,7 @@ app.get('/', (req, res) => {
     <p>
       <a href="/print">📥 Baixar print final</a><br>
       <a href="/antes">📷 Ver print antes do clique</a><br>
-      <a href="/modal">📷 Botão clicado no modal</a>
+      <a href="/modal">📷 Botão dentro do modal</a>
     </p>
   `);
 });
