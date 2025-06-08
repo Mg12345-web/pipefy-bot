@@ -42,33 +42,30 @@ async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, stat
     await page.waitForTimeout(2000);
 
     const sucessoUpload = await page.locator(`text="${nomeArquivo}"`).first().isVisible({ timeout: 7000 });
-
     if (sucessoUpload) {
       await page.waitForTimeout(15000);
       statusCampos.push(`✅ ${labelTexto} enviado`);
     } else {
       statusCampos.push(`❌ ${labelTexto} falhou (não visível após envio)`);
     }
-  } catch (err) {
+  } catch {
     statusCampos.push(`❌ Falha ao enviar ${labelTexto}`);
   }
 }
 
 (async () => {
-  console.log(`🖥️ Servidor disponível em http://localhost:${PORT}`);
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext();
   const page = await context.newPage();
 
-  await page.goto('https://signin.pipefy.com/realms/pipefy/protocol/openid-connect/auth?client_id=pipefy-auth&redirect_uri=https%3A%2F%2Fapp-auth.pipefy.com%2Fauth_callback&response_type=code&scope=openid+email+profile');
+  const statusCampos = [];
 
+  await page.goto('https://signin.pipefy.com/realms/pipefy/protocol/openid-connect/auth?client_id=pipefy-auth&redirect_uri=https%3A%2F%2Fapp-auth.pipefy.com%2Fauth_callback&response_type=code&scope=openid+email+profile');
   await page.fill('input[name="username"]', 'juridicomgmultas@gmail.com');
   await page.click('#kc-login');
   await page.fill('input[name="password"]', 'Mg.12345@');
   await page.click('#kc-login');
   await page.waitForNavigation({ waitUntil: 'load' });
-
-  const statusCampos = [];
 
   await page.getByText('Databases', { exact: true }).click();
   await page.getByText('Clientes', { exact: true }).click();
@@ -86,6 +83,7 @@ async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, stat
   for (const [campo, valor] of Object.entries(dados)) {
     try {
       const label = await page.getByLabel(campo);
+      await label.scrollIntoViewIfNeeded();
       await label.fill(valor);
       statusCampos.push(`✅ ${campo}`);
     } catch {
@@ -98,29 +96,45 @@ async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, stat
 
   if (fs.existsSync(caminhoCNH)) {
     await enviarArquivoPorOrdem(page, 0, '* CNH', caminhoCNH, statusCampos);
+  } else {
+    statusCampos.push('❌ Arquivo CNH não encontrado');
   }
+
   if (fs.existsSync(caminhoPROC)) {
     await enviarArquivoPorOrdem(page, 1, '* Procuração', caminhoPROC, statusCampos);
+  } else {
+    statusCampos.push('❌ Arquivo Procuração não encontrado');
   }
 
   await page.screenshot({ path: 'print_antes_clique.png' });
 
   try {
-    const botoes = await page.locator('button', { hasText: 'Criar registro' }).all();
-    console.log(`🔍 ${botoes.length} botões encontrados com texto "Criar registro"`);
+    const botoes = await page.$$('button');
+    let clicado = false;
+    let idx = 0;
 
-    if (botoes.length > 0) {
-      await botoes[0].scrollIntoViewIfNeeded();
-      await page.waitForTimeout(1000);
-      await botoes[0].screenshot({ path: 'print_botao_1.png' });
-      await botoes[0].click();
-      await page.waitForTimeout(3000);
-      statusCampos.push('✅ Primeiro botão clicado com sucesso.');
-    } else {
-      statusCampos.push('❌ Nenhum botão encontrado.');
+    for (const btn of botoes) {
+      const texto = await btn.innerText();
+      const box = await btn.boundingBox();
+
+      if (texto.trim() === 'Criar registro' && box && box.width > 200) {
+        await btn.scrollIntoViewIfNeeded();
+        await btn.screenshot({ path: `print_botao_${idx + 1}.png` });
+        await btn.click();
+        clicado = true;
+        statusCampos.push(`✅ Botão ${idx + 1} clicado com sucesso.`);
+        break;
+      }
+      idx++;
     }
-  } catch (e) {
-    statusCampos.push('❌ Erro ao clicar no botão.');
+
+    if (!clicado) {
+      statusCampos.push('❌ Nenhum botão com texto "Criar registro" visível e com largura adequada foi clicado.');
+    }
+
+    await page.waitForTimeout(4000);
+  } catch (err) {
+    statusCampos.push('❌ Erro ao tentar clicar no botão de registro.');
   }
 
   const formStillOpen = await page.$('input[placeholder="Nome Completo"]');
