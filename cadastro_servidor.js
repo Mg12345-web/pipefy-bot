@@ -25,17 +25,26 @@ app.listen(PORT, () => {
 });
 
 async function iniciarComLogin() {
-  const browser = await chromium.launch({ headless: true });
+  console.log('🧪 Iniciando Chromium...');
+  const browser = await chromium.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox']
+  });
+
+  console.log('✅ Chromium iniciado.');
   const context = await browser.newContext();
   const page = await context.newPage();
 
   console.log('🔐 Realizando login no Pipefy...');
   await page.goto('https://signin.pipefy.com/realms/pipefy/protocol/openid-connect/auth?client_id=pipefy-auth&redirect_uri=https%3A%2F%2Fapp-auth.pipefy.com%2Fauth_callback&response_type=code&scope=openid+email+profile');
+
   await page.fill('input[name="username"]', 'juridicomgmultas@gmail.com');
   await page.click('#kc-login');
-  await page.waitForSelector('input[name="password"]');
+
+  await page.waitForSelector('input[name="password"]', { timeout: 10000 });
   await page.fill('input[name="password"]', 'Mg.12345@');
   await page.click('#kc-login');
+
   await page.waitForNavigation({ waitUntil: 'load' });
 
   return { browser, page };
