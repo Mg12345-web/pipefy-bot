@@ -46,9 +46,7 @@ async function executarRobo() {
       'Email': 'jonas1gui@gmail.com',
       'Número de telefone': '31988429016',
       'Endereço Completo': 'Rua Luzia de Jesus, 135, Jardim dos Comerciários, Ribeirão das Neves - MG',
-      'Estado Civil': 'Solteiro'
-    
-  };
+};
 
         for (const [campo, valor] of Object.entries(dados)) {
       try {
