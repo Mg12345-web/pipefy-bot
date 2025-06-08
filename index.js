@@ -52,15 +52,21 @@ async function executarRobo() {
 try {
   const estadoCivil = 'Solteiro';
 
-  const campoTexto = await page.locator('input[placeholder="Digite aqui ..."]').first();
-  await campoTexto.scrollIntoViewIfNeeded();
-  await campoTexto.fill(estadoCivil);
+  const todosInputs = await page.locator('input').all();
 
-  console.log(`✅ Estado Civil preenchido com: ${estadoCivil}`);
-  statusCampos.push(`✅ Estado Civil preenchido com: ${estadoCivil}`);
-} catch (e) {
-  console.log(`❌ Erro ao preencher Estado Civil (texto): ${e.message}`);
-  statusCampos.push('❌ Erro ao preencher Estado Civil (texto)');
+for (const input of todosInputs) {
+  const label = await input.evaluate(el => {
+    const labelEl = el.closest('div').querySelector('label');
+    return labelEl ? labelEl.innerText : '';
+  });
+
+  if (label.includes('Estado Civil')) {
+    await input.scrollIntoViewIfNeeded();
+    await input.fill('Solteiro');
+    console.log('✅ Estado Civil preenchido');
+    statusCampos.push('✅ Estado Civil preenchido');
+    break;
+  }
 }
     const arquivos = [
       { url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', local: 'cnh_teste.pdf', label: '* CNH' },
