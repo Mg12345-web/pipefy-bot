@@ -40,20 +40,29 @@ async function executarCadastroCliente() {
   }
 
   try {
-  const browser = await chromium.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
-});
+    console.log('🚀 Iniciando Chromium...');
+    const browser = await chromium.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
+    console.log('✅ Chromium iniciado com sucesso.');
+
     const context = await browser.newContext();
     const page = await context.newPage();
 
-    console.log('🔐 Acessando login...');
+    console.log('🔐 Acessando página de login do Pipefy...');
     await page.goto('https://signin.pipefy.com/realms/pipefy/protocol/openid-connect/auth?client_id=pipefy-auth&redirect_uri=https%3A%2F%2Fapp-auth.pipefy.com%2Fauth_callback&response_type=code&scope=openid+email+profile');
+
+    console.log('📨 Preenchendo e-mail...');
     await page.fill('input[name="username"]', 'juridicomgmultas@gmail.com');
     await page.click('#kc-login');
+
+    console.log('🔒 Preenchendo senha...');
     await page.fill('input[name="password"]', 'Mg.12345@');
     await page.click('#kc-login');
+
     await page.waitForNavigation({ waitUntil: 'load' });
+    console.log('✅ Login efetuado com sucesso.');
 
     console.log('📁 Acessando banco Clientes...');
     await page.getByText('Databases', { exact: true }).click();
@@ -102,6 +111,7 @@ async function executarCadastroCliente() {
     await page.waitForTimeout(3000);
     await page.screenshot({ path: 'registro_cliente_final.png' });
     statusCampos.push('✅ Registro de cliente criado com sucesso');
+    console.log('✅ Cadastro de cliente concluído com sucesso!');
 
     await browser.close();
   } catch (err) {
