@@ -10,6 +10,7 @@ let rodando = false;
 
 app.get('/', async (req, res) => {
   if (rodando) {
+    console.log('⏳ Tentativa de execução enquanto já está rodando...');
     return res.send('<h2>⚠️ Robô já está em execução. Aguarde a finalização.</h2>');
   }
 
@@ -17,17 +18,27 @@ app.get('/', async (req, res) => {
   const statusCampos = [];
 
   try {
+    console.log('🔄 Robô iniciado...');
+
     const browser = await chromium.launch({ headless: true });
     const context = await browser.newContext();
     const page = await context.newPage();
 
+    console.log('🌐 Acessando página de login do Pipefy...');
     await page.goto('https://signin.pipefy.com/realms/pipefy/protocol/openid-connect/auth?client_id=pipefy-auth&redirect_uri=https%3A%2F%2Fapp-auth.pipefy.com%2Fauth_callback&response_type=code&scope=openid+email+profile');
+    
     await page.fill('input[name="username"]', 'juridicomgmultas@gmail.com');
+    console.log('📧 Email preenchido');
+    
     await page.click('#kc-login');
     await page.fill('input[name="password"]', 'Mg.12345@');
+    console.log('🔑 Senha preenchida');
+    
     await page.click('#kc-login');
     await page.waitForNavigation({ waitUntil: 'load' });
+    console.log('✅ Login realizado');
 
+    console.log('📁 Acessando database Clientes...');
     await page.getByText('Databases', { exact: true }).click();
     await page.getByText('Clientes', { exact: true }).click();
     await page.click('button:has-text("Criar registro")');
@@ -41,21 +52,24 @@ app.get('/', async (req, res) => {
       'Endereço Completo': 'Rua Luzia de Jesus, 135, Jardim dos Comerciários, Ribeirão das Neves - MG'
     };
 
+    console.log('📝 Preenchendo campos do formulário...');
     for (const [campo, valor] of Object.entries(dados)) {
       try {
         const label = await page.getByLabel(campo);
         await label.scrollIntoViewIfNeeded();
         await label.fill(valor);
         statusCampos.push(`✅ ${campo}`);
+        console.log(`✅ Campo preenchido: ${campo}`);
       } catch {
         statusCampos.push(`❌ ${campo}`);
+        console.log(`❌ Falha ao preencher: ${campo}`);
       }
     }
 
-    // Preencher Estado Civil corretamente
+    console.log('🎯 Selecionando Estado Civil...');
     await selecionarEstadoCivil(page, 'solteiro', statusCampos);
 
-    // Baixar arquivos de teste
+    console.log('⬇️ Baixando arquivos de teste...');
     await baixarArquivo('https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', 'cnh_teste.pdf');
     await baixarArquivo('https://www.africau.edu/images/default/sample.pdf', 'procuracao_teste.pdf');
     await baixarArquivo('https://www.orimi.com/pdf-test.pdf', 'contrato_teste.pdf');
@@ -65,12 +79,14 @@ app.get('/', async (req, res) => {
     const arquivosContrato = [path.resolve(__dirname, 'contrato_teste.pdf')];
     const arquivosProcContrato = [...arquivosProc, ...arquivosContrato];
 
+    console.log('📎 Enviando CNH...');
     if (arquivosCNH.length > 0) {
       await enviarArquivosPorOrdem(page, 0, '* CNH', arquivosCNH, statusCampos);
     } else {
       statusCampos.push('❌ Nenhum arquivo CNH encontrado');
     }
 
+    console.log('📎 Enviando Procuração + Contrato...');
     if (arquivosProcContrato.length > 0) {
       await enviarArquivosPorOrdem(page, 1, '* Procuração', arquivosProcContrato, statusCampos);
     } else {
@@ -79,6 +95,7 @@ app.get('/', async (req, res) => {
 
     await page.screenshot({ path: 'print_antes_clique.png' });
 
+    console.log('🚀 Clicando em Criar registro...');
     const botoes = await page.$$('button');
     for (let i = 0; i < botoes.length; i++) {
       const texto = await botoes[i].innerText();
@@ -108,9 +125,11 @@ app.get('/', async (req, res) => {
     await page.screenshot({ path: 'registro_final.png' });
     fs.writeFileSync('status.txt', statusCampos.join('\n'));
     await browser.close();
+    console.log('✅ Robô finalizado com sucesso!');
   } catch (err) {
     statusCampos.push('❌ Erro durante execução: ' + err.message);
     fs.writeFileSync('status.txt', statusCampos.join('\n'));
+    console.log('❌ Erro durante execução:', err.message);
   }
 
   rodando = false;
@@ -126,7 +145,6 @@ app.get('/', async (req, res) => {
   `);
 });
 
-// Baixar arquivos de teste
 function baixarArquivo(url, destino) {
   return new Promise((resolve, reject) => {
     const file = fs.createWriteStream(destino);
@@ -139,7 +157,6 @@ function baixarArquivo(url, destino) {
   });
 }
 
-// Preencher dropdown do Estado Civil corretamente
 async function selecionarEstadoCivil(page, valorDesejado, statusCampos) {
   function normalizarTexto(texto) {
     return texto
@@ -163,17 +180,19 @@ async function selecionarEstadoCivil(page, valorDesejado, statusCampos) {
       if (textoNormalizado.includes(desejado)) {
         await opcao.click();
         statusCampos.push(`✅ Estado Civil selecionado: ${texto?.trim()}`);
+        console.log(`✅ Estado Civil selecionado: ${texto?.trim()}`);
         return;
       }
     }
 
     statusCampos.push(`❌ Estado Civil '${valorDesejado}' não encontrado`);
+    console.log(`❌ Estado Civil '${valorDesejado}' não encontrado`);
   } catch (err) {
     statusCampos.push(`❌ Erro ao selecionar Estado Civil (${valorDesejado}): ${err.message}`);
+    console.log(`❌ Erro ao selecionar Estado Civil (${valorDesejado}):`, err.message);
   }
 }
 
-// Upload de múltiplos arquivos
 async function enviarArquivosPorOrdem(page, index, labelTexto, arquivosLocais, statusCampos) {
   try {
     const botoesUpload = await page.locator('button[data-testid="attachments-dropzone-button"]');
@@ -200,11 +219,14 @@ async function enviarArquivosPorOrdem(page, index, labelTexto, arquivosLocais, s
     if (algumVisivel) {
       await page.waitForTimeout(15000);
       statusCampos.push(`✅ ${labelTexto} enviado (${nomesArquivos.join(', ')})`);
+      console.log(`✅ Upload OK: ${labelTexto}`);
     } else {
       statusCampos.push(`❌ ${labelTexto} falhou (arquivos não visíveis após envio)`);
+      console.log(`❌ Upload falhou: ${labelTexto}`);
     }
   } catch {
     statusCampos.push(`❌ Falha ao enviar ${labelTexto}`);
+    console.log(`❌ Erro inesperado ao anexar ${labelTexto}`);
   }
 }
 
