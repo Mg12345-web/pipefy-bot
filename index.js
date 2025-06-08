@@ -110,7 +110,6 @@ async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, stat
     }
   }
 
-  // Scroll extra
   for (let i = 0; i < 5; i++) {
     await page.evaluate(() => window.scrollBy(0, 300));
     await page.waitForTimeout(300);
@@ -141,7 +140,10 @@ async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, stat
     await botaoCriar.scrollIntoViewIfNeeded();
     await page.waitForTimeout(1000);
     await botaoCriar.screenshot({ path: 'print_alvo_clique.png' });
-    await botaoCriar.click();
+
+    const btnHandle = await botaoCriar.elementHandle();
+    await page.evaluate(el => el.click(), btnHandle);
+
     await page.waitForTimeout(3000);
     await modal.screenshot({ path: 'print_depois_clique.png' });
 
