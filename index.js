@@ -33,6 +33,9 @@ app.get('/executar/clientes', async (req, res) => {
 });
 
 // Inicializa o servidor
+app.get('/ping', (req, res) => {
+  res.send('🔄 API ativa!');
+});
 app.listen(PORT, () => {
   console.log(`🖥️ Servidor rodando em http://localhost:${PORT}`);
 });
