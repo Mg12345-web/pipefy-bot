@@ -115,8 +115,8 @@ async function executarRobo() {
     // 📁 Acessando database CRLV
 console.log('📄 Acessando banco CRLV...');
 await page.getByText('Databases', { exact: true }).click();
-await page.getByText('CRLV', { exact: true }).click();
-await page.waitForTimeout(3000); // Garante carregamento
+await page.goto('https://app.pipefy.com/apollo_databases/304722775');
+await page.waitForTimeout(10000); // Garante carregamento
 
 // ⏳ Espera botão de criar aparecer
 await page.waitForSelector('button:has-text("Criar registro")', { timeout: 10000 });
