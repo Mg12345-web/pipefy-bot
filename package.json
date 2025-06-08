@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "main": "login.js",
   "scripts": {
-    "start": "node login.js"
+    "start": "node login.js",
+    "cadastro": "node cadastro.js"
   },
   "dependencies": {
     "playwright": "^1.44.0",
