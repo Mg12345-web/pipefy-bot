@@ -65,6 +65,7 @@ async function cadastrarCliente(page) {
   const dados = {
     'Nome Completo': 'ADRIANO ANTONIO DE SOUZA',
     'CPF OU CNPJ': '414.746.148-41',
+    'Estado Civil Atual': 'Solteiro',
     'Profissão': 'Vigilante',
     'Email': 'jonas1gui@gmail.com',
     'Número de telefone': '31988429016',
@@ -120,7 +121,8 @@ async function cadastrarCRLV(page) {
   const dadosCRLV = {
     'Placa': 'GKD0F82',
     'CHASSI': '9C2KF4300NR006285',
-    'RENAVAM': '01292345630'
+    'RENAVAM': '01292345630',
+    'Estado de emplacamento': 'SP',
   };
 
   for (const [campo, valor] of Object.entries(dadosCRLV)) {
