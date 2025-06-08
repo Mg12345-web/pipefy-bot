@@ -42,7 +42,6 @@ async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, stat
     await page.waitForTimeout(2000);
 
     const sucessoUpload = await page.locator(`text="${nomeArquivo}"`).first().isVisible({ timeout: 7000 });
-
     if (sucessoUpload) {
       await page.waitForTimeout(15000);
       statusCampos.push(`✅ ${labelTexto} enviado`);
@@ -58,7 +57,6 @@ async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, stat
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext();
   const page = await context.newPage();
-
   const statusCampos = [];
 
   await page.goto('https://signin.pipefy.com/realms/pipefy/protocol/openid-connect/auth?client_id=pipefy-auth&redirect_uri=https%3A%2F%2Fapp-auth.pipefy.com%2Fauth_callback&response_type=code&scope=openid+email+profile');
@@ -123,8 +121,15 @@ async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, stat
         await botoes[i].screenshot({ path: 'print_botao_clicado.png' });
         statusCampos.push(`✅ Botão ${i + 1} clicado com sucesso.`);
 
-        // Aguarda fechamento do formulário
-        for (let tentativa = 0; tentativa < 15; tentativa++) {
+        // Espera o botão desaparecer
+        for (let tentativa = 0; tentativa < 20; tentativa++) {
+          const aindaExiste = await botoes[i].isVisible();
+          if (!aindaExiste) break;
+          await page.waitForTimeout(500);
+        }
+
+        // Espera o modal fechar
+        for (let tentativa = 0; tentativa < 20; tentativa++) {
           const aindaAberto = await page.$('input[placeholder="Nome Completo"]');
           if (!aindaAberto) break;
           await page.waitForTimeout(800);
