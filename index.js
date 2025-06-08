@@ -6,7 +6,6 @@ const https = require('https');
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// URLs dos PDFs de teste
 const urlCNH = 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
 const urlPROC = 'https://www.africau.edu/images/default/sample.pdf';
 
@@ -46,8 +45,7 @@ async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, stat
     const sucessoUpload = await page.locator(`text="${nomeArquivo}"`).first().isVisible({ timeout: 7000 });
 
     if (sucessoUpload) {
-      await page.screenshot({ path: `upload_${labelTexto.replace(/\*/g, '').trim().toLowerCase()}.png` });
-      await page.waitForTimeout(15000);
+      await page.waitForTimeout(15000); // importante aguardar antes do próximo upload
       console.log(`✅ ${labelTexto} enviado com sucesso`);
       statusCampos.push(`✅ ${labelTexto} enviado`);
     } else {
@@ -115,7 +113,7 @@ async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, stat
   // Scroll extra
   for (let i = 0; i < 5; i++) {
     await page.evaluate(() => window.scrollBy(0, 300));
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(300);
   }
 
   // Baixar arquivos externos de teste
@@ -137,16 +135,26 @@ async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, stat
   await page.screenshot({ path: 'erro_antes_do_click.png' });
 
   try {
-    await page.locator('button[data-testid="create-record-fab-button"]').click({ timeout: 5000 });
+    console.log('⏳ Aguardando botão "Criar registro"...');
+    const botaoCriar = await page.waitForSelector('button[data-testid="create-record-fab-button"]', { timeout: 15000 });
+    await botaoCriar.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(1000);
+    await botaoCriar.click();
+    console.log('✅ Clique no botão "Criar registro" efetuado');
   } catch (e) {
     console.log('⚠️ Clique normal falhou. Tentando forçar com JavaScript...');
     await page.evaluate(() => {
       const btn = document.querySelector('button[data-testid="create-record-fab-button"]');
-      if (btn) btn.click();
+      if (btn) {
+        btn.scrollIntoView({ behavior: 'smooth' });
+        btn.click();
+      }
     });
+    await page.waitForTimeout(2000);
   }
 
-  await page.waitForTimeout(5000);
+  await page.waitForTimeout(4000);
+
   const formStillOpen = await page.$('input[placeholder="Nome Completo"]');
   if (formStillOpen) {
     console.log('⚠️ Formulário ainda aberto. Registro pode não ter sido criado.');
