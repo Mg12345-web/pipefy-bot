@@ -235,6 +235,23 @@ app.get('/start', async (req, res) => {
   await executarRobo();
 });
 
+const PRINTS_DIR = __dirname;
+
+app.use('/prints', express.static(PRINTS_DIR));
+
+app.get('/listar-prints', (req, res) => {
+  fs.readdir(PRINTS_DIR, (err, files) => {
+    if (err) {
+      res.status(500).send('Erro ao listar arquivos');
+      return;
+    }
+
+    const imagens = files.filter(f => f.endsWith('.png'));
+    const links = imagens.map(img => `<li><a href="/prints/${img}" target="_blank">${img}</a></li>`).join('');
+    res.send(`<h3>🖼️ Prints disponíveis:</h3><ul>${links}</ul>`);
+  });
+});
+
 app.listen(PORT, () => {
   console.log(`🖥️ Servidor escutando em http://localhost:${PORT}`);
 });
