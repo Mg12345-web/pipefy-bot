@@ -144,7 +144,7 @@ async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, stat
 
     const [fileChooser] = await Promise.all([
       page.waitForEvent('filechooser'),
-      botao.evaluate(el => el.click())
+      botao.click()
     ]);
 
     await fileChooser.setFiles(arquivoLocal);
