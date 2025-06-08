@@ -6,32 +6,45 @@ const PORT = process.env.PORT || 8080;
 
 app.get('/', (req, res) => {
   res.send(`
-    <h2>🚀 Robô Pipefy - Cadastro</h2>
-    <form action="/start" method="GET">
+    <h2>🚀 Robô Pipefy - Cadastro de Cliente</h2>
+    <form action="/cliente" method="GET">
       <button type="submit" style="font-size: 18px; padding: 10px 20px;">
-        Iniciar cadastro no Pipefy
+        Iniciar cadastro de cliente
       </button>
     </form>
   `);
 });
 
-app.get('/start', async (req, res) => {
-  res.send('<p>✅ Robô de cadastro iniciado! Veja os logs no Railway.</p>');
-  executarCadastro(); // roda em segundo plano
+app.get('/cliente', async (req, res) => {
+  res.send('<p>✅ Cadastro de cliente iniciado! Veja os logs no Railway.</p>');
+  executarCadastroCliente();
 });
 
 app.listen(PORT, () => {
   console.log(`🖥️ Servidor rodando em http://localhost:${PORT}`);
 });
 
-async function executarCadastro() {
-  console.log('🚀 Iniciando cadastro com sessão reutilizada...');
-
-  const context = await chromium.launchPersistentContext('./session', {
-    headless: true
-  });
-
+async function iniciarComLogin() {
+  const browser = await chromium.launch({ headless: true });
+  const context = await browser.newContext();
   const page = await context.newPage();
+
+  console.log('🔐 Realizando login no Pipefy...');
+  await page.goto('https://signin.pipefy.com/realms/pipefy/protocol/openid-connect/auth?client_id=pipefy-auth&redirect_uri=https%3A%2F%2Fapp-auth.pipefy.com%2Fauth_callback&response_type=code&scope=openid+email+profile');
+  await page.fill('input[name="username"]', 'juridicomgmultas@gmail.com');
+  await page.click('#kc-login');
+  await page.waitForSelector('input[name="password"]');
+  await page.fill('input[name="password"]', 'Mg.12345@');
+  await page.click('#kc-login');
+  await page.waitForNavigation({ waitUntil: 'load' });
+
+  return { browser, page };
+}
+
+async function executarCadastroCliente() {
+  console.log('🚀 Iniciando cadastro de cliente com login embutido...');
+
+  const { browser, page } = await iniciarComLogin();
 
   await page.goto('https://app.pipefy.com/apollo_databases/304722696');
   await page.waitForSelector('button:has-text("Criar registro")', { timeout: 10000 });
@@ -44,7 +57,7 @@ async function executarCadastro() {
     'Profissão': 'Vigilante',
     'Email': 'jonas1gui@gmail.com',
     'Número de telefone': '31988429016',
-    'Endereço Completo': 'Rua Luzia de Jesus, 135, Jardim dos Comerciários, Ribeirão das Neves - MG',
+    'Endereço Completo': 'Rua Luzia de Jesus, 135, Jardim dos Comerciários, Ribeirão das Neves - MG'
   };
 
   for (const [campo, valor] of Object.entries(dados)) {
@@ -71,8 +84,8 @@ async function executarCadastro() {
   }
 
   await page.waitForTimeout(5000);
-  await page.screenshot({ path: 'registro_criado.png' });
+  await page.screenshot({ path: 'registro_cliente.png' });
 
-  console.log('✅ Card criado com sucesso!');
-  await context.close();
+  console.log('✅ Cadastro de cliente concluído com sucesso!');
+  await browser.close();
 }
