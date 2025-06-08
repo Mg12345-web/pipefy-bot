@@ -1,37 +1,27 @@
-const express = require('express');
-const { iniciarLogin, getPage } = require('./robo_login');
-const cadastrarClientes = require('./robo_clientes');
+const { chromium } = require('playwright');
 
-const app = express();
-const PORT = process.env.PORT || 8080;
+(async () => {
+  console.log('🔐 Iniciando login no Pipefy...');
 
-app.get('/', (req, res) => {
-  res.send(`
-    <h2>🚀 Robôs Pipefy</h2>
-    <ul>
-      <li><a href="/ping">/ping</a></li>
-      <li><a href="/executar/clientes">Cadastrar Cliente</a></li>
-    </ul>
-  `);
-});
+  const browser = await chromium.launch({ headless: false }); // manter guia aberta
+  const context = await browser.newContext();
+  const page = await context.newPage();
 
-app.get('/ping', (req, res) => {
-  console.log('🔁 Ping recebido!');
-  res.send('✅ API ativa!');
-});
+  console.log('🌐 Acessando página de login...');
+  await page.goto('https://signin.pipefy.com/realms/pipefy/protocol/openid-connect/auth?client_id=pipefy-auth&redirect_uri=https%3A%2F%2Fapp-auth.pipefy.com%2Fauth_callback&response_type=code&scope=openid+email+profile');
 
-app.get('/executar/clientes', async (req, res) => {
-  console.log('🧠 Iniciando execução completa...');
-  res.send('<h3>⏳ Executando robô de clientes. Verifique os logs no Railway.</h3>');
-  try {
-    await iniciarLogin();
-    const page = getPage();
-    await cadastrarClientes(page);
-  } catch (erro) {
-    console.error('❌ Erro na execução:', erro);
-  }
-});
+  console.log('✉️ Preenchendo e-mail...');
+  await page.fill('input[type="email"]', 'juridicomgmultas@gmail.com');
+  await page.click('button[type="submit"]');
 
-app.listen(PORT, () => {
-  console.log(`🖥️ Servidor rodando em http://localhost:${PORT}`);
-});
+  console.log('🔐 Aguardando campo de senha...');
+  await page.waitForSelector('input[type="password"]', { timeout: 10000 });
+
+  console.log('🔑 Preenchendo senha...');
+  await page.fill('input[type="password"]', 'Mg.12345@');
+
+  console.log('🚪 Clicando para acessar o Pipefy...');
+  await page.click('button[type="submit"]');
+
+  console.log('✅ Login concluído. Robô em espera...');
+})();
