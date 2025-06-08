@@ -2,8 +2,28 @@ const { chromium } = require('playwright');
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const https = require('https');
 const app = express();
 const PORT = process.env.PORT || 8080;
+
+// URLs dos PDFs de teste
+const urlCNH = 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
+const urlPROC = 'https://www.africau.edu/images/default/sample.pdf';
+
+const caminhoCNH = path.resolve(__dirname, 'cnh_teste.pdf');
+const caminhoPROC = path.resolve(__dirname, 'proc_teste.pdf');
+
+async function baixarArquivo(url, destino) {
+  return new Promise((resolve, reject) => {
+    const file = fs.createWriteStream(destino);
+    https.get(url, response => {
+      response.pipe(file);
+      file.on('finish', () => file.close(resolve));
+    }).on('error', err => {
+      fs.unlink(destino, () => reject(err));
+    });
+  });
+}
 
 async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, statusCampos) {
   try {
@@ -16,7 +36,7 @@ async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, stat
 
     const [fileChooser] = await Promise.all([
       page.waitForEvent('filechooser'),
-      botao.evaluate(el => el.click()) // clique forçado
+      botao.evaluate(el => el.click())
     ]);
 
     await fileChooser.setFiles(arquivoLocal);
@@ -27,7 +47,7 @@ async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, stat
 
     if (sucessoUpload) {
       await page.screenshot({ path: `upload_${labelTexto.replace(/\*/g, '').trim().toLowerCase()}.png` });
-      await page.waitForTimeout(15000); // tempo de espera extra
+      await page.waitForTimeout(15000);
       console.log(`✅ ${labelTexto} enviado com sucesso`);
       statusCampos.push(`✅ ${labelTexto} enviado`);
     } else {
@@ -92,27 +112,24 @@ async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, stat
     }
   }
 
-  // Rolar até o final para garantir visibilidade dos campos
+  // Scroll extra
   for (let i = 0; i < 5; i++) {
     await page.evaluate(() => window.scrollBy(0, 300));
     await page.waitForTimeout(500);
   }
 
-  // Buscar arquivos
-  const arquivos = fs.readdirSync(__dirname);
-  const cnh = arquivos.find(f => f.toLowerCase().includes('cnh'));
-  const proc = arquivos.find(f =>
-    f.toLowerCase().includes('procuracao') || f.toLowerCase().includes('procuração')
-  );
+  // Baixar arquivos externos de teste
+  await baixarArquivo(urlCNH, caminhoCNH);
+  await baixarArquivo(urlPROC, caminhoPROC);
 
-  if (cnh) {
-    await enviarArquivoPorOrdem(page, 0, '* CNH', path.resolve(__dirname, cnh), statusCampos);
+  if (fs.existsSync(caminhoCNH)) {
+    await enviarArquivoPorOrdem(page, 0, '* CNH', caminhoCNH, statusCampos);
   } else {
     statusCampos.push('❌ Arquivo CNH não encontrado');
   }
 
-  if (proc) {
-    await enviarArquivoPorOrdem(page, 1, '* Procuração', path.resolve(__dirname, proc), statusCampos);
+  if (fs.existsSync(caminhoPROC)) {
+    await enviarArquivoPorOrdem(page, 1, '* Procuração', caminhoPROC, statusCampos);
   } else {
     statusCampos.push('❌ Arquivo Procuração não encontrado');
   }
