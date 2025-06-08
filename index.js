@@ -116,17 +116,24 @@ async function executarRobo() {
 console.log('📄 Acessando banco CRLV...');
 await page.getByText('Databases', { exact: true }).click();
 await page.getByText('CRLV', { exact: true }).click();
+await page.waitForTimeout(3000); // Garante carregamento
+
+// ⏳ Espera botão de criar aparecer
+await page.waitForSelector('button:has-text("Criar registro")', { timeout: 10000 });
 await page.click('button:has-text("Criar registro")');
+
+// 🖼️ Print da tela do formulário CRLV
+await page.screenshot({ path: 'tela_crlv.png' });
 
 // Dados fictícios do CRLV — substitua depois com OCR real
 const dadosCRLV = {
   'Placa': 'GKD0F82',
   'CHASSI': '9C2KF4300NR006285',
-  'RENAVAM': '01292345630',
-  'Estado de emplacamento': 'SP'
+  'RENAVAM': '01292345630'
 };
 
 // Preenchimento dos campos do CRLV
+console.log('🧾 Iniciando preenchimento do CRLV...');
 for (const [campo, valor] of Object.entries(dadosCRLV)) {
   try {
     const label = await page.getByLabel(campo);
@@ -140,14 +147,29 @@ for (const [campo, valor] of Object.entries(dadosCRLV)) {
   }
 }
 
-// Upload do CRLV (fixo para teste agora)
+// Upload do CRLV (mesmo arquivo da CNH só para teste)
 const crlvPath = path.resolve(__dirname, 'cnh_teste.pdf');
 await enviarArquivoPorOrdem(page, 0, '* CRLV (teste)', crlvPath, statusCampos);
 
 // Finaliza CRLV
-await page.waitForTimeout(1000);
-await page.click('button:has-text("Criar registro")');
-console.log('✅ Registro CRLV criado com sucesso');
+await page.waitForTimeout(2000);
+
+const botoesCRLV = await page.$$('button');
+for (let i = 0; i < botoesCRLV.length; i++) {
+  const texto = await botoesCRLV[i].innerText();
+  const box = await botoesCRLV[i].boundingBox();
+  if (texto.trim() === 'Criar registro' && box && box.width > 200) {
+    await botoesCRLV[i].scrollIntoViewIfNeeded();
+    await botoesCRLV[i].click();
+    await botoesCRLV[i].screenshot({ path: 'crlv_botao_clicado.png' });
+    console.log(`✅ Botão CRLV ${i + 1} clicado com sucesso`);
+    statusCampos.push(`✅ Botão CRLV ${i + 1} clicado com sucesso`);
+    break;
+  }
+}
+
+await page.waitForTimeout(3000);
+await page.screenshot({ path: 'crlv_final.png' });
 statusCampos.push('✅ Registro CRLV criado com sucesso');
     await browser.close();
   } catch (err) {
