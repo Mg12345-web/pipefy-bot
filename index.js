@@ -11,8 +11,7 @@ app.get('/', (req, res) => {
   res.send(`
     <h2>🚀 Robôs Pipefy</h2>
     <ul>
-      <li><a href="/executar/clientes">Cadastrar Cliente</a></li>
-    </ul>
+     <p><a href="/executar/clientes">Clique aqui para rodar o robô de clientes</a></p>
   `);
 });
 
