@@ -52,24 +52,16 @@ app.get('/', async (req, res) => {
       }
     }
 
-    // Estado Civil flexível
     await selecionarEstadoCivil(page, 'solteiro', statusCampos);
 
-    // Arquivos dinâmicos
-    function buscarArquivos(parteNome) {
-      const extensoes = ['.pdf', '.jpg', '.jpeg'];
-      const arquivos = fs.readdirSync(__dirname);
-      return arquivos
-        .filter(nome => {
-          const nomeMin = nome.toLowerCase();
-          return nomeMin.includes(parteNome.toLowerCase()) && extensoes.includes(path.extname(nomeMin));
-        })
-        .map(nome => path.join(__dirname, nome));
-    }
+    // Baixar arquivos de teste para simulação
+    await baixarArquivo('https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', 'cnh_teste.pdf');
+    await baixarArquivo('https://www.africau.edu/images/default/sample.pdf', 'procuracao_teste.pdf');
+    await baixarArquivo('https://www.orimi.com/pdf-test.pdf', 'contrato_teste.pdf');
 
-    const arquivosCNH = buscarArquivos('cnh');
-    const arquivosProc = buscarArquivos('procuracao');
-    const arquivosContrato = buscarArquivos('contrato');
+    const arquivosCNH = [path.resolve(__dirname, 'cnh_teste.pdf')];
+    const arquivosProc = [path.resolve(__dirname, 'procuracao_teste.pdf')];
+    const arquivosContrato = [path.resolve(__dirname, 'contrato_teste.pdf')];
     const arquivosProcContrato = [...arquivosProc, ...arquivosContrato];
 
     if (arquivosCNH.length > 0) {
@@ -133,11 +125,25 @@ app.get('/', async (req, res) => {
   `);
 });
 
+// Baixar arquivo de URL pública
+function baixarArquivo(url, destino) {
+  return new Promise((resolve, reject) => {
+    const file = fs.createWriteStream(destino);
+    https.get(url, response => {
+      response.pipe(file);
+      file.on('finish', () => file.close(resolve));
+    }).on('error', err => {
+      fs.unlink(destino, () => reject(err));
+    });
+  });
+}
+
+// Normaliza strings para busca flexível (remove acento e parênteses)
 function normalizarTexto(texto) {
   return texto
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // remove acentos
-    .replace(/\(.*?\)/g, "")         // remove parênteses como (a)
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\(.*?\)/g, "")
     .toLowerCase()
     .trim();
 }
