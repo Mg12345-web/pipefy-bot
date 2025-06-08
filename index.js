@@ -6,13 +6,10 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 
 app.get('/executar/clientes', async (req, res) => {
-  console.log('🚀 Rota /executar/clientes acessada');
-  res.send('<h3>✅ Cadastro de clientes iniciado</h3>');
-
-  await iniciarLogin();
-  const page = getPage();
-
-  await cadastrarClientes(page);
+  res.send('<h3>✅ Robô de clientes iniciado</h3>');
+  await iniciarLogin();              // Login 1x
+  const page = getPage();            // Reutiliza a aba
+  await cadastrarClientes(page);     // Executa o cadastro
 });
 
 app.listen(PORT, () => {
