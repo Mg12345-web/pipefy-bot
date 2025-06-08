@@ -26,15 +26,15 @@ app.get('/', async (req, res) => {
 
     console.log('🌐 Acessando página de login do Pipefy...');
     await page.goto('https://signin.pipefy.com/realms/pipefy/protocol/openid-connect/auth?client_id=pipefy-auth&redirect_uri=https%3A%2F%2Fapp-auth.pipefy.com%2Fauth_callback&response_type=code&scope=openid+email+profile');
-    
+
     await page.fill('input[name="username"]', 'juridicomgmultas@gmail.com');
     console.log('📧 Email preenchido');
-    
     await page.click('#kc-login');
+
     await page.fill('input[name="password"]', 'Mg.12345@');
     console.log('🔑 Senha preenchida');
-    
     await page.click('#kc-login');
+
     await page.waitForNavigation({ waitUntil: 'load' });
     console.log('✅ Login realizado');
 
@@ -52,7 +52,7 @@ app.get('/', async (req, res) => {
       'Endereço Completo': 'Rua Luzia de Jesus, 135, Jardim dos Comerciários, Ribeirão das Neves - MG'
     };
 
-    console.log('📝 Preenchendo campos do formulário...');
+    console.log('📝 Preenchendo campos...');
     for (const [campo, valor] of Object.entries(dados)) {
       try {
         const label = await page.getByLabel(campo);
@@ -66,7 +66,7 @@ app.get('/', async (req, res) => {
       }
     }
 
-    console.log('🎯 Selecionando Estado Civil...');
+    console.log('🎯 Preenchendo Estado Civil...');
     await selecionarEstadoCivil(page, 'solteiro', statusCampos);
 
     console.log('⬇️ Baixando arquivos de teste...');
@@ -80,18 +80,10 @@ app.get('/', async (req, res) => {
     const arquivosProcContrato = [...arquivosProc, ...arquivosContrato];
 
     console.log('📎 Enviando CNH...');
-    if (arquivosCNH.length > 0) {
-      await enviarArquivosPorOrdem(page, 0, '* CNH', arquivosCNH, statusCampos);
-    } else {
-      statusCampos.push('❌ Nenhum arquivo CNH encontrado');
-    }
+    await enviarArquivosPorOrdem(page, 0, '* CNH', arquivosCNH, statusCampos);
 
     console.log('📎 Enviando Procuração + Contrato...');
-    if (arquivosProcContrato.length > 0) {
-      await enviarArquivosPorOrdem(page, 1, '* Procuração', arquivosProcContrato, statusCampos);
-    } else {
-      statusCampos.push('❌ Nenhum arquivo de Procuração/Contrato encontrado');
-    }
+    await enviarArquivosPorOrdem(page, 1, '* Procuração', arquivosProcContrato, statusCampos);
 
     await page.screenshot({ path: 'print_antes_clique.png' });
 
@@ -105,6 +97,7 @@ app.get('/', async (req, res) => {
         await botoes[i].click();
         await botoes[i].screenshot({ path: 'print_botao_clicado.png' });
         statusCampos.push(`✅ Botão ${i + 1} clicado com sucesso.`);
+        console.log(`✅ Clique no botão ${i + 1} realizado`);
         break;
       }
     }
@@ -118,14 +111,16 @@ app.get('/', async (req, res) => {
     const aindaAberto = await page.$('input[placeholder="Nome Completo"]');
     if (aindaAberto) {
       statusCampos.push('⚠️ Formulário ainda aberto. Registro pode não ter sido criado.');
+      console.log('⚠️ Formulário ainda aberto após envio');
     } else {
       statusCampos.push('✅ Registro criado com sucesso');
+      console.log('✅ Registro criado com sucesso');
     }
 
     await page.screenshot({ path: 'registro_final.png' });
     fs.writeFileSync('status.txt', statusCampos.join('\n'));
     await browser.close();
-    console.log('✅ Robô finalizado com sucesso!');
+    console.log('🏁 Robô finalizado.');
   } catch (err) {
     statusCampos.push('❌ Erro durante execução: ' + err.message);
     fs.writeFileSync('status.txt', statusCampos.join('\n'));
@@ -168,8 +163,11 @@ async function selecionarEstadoCivil(page, valorDesejado, statusCampos) {
   }
 
   try {
-    await page.getByText("Escolha uma opção", { exact: false }).first().click();
-    await page.waitForTimeout(1000);
+    const dropdown = await page.locator('div[role="button"]:has-text("Escolha uma opção")').first();
+    await dropdown.scrollIntoViewIfNeeded();
+    await dropdown.click();
+    console.log('📂 Dropdown Estado Civil clicado');
+    await page.waitForTimeout(1500);
 
     const opcoes = await page.locator('div[role="option"]').all();
     const desejado = normalizarTexto(valorDesejado);
