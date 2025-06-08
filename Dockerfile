@@ -1,12 +1,10 @@
-FROM mcr.microsoft.com/playwright:v1.52.0-jammy
+FROM node:20
 
 WORKDIR /app
 
-COPY package.json ./
-COPY index.js ./
-
+COPY package*.json ./
 RUN npm install
 
-EXPOSE 8080
+COPY . .
 
-CMD ["node", "index.js"]
+CMD ["npm", "start"]
