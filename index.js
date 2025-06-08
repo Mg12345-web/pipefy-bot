@@ -48,22 +48,28 @@ async function executarRobo() {
       'Endereço Completo': 'Rua Luzia de Jesus, 135, Jardim dos Comerciários, Ribeirão das Neves - MG'
     };
 
-    // Preenchimento do campo "Estado Civil" de forma dinâmica
+    // Preenchimento do campo "Estado Civil" de forma dinâmica e robusta
 try {
-  const estadoCivil = 'Solteiro(a)'; // ou variável vinda da procuração depois
+  const estadoCivil = 'Solteiro(a)'; // Substituir se for dinâmico depois
 
   const label = await page.getByText('Estado Civil', { exact: true });
   await label.scrollIntoViewIfNeeded();
 
-  const dropdown = await label.evaluateHandle(el => el.parentElement.querySelector('div[role="button"], button'));
-  await dropdown.click();
-  await page.waitForTimeout(500);
+  const wrapper = await label.evaluateHandle(el => el.closest('div'));
+  const dropdown = await wrapper.evaluateHandle(div => div.querySelector('div[role="button"]'));
 
-  const opcao = await page.getByText(estadoCivil, { exact: true });
-  await opcao.click();
+  if (dropdown) {
+    await dropdown.click();
+    await page.waitForTimeout(500);
 
-  console.log(`✅ Estado Civil (${estadoCivil}) selecionado`);
-  statusCampos.push(`✅ Estado Civil (${estadoCivil})`);
+    const opcao = await page.getByText(estadoCivil, { exact: true });
+    await opcao.click();
+
+    console.log(`✅ Estado Civil (${estadoCivil}) selecionado`);
+    statusCampos.push(`✅ Estado Civil (${estadoCivil})`);
+  } else {
+    throw new Error('Dropdown do Estado Civil não encontrado');
+  }
 } catch (e) {
   console.log(`❌ Erro ao selecionar Estado Civil: ${e.message}`);
   statusCampos.push('❌ Erro ao selecionar Estado Civil');
