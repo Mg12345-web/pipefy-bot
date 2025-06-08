@@ -1,4 +1,4 @@
-// robo_clientes.js - Usa a aba logada para cadastrar cliente
+// robo_clientes.js - Cadastro de clientes com logs visíveis no Railway
 
 const path = require('path');
 const fs = require('fs');
@@ -6,11 +6,12 @@ const https = require('https');
 
 async function cadastrarClientes(page) {
   const statusCampos = [];
-  console.log('📁 Acessando banco Clientes...');
+  console.log('📁 Acessando banco de dados "Clientes"...');
 
   await page.getByText('Databases', { exact: true }).click();
   await page.getByText('Clientes', { exact: true }).click();
   await page.click('button:has-text("Criar registro")');
+  console.log('📝 Formulário de cliente aberto');
 
   const dados = {
     'Nome Completo': 'ADRIANO ANTONIO DE SOUZA',
@@ -22,19 +23,21 @@ async function cadastrarClientes(page) {
     'Endereço Completo': 'Rua Luzia de Jesus, 135, Jardim dos Comerciários, Ribeirão das Neves - MG'
   };
 
+  console.log('✍️ Preenchendo os campos do cliente...');
   for (const [campo, valor] of Object.entries(dados)) {
     try {
       const label = await page.getByLabel(campo);
       await label.scrollIntoViewIfNeeded();
       await label.fill(valor);
-      console.log(`✅ ${campo}`);
+      console.log(`✅ Campo preenchido: ${campo}`);
       statusCampos.push(`✅ ${campo}`);
     } catch {
-      console.log(`❌ ${campo}`);
+      console.log(`❌ Erro ao preencher: ${campo}`);
       statusCampos.push(`❌ ${campo}`);
     }
   }
 
+  console.log('📎 Iniciando upload de arquivos...');
   const arquivos = [
     { url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', local: 'cnh_teste.pdf', label: '* CNH' },
     { url: 'https://www.africau.edu/images/default/sample.pdf', local: 'proc_teste.pdf', label: '* Procuração' }
@@ -50,7 +53,7 @@ async function cadastrarClientes(page) {
     }
   }
 
-  await page.waitForTimeout(5000);
+  console.log('🖼️ Salvando print antes do clique final...');
   await page.screenshot({ path: 'print_antes_clique.png' });
 
   const botoes = await page.$$('button');
@@ -60,8 +63,9 @@ async function cadastrarClientes(page) {
     if (texto.trim() === 'Criar registro' && box && box.width > 200) {
       await botoes[i].scrollIntoViewIfNeeded();
       await botoes[i].click();
-      await botoes[i].screenshot({ path: 'print_botao_clicado.png' });
+      await page.screenshot({ path: 'print_botao_clicado.png' });
       statusCampos.push(`✅ Botão ${i + 1} clicado com sucesso.`);
+      console.log('📤 Formulário enviado!');
       break;
     }
   }
@@ -77,6 +81,8 @@ async function cadastrarClientes(page) {
 
   await page.screenshot({ path: 'registro_final.png' });
   fs.writeFileSync('status.txt', statusCampos.join('\n'));
+
+  console.log('✅ Cadastro finalizado. Print salvo em registro_final.png');
 }
 
 function baixarArquivo(url, destino) {
@@ -111,7 +117,7 @@ async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, stat
     const sucessoUpload = await page.locator(`text="${nomeArquivo}"`).first().isVisible({ timeout: 7000 });
     if (sucessoUpload) {
       await page.waitForTimeout(5000);
-      console.log(`✅ ${labelTexto} enviado`);
+      console.log(`✅ Arquivo enviado: ${labelTexto}`);
       statusCampos.push(`✅ ${labelTexto} enviado`);
     } else {
       statusCampos.push(`❌ ${labelTexto} falhou (não visível após envio)`);
