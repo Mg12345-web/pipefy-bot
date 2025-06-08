@@ -41,11 +41,12 @@ async function executarCadastroCliente() {
 
   try {
     console.log('🚀 Iniciando Chromium com contexto persistente...');
-    const browser = await chromium.launchPersistentContext('./session', {
+    const browser = await chromium.launch({
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox']
-    });
-    const page = await browser.newPage();
+});
+    const context = await browser.newContext();
+    const page = await context.newPage();
     console.log('✅ Chromium iniciado com sucesso.');
 
     console.log('🔐 Acessando login...');
