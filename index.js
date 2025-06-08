@@ -65,9 +65,14 @@ for (const input of todosInputs) {
     await input.fill('Solteiro');
     console.log('✅ Estado Civil preenchido');
     statusCampos.push('✅ Estado Civil preenchido');
-    break;
+        break;
   }
 }
+} catch (e) {
+  console.log(`❌ Erro ao preencher Estado Civil: ${e.message}`);
+  statusCampos.push('❌ Erro ao preencher Estado Civil');
+}
+
     const arquivos = [
       { url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', local: 'cnh_teste.pdf', label: '* CNH' },
       { url: 'https://www.africau.edu/images/default/sample.pdf', local: 'proc_teste.pdf', label: '* Procuração' }
