@@ -39,51 +39,39 @@ async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, stat
     ]);
 
     await fileChooser.setFiles(arquivoLocal);
-    console.log(`⏳ Enviando ${labelTexto}...`);
     await page.waitForTimeout(2000);
 
     const sucessoUpload = await page.locator(`text="${nomeArquivo}"`).first().isVisible({ timeout: 7000 });
 
     if (sucessoUpload) {
       await page.waitForTimeout(15000);
-      console.log(`✅ ${labelTexto} enviado com sucesso`);
       statusCampos.push(`✅ ${labelTexto} enviado`);
     } else {
-      console.log(`❌ ${labelTexto} falhou (não visível após envio)`);
       statusCampos.push(`❌ ${labelTexto} falhou (não visível após envio)`);
     }
   } catch (err) {
-    console.log(`❌ Falha ao enviar ${labelTexto}`);
     statusCampos.push(`❌ Falha ao enviar ${labelTexto}`);
   }
 }
 
 (async () => {
   console.log(`🖥️ Servidor disponível em http://localhost:${PORT}`);
-  console.log('🔐 Acessando o login do Pipefy...');
-
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext();
   const page = await context.newPage();
 
   await page.goto('https://signin.pipefy.com/realms/pipefy/protocol/openid-connect/auth?client_id=pipefy-auth&redirect_uri=https%3A%2F%2Fapp-auth.pipefy.com%2Fauth_callback&response_type=code&scope=openid+email+profile');
 
-  await page.waitForSelector('input[name="username"]', { timeout: 60000 });
   await page.fill('input[name="username"]', 'juridicomgmultas@gmail.com');
   await page.click('#kc-login');
-
-  await page.waitForSelector('input[name="password"]', { timeout: 60000 });
   await page.fill('input[name="password"]', 'Mg.12345@');
   await page.click('#kc-login');
-
   await page.waitForNavigation({ waitUntil: 'load' });
-  console.log('✅ Login feito com sucesso.');
 
-  await page.evaluate(() => window.scrollBy(0, 1000));
+  const statusCampos = [];
+
   await page.getByText('Databases', { exact: true }).click();
   await page.getByText('Clientes', { exact: true }).click();
-
-  await page.waitForSelector('button:has-text("Criar registro")', { timeout: 15000 });
   await page.click('button:has-text("Criar registro")');
 
   const dados = {
@@ -95,24 +83,14 @@ async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, stat
     'Endereço Completo': 'Rua Luzia de Jesus, 135, Jardim dos Comerciários, Ribeirão das Neves - MG'
   };
 
-  const statusCampos = [];
-
   for (const [campo, valor] of Object.entries(dados)) {
     try {
       const label = await page.getByLabel(campo);
-      await label.scrollIntoViewIfNeeded();
       await label.fill(valor);
-      console.log(`✅ ${campo} preenchido`);
       statusCampos.push(`✅ ${campo}`);
-    } catch (error) {
-      console.log(`❌ Erro ao preencher o campo: ${campo}`);
+    } catch {
       statusCampos.push(`❌ ${campo}`);
     }
-  }
-
-  for (let i = 0; i < 5; i++) {
-    await page.evaluate(() => window.scrollBy(0, 300));
-    await page.waitForTimeout(300);
   }
 
   await baixarArquivo(urlCNH, caminhoCNH);
@@ -120,60 +98,29 @@ async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, stat
 
   if (fs.existsSync(caminhoCNH)) {
     await enviarArquivoPorOrdem(page, 0, '* CNH', caminhoCNH, statusCampos);
-  } else {
-    statusCampos.push('❌ Arquivo CNH não encontrado');
   }
-
   if (fs.existsSync(caminhoPROC)) {
     await enviarArquivoPorOrdem(page, 1, '* Procuração', caminhoPROC, statusCampos);
-  } else {
-    statusCampos.push('❌ Arquivo Procuração não encontrado');
   }
 
   await page.screenshot({ path: 'print_antes_clique.png' });
 
   try {
-    console.log('⏳ Procurando botão correto entre dois...');
     const botoes = await page.locator('button', { hasText: 'Criar registro' }).all();
-
     console.log(`🔍 ${botoes.length} botões encontrados com texto "Criar registro"`);
 
-    if (botoes.length >= 2) {
-      // Testa o primeiro
+    if (botoes.length > 0) {
       await botoes[0].scrollIntoViewIfNeeded();
+      await page.waitForTimeout(1000);
       await botoes[0].screenshot({ path: 'print_botao_1.png' });
-      await botoes[0].click({ force: true });
+      await botoes[0].click();
       await page.waitForTimeout(3000);
-
-      let formAindaAberto = await page.$('input[placeholder="Nome Completo"]');
-      if (formAindaAberto) {
-        statusCampos.push('⚠️ Primeiro botão não funcionou, testando o segundo...');
-        console.log('⚠️ Primeiro botão não funcionou, testando o segundo...');
-
-        await botoes[1].scrollIntoViewIfNeeded();
-        await botoes[1].screenshot({ path: 'print_botao_2.png' });
-        await botoes[1].click({ force: true });
-        await page.waitForTimeout(3000);
-
-        formAindaAberto = await page.$('input[placeholder="Nome Completo"]');
-        if (formAindaAberto) {
-          console.log('❌ Nenhum dos dois botões funcionou.');
-          statusCampos.push('❌ Nenhum dos dois botões funcionou.');
-        } else {
-          console.log('✅ Segundo botão funcionou.');
-          statusCampos.push('✅ Segundo botão funcionou.');
-        }
-      } else {
-        console.log('✅ Primeiro botão funcionou.');
-        statusCampos.push('✅ Primeiro botão funcionou.');
-      }
+      statusCampos.push('✅ Primeiro botão clicado com sucesso.');
     } else {
-      console.log('❌ Menos de 2 botões encontrados.');
-      statusCampos.push('❌ Menos de 2 botões encontrados.');
+      statusCampos.push('❌ Nenhum botão encontrado.');
     }
   } catch (e) {
-    console.log('❌ Erro ao tentar clicar nos botões:', e);
-    statusCampos.push('❌ Erro ao tentar clicar nos botões');
+    statusCampos.push('❌ Erro ao clicar no botão.');
   }
 
   const formStillOpen = await page.$('input[placeholder="Nome Completo"]');
@@ -196,8 +143,7 @@ app.get('/', (req, res) => {
     <p>
       <a href="/print">📥 Baixar print final</a><br>
       <a href="/antes">📷 Ver print antes do clique</a><br>
-      <a href="/botao1">📷 Botão 1</a><br>
-      <a href="/botao2">📷 Botão 2</a>
+      <a href="/botao1">📷 Botão clicado</a>
     </p>
   `);
 });
@@ -205,7 +151,6 @@ app.get('/', (req, res) => {
 app.get('/print', (req, res) => res.download('registro_final.png'));
 app.get('/antes', (req, res) => res.download('print_antes_clique.png'));
 app.get('/botao1', (req, res) => res.download('print_botao_1.png'));
-app.get('/botao2', (req, res) => res.download('print_botao_2.png'));
 
 app.listen(PORT, () => {
   console.log(`🖥️ Servidor escutando em http://localhost:${PORT}`);
