@@ -50,11 +50,17 @@ async function executarRobo() {
 
     // Preenchimento do campo "Estado Civil" de forma dinâmica
 try {
-  const estadoCivil = 'Solteiro(a)'; // Aqui você pode substituir por variável vinda da procuração
+  const estadoCivil = 'Solteiro(a)'; // ou variável vinda da procuração depois
 
-  await page.getByText('Escolha uma opção').click(); // Abre o dropdown
-  await page.waitForTimeout(500); // Aguarda carregar as opções
-  await page.getByText(estadoCivil, { exact: true }).click(); // Seleciona a opção
+  const label = await page.getByText('Estado Civil', { exact: true });
+  await label.scrollIntoViewIfNeeded();
+
+  const dropdown = await label.evaluateHandle(el => el.parentElement.querySelector('div[role="button"], button'));
+  await dropdown.click();
+  await page.waitForTimeout(500);
+
+  const opcao = await page.getByText(estadoCivil, { exact: true });
+  await opcao.click();
 
   console.log(`✅ Estado Civil (${estadoCivil}) selecionado`);
   statusCampos.push(`✅ Estado Civil (${estadoCivil})`);
