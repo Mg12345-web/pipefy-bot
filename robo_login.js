@@ -32,7 +32,11 @@ async function iniciarLogin() {
   console.log('⏳ Aguardando carregamento pós-login...');
   await page.waitForNavigation({ waitUntil: 'load' });
 
-  console.log('✅ Login realizado com sucesso!');
+  // ✅ NOVO: Aguarda visualmente o dashboard estar pronto
+  console.log('👀 Verificando se dashboard carregou...');
+  await page.waitForSelector('text=Databases', { timeout: 15000 });
+
+  console.log('✅ Login realizado e dashboard carregado com sucesso!');
 }
 
 function getPage() {
