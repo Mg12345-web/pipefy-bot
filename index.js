@@ -52,9 +52,10 @@ app.get('/', async (req, res) => {
       }
     }
 
+    // Preencher Estado Civil corretamente
     await selecionarEstadoCivil(page, 'solteiro', statusCampos);
 
-    // Baixar arquivos de teste para simulação
+    // Baixar arquivos de teste
     await baixarArquivo('https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', 'cnh_teste.pdf');
     await baixarArquivo('https://www.africau.edu/images/default/sample.pdf', 'procuracao_teste.pdf');
     await baixarArquivo('https://www.orimi.com/pdf-test.pdf', 'contrato_teste.pdf');
@@ -125,7 +126,7 @@ app.get('/', async (req, res) => {
   `);
 });
 
-// Baixar arquivo de URL pública
+// Baixar arquivos de teste
 function baixarArquivo(url, destino) {
   return new Promise((resolve, reject) => {
     const file = fs.createWriteStream(destino);
@@ -138,19 +139,19 @@ function baixarArquivo(url, destino) {
   });
 }
 
-// Normaliza strings para busca flexível (remove acento e parênteses)
-function normalizarTexto(texto) {
-  return texto
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/\(.*?\)/g, "")
-    .toLowerCase()
-    .trim();
-}
-
+// Preencher dropdown do Estado Civil corretamente
 async function selecionarEstadoCivil(page, valorDesejado, statusCampos) {
+  function normalizarTexto(texto) {
+    return texto
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/\(.*?\)/g, "")
+      .toLowerCase()
+      .trim();
+  }
+
   try {
-    await page.locator('div:has-text("Estado Civil")').first().click();
+    await page.getByText("Escolha uma opção", { exact: false }).first().click();
     await page.waitForTimeout(1000);
 
     const opcoes = await page.locator('div[role="option"]').all();
@@ -166,12 +167,13 @@ async function selecionarEstadoCivil(page, valorDesejado, statusCampos) {
       }
     }
 
-    statusCampos.push(`❌ Estado Civil '${valorDesejado}' não encontrado nas opções`);
+    statusCampos.push(`❌ Estado Civil '${valorDesejado}' não encontrado`);
   } catch (err) {
     statusCampos.push(`❌ Erro ao selecionar Estado Civil (${valorDesejado}): ${err.message}`);
   }
 }
 
+// Upload de múltiplos arquivos
 async function enviarArquivosPorOrdem(page, index, labelTexto, arquivosLocais, statusCampos) {
   try {
     const botoesUpload = await page.locator('button[data-testid="attachments-dropzone-button"]');
