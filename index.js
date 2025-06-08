@@ -8,13 +8,15 @@ const LOCK_PATH = path.join(os.tmpdir(), 'pipefy_robo.lock');
 const statusCampos = [];
 
 async function executarRobo() {
-  if (fs.existsSync(LOCK_PATH)) {
-    console.log('⛔ Robô já em execução detectado via arquivo .lock. Abortando.');
-    return;
-  }
-
-  fs.writeFileSync(LOCK_PATH, String(process.pid));
-  console.log(`🔒 Lock criado em: ${LOCK_PATH} (PID: ${process.pid})`);
+  try {
+  const lockFd = fs.openSync(LOCK_PATH, 'wx'); // wx = write, fail if exists
+  fs.writeFileSync(lockFd, String(process.pid));
+  fs.closeSync(lockFd);
+  console.log(`🔒 Lock criado com sucesso em: ${LOCK_PATH} (PID: ${process.pid})`);
+} catch (e) {
+  console.log('⛔ Robô já está em execução. Lock já existe.');
+  return;
+}
 
   try {
     console.log('🔄 Iniciando robô automaticamente após deploy...');
