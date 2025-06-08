@@ -134,31 +134,33 @@ async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, stat
 
   try {
     console.log('⏳ Procurando botão correto entre vários...');
-    const botoes = await page.$$('button');
-
-    const botoesValidos = [];
-
-    for (const botao of botoes) {
-      const texto = await botao.evaluate(el => el.innerText.trim());
-      if (texto === 'Criar registro') {
-        botoesValidos.push(botao);
-      }
-    }
-
-    console.log(`🔍 ${botoesValidos.length} botões encontrados com texto "Criar registro"`);
+    const botoes = await page.locator('button', { hasText: 'Criar registro' }).all();
+    console.log(`🔍 ${botoes.length} botões encontrados com texto "Criar registro"`);
 
     let clicado = false;
-    for (const botao of botoesValidos) {
-      const dentroDoModal = await botao.evaluate(el => {
-        return el.closest('[role="dialog"]') !== null;
-      });
 
-      if (dentroDoModal) {
+    for (const botao of botoes) {
+      const dentroDoModal = await botao.evaluate(el => el.closest('[role="dialog"]') !== null);
+      const visivel = await botao.evaluate(el => {
+        const style = window.getComputedStyle(el);
+        return (
+          style.display !== 'none' &&
+          style.visibility !== 'hidden' &&
+          parseFloat(style.opacity) > 0
+        );
+      });
+      const habilitado = await botao.evaluate(el =>
+        !el.disabled && el.getAttribute('aria-disabled') !== 'true'
+      );
+
+      if (dentroDoModal && visivel && habilitado) {
         await botao.scrollIntoViewIfNeeded();
         await botao.screenshot({ path: 'print_botao_modal.png' });
-
-        await botao.click({ force: true }); // 👈 Clique forçado
+        await page.waitForTimeout(500);
+        await botao.click({ force: true });
+        await page.waitForTimeout(3000);
         console.log('✅ Botão dentro do modal clicado com sucesso.');
+        statusCampos.push('✅ Botão dentro do modal clicado');
         clicado = true;
         break;
       }
@@ -168,9 +170,9 @@ async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, stat
       console.log('❌ Nenhum botão visível dentro do modal foi clicado.');
       statusCampos.push('❌ Nenhum botão visível dentro do modal foi clicado.');
     }
-  } catch (e) {
-    console.log('❌ Erro ao tentar clicar no botão de registro:', e);
-    statusCampos.push('❌ Erro ao tentar clicar no botão de registro');
+  } catch (erro) {
+    console.log('❌ Erro inesperado ao tentar clicar no botão:', erro);
+    statusCampos.push('❌ Erro inesperado ao tentar clicar no botão');
   }
 
   const formStillOpen = await page.$('input[placeholder="Nome Completo"]');
@@ -195,14 +197,21 @@ app.get('/', (req, res) => {
     <p>
       <a href="/print">📥 Baixar print final</a><br>
       <a href="/antes">📷 Ver print antes do clique</a><br>
-      <a href="/modal">📷 Botão dentro do modal</a>
+      <a href="/modal">📷 Botão clicado no modal</a>
     </p>
   `);
 });
 
 app.get('/print', (req, res) => res.download('registro_final.png'));
 app.get('/antes', (req, res) => res.download('print_antes_clique.png'));
-app.get('/modal', (req, res) => res.download('print_botao_modal.png'));
+app.get('/modal', (req, res) => {
+  const caminho = 'print_botao_modal.png';
+  if (fs.existsSync(caminho)) {
+    res.download(caminho);
+  } else {
+    res.status(404).send('❌ Print não encontrado');
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`🖥️ Servidor escutando em http://localhost:${PORT}`);
