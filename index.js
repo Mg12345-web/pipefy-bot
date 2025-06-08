@@ -42,6 +42,7 @@ async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, stat
     await page.waitForTimeout(2000);
 
     const sucessoUpload = await page.locator(`text="${nomeArquivo}"`).first().isVisible({ timeout: 7000 });
+
     if (sucessoUpload) {
       await page.waitForTimeout(15000);
       statusCampos.push(`✅ ${labelTexto} enviado`);
@@ -57,6 +58,7 @@ async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, stat
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext();
   const page = await context.newPage();
+
   const statusCampos = [];
 
   await page.goto('https://signin.pipefy.com/realms/pipefy/protocol/openid-connect/auth?client_id=pipefy-auth&redirect_uri=https%3A%2F%2Fapp-auth.pipefy.com%2Fauth_callback&response_type=code&scope=openid+email+profile');
@@ -120,28 +122,21 @@ async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, stat
         await botoes[i].click();
         await botoes[i].screenshot({ path: 'print_botao_clicado.png' });
         statusCampos.push(`✅ Botão ${i + 1} clicado com sucesso.`);
+
+        // Aguarda fechamento do formulário
+        for (let tentativa = 0; tentativa < 15; tentativa++) {
+          const aindaAberto = await page.$('input[placeholder="Nome Completo"]');
+          if (!aindaAberto) break;
+          await page.waitForTimeout(800);
+        }
+
         clicado = true;
-
-        // Aguardar fechamento do modal
-        let fechado = false;
-        for (let tentativas = 0; tentativas < 10; tentativas++) {
-          const aberto = await page.$('input[placeholder="Nome Completo"]');
-          if (!aberto) {
-            fechado = true;
-            break;
-          }
-          await page.waitForTimeout(500);
-        }
-
-        if (!fechado) {
-          statusCampos.push('⚠️ Formulário ainda aberto após clique.');
-        }
         break;
       }
     }
 
     if (!clicado) {
-      statusCampos.push('❌ Nenhum botão com texto "Criar registro" visível foi clicado.');
+      statusCampos.push('❌ Nenhum botão "Criar registro" visível foi clicado.');
     }
 
   } catch (err) {
