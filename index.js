@@ -133,31 +133,35 @@ async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, stat
   await page.screenshot({ path: 'print_antes_clique.png' });
 
   try {
-    console.log('⏳ Isolando botão correto...');
-    const modal = await page.locator('div[role="dialog"]');
-    const botaoCriar = modal.locator('button[data-testid="create-record-fab-button"]');
-
-    await botaoCriar.scrollIntoViewIfNeeded();
+    console.log('⏳ Procurando botão por texto visível...');
+    const botaoTexto = page.getByRole('button', { name: 'Criar registro' });
+    await botaoTexto.scrollIntoViewIfNeeded();
+    await botaoTexto.screenshot({ path: 'print_botao_por_texto.png' });
     await page.waitForTimeout(1000);
-    await botaoCriar.screenshot({ path: 'print_alvo_clique.png' });
-
-    const btnHandle = await botaoCriar.elementHandle();
-    await page.evaluate(el => el.click(), btnHandle);
-
+    await botaoTexto.click();
     await page.waitForTimeout(3000);
-    await modal.screenshot({ path: 'print_depois_clique.png' });
-
-    const formStillOpen = await page.$('input[placeholder="Nome Completo"]');
-    if (formStillOpen) {
-      console.log('⚠️ Formulário ainda aberto. Registro pode não ter sido criado.');
-      statusCampos.push('⚠️ Formulário ainda aberto. Registro pode não ter sido criado.');
-    } else {
-      console.log('✅ Registro realmente criado com sucesso.');
-      statusCampos.push('✅ Registro criado com sucesso');
+  } catch (erroTexto) {
+    try {
+      console.log('⚠️ Falha no clique por texto. Tentando clique direto via JavaScript...');
+      await page.evaluate(() => {
+        const botoes = Array.from(document.querySelectorAll('button'));
+        const alvo = botoes.find(btn => btn.innerText.trim() === 'Criar registro');
+        if (alvo) alvo.click();
+      });
+      await page.waitForTimeout(3000);
+    } catch (erroJS) {
+      console.log('❌ Erro ao tentar clicar no botão de registro:', erroJS);
+      statusCampos.push('❌ Erro ao tentar clicar no botão de registro');
     }
-  } catch (e) {
-    console.log('❌ Erro ao tentar clicar no botão de registro:', e);
-    statusCampos.push('❌ Erro ao tentar clicar no botão de registro');
+  }
+
+  const formStillOpen = await page.$('input[placeholder="Nome Completo"]');
+  if (formStillOpen) {
+    console.log('⚠️ Formulário ainda aberto. Registro pode não ter sido criado.');
+    statusCampos.push('⚠️ Formulário ainda aberto. Registro pode não ter sido criado.');
+  } else {
+    console.log('✅ Registro realmente criado com sucesso.');
+    statusCampos.push('✅ Registro criado com sucesso');
   }
 
   await page.screenshot({ path: 'registro_final.png' });
@@ -173,23 +177,14 @@ app.get('/', (req, res) => {
     <p>
       <a href="/print">📥 Baixar print final</a><br>
       <a href="/antes">📷 Ver print antes do clique</a><br>
-      <a href="/alvo">📷 Botão alvo</a><br>
-      <a href="/depois">📷 Depois do clique</a>
+      <a href="/texto">📷 Botão por texto</a>
     </p>
   `);
 });
 
 app.get('/print', (req, res) => res.download('registro_final.png'));
 app.get('/antes', (req, res) => res.download('print_antes_clique.png'));
-app.get('/alvo', (req, res) => res.download('print_alvo_clique.png'));
-app.get('/depois', (req, res) => {
-  const caminho = 'print_depois_clique.png';
-  if (fs.existsSync(caminho)) {
-    res.download(caminho);
-  } else {
-    res.status(404).send('❌ Print não encontrado');
-  }
-});
+app.get('/texto', (req, res) => res.download('print_botao_por_texto.png'));
 
 app.listen(PORT, () => {
   console.log(`🖥️ Servidor escutando em http://localhost:${PORT}`);
