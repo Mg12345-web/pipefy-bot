@@ -52,19 +52,35 @@ app.get('/', async (req, res) => {
       }
     }
 
-    const arquivos = [
-      { url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', local: 'cnh_teste.pdf', label: '* CNH' },
-      { url: 'https://www.africau.edu/images/default/sample.pdf', local: 'proc_teste.pdf', label: '* Procuração' }
-    ];
+    // 🔍 Buscar arquivos por nome aproximado
+    function buscarArquivos(parteNome) {
+      const extensoes = ['.pdf', '.jpg', '.jpeg'];
+      const arquivos = fs.readdirSync(__dirname);
+      return arquivos
+        .filter(nome => {
+          const nomeMin = nome.toLowerCase();
+          return nomeMin.includes(parteNome.toLowerCase()) && extensoes.includes(path.extname(nomeMin));
+        })
+        .map(nome => path.join(__dirname, nome));
+    }
 
-    for (let i = 0; i < arquivos.length; i++) {
-      const file = path.resolve(__dirname, arquivos[i].local);
-      await baixarArquivo(arquivos[i].url, file);
-      if (fs.existsSync(file)) {
-        await enviarArquivoPorOrdem(page, i, arquivos[i].label, file, statusCampos);
-      } else {
-        statusCampos.push(`❌ Arquivo ${arquivos[i].label} não encontrado`);
-      }
+    const arquivosCNH = buscarArquivos('cnh');
+    const arquivosProc = buscarArquivos('procuracao');
+    const arquivosContrato = buscarArquivos('contrato');
+    const arquivosProcContrato = [...arquivosProc, ...arquivosContrato];
+
+    // 📤 Enviar CNH
+    if (arquivosCNH.length > 0) {
+      await enviarArquivosPorOrdem(page, 0, '* CNH', arquivosCNH, statusCampos);
+    } else {
+      statusCampos.push('❌ Nenhum arquivo CNH encontrado');
+    }
+
+    // 📤 Enviar Procuração + Contrato juntos
+    if (arquivosProcContrato.length > 0) {
+      await enviarArquivosPorOrdem(page, 1, '* Procuração', arquivosProcContrato, statusCampos);
+    } else {
+      statusCampos.push('❌ Nenhum arquivo de Procuração/Contrato encontrado');
     }
 
     await page.screenshot({ path: 'print_antes_clique.png' });
@@ -116,21 +132,8 @@ app.get('/', async (req, res) => {
   `);
 });
 
-function baixarArquivo(url, destino) {
-  return new Promise((resolve, reject) => {
-    const file = fs.createWriteStream(destino);
-    https.get(url, response => {
-      response.pipe(file);
-      file.on('finish', () => file.close(resolve));
-    }).on('error', err => {
-      fs.unlink(destino, () => reject(err));
-    });
-  });
-}
-
-async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, statusCampos) {
+async function enviarArquivosPorOrdem(page, index, labelTexto, arquivosLocais, statusCampos) {
   try {
-    const nomeArquivo = path.basename(arquivoLocal);
     const botoesUpload = await page.locator('button[data-testid="attachments-dropzone-button"]');
     const botao = botoesUpload.nth(index);
 
@@ -142,15 +145,21 @@ async function enviarArquivoPorOrdem(page, index, labelTexto, arquivoLocal, stat
       botao.evaluate(el => el.click())
     ]);
 
-    await fileChooser.setFiles(arquivoLocal);
+    await fileChooser.setFiles(arquivosLocais);
     await page.waitForTimeout(2000);
 
-    const sucessoUpload = await page.locator(`text="${nomeArquivo}"`).first().isVisible({ timeout: 7000 });
-    if (sucessoUpload) {
+    const nomesArquivos = arquivosLocais.map(p => path.basename(p));
+    let algumVisivel = false;
+    for (const nome of nomesArquivos) {
+      const visivel = await page.locator(`text="${nome}"`).first().isVisible({ timeout: 7000 }).catch(() => false);
+      if (visivel) algumVisivel = true;
+    }
+
+    if (algumVisivel) {
       await page.waitForTimeout(15000);
-      statusCampos.push(`✅ ${labelTexto} enviado`);
+      statusCampos.push(`✅ ${labelTexto} enviado (${nomesArquivos.join(', ')})`);
     } else {
-      statusCampos.push(`❌ ${labelTexto} falhou (não visível após envio)`);
+      statusCampos.push(`❌ ${labelTexto} falhou (arquivos não visíveis após envio)`);
     }
   } catch {
     statusCampos.push(`❌ Falha ao enviar ${labelTexto}`);
