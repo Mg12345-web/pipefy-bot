@@ -17,7 +17,7 @@ app.get('/', (req, res) => {
 
 app.get('/start', async (req, res) => {
   res.send('<p>✅ Robô de cadastro iniciado! Veja os logs no Railway.</p>');
-  await executarCadastro();
+  executarCadastro(); // roda em segundo plano
 });
 
 app.listen(PORT, () => {
