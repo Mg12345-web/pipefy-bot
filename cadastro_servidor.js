@@ -602,5 +602,5 @@ app.get('/start-semrgp', async (req, res) => {
       }
       res.end('<p style="color:red"><b>⚠️ Finalizado.</b></p>');
     }
-  }, 60000);
-});
+    }, 60000); // Fim do setTimeout
+});         // Fim da rota app.get('/start-semrgp')
