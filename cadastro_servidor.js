@@ -360,23 +360,30 @@ app.get('/start-rgp', async (req, res) => {
       log('📸 Print após seleção do cliente salvo como print_cliente_rgp.png');
 
   log('🚗 Selecionando veículo pelo CRLV...');
-  const botaoCRLV = await page.locator('div:has-text("Veículo (CRLV)")').locator('text=Criar registro').first();
-  await botaoCRLV.click();
-  await page.waitForTimeout(1000);
 
-  // Print da tela com o campo CRLV aberto
-  await page.screenshot({ path: printAntesCRLV });
-  log('📸 Print após abrir o CRLV salvo como print_antes_clique_crlv.png');
+// Localiza o campo específico com base no título "Veículo (CRLV)"
+const secaoCRLV = await page.locator('div:has-text("Veículo (CRLV)")').first();
+const botaoCRLV = await secaoCRLV.locator('button[title="Criar registro"]').first();
 
-  // Clicar em "+ Adicionar" dentro da janela flutuante
-  log('➕ Clicando em "+ Adicionar"...');
-  const botaoAdicionar = await page.locator('text="+ Adicionar"').first();
-  await botaoAdicionar.click();
-  await page.waitForTimeout(1000);
+await botaoCRLV.scrollIntoViewIfNeeded();
+await botaoCRLV.click();
+await page.waitForTimeout(1000);
 
-  // Print após o clique no botão "+ Adicionar"
-  await page.screenshot({ path: printCRLV });
-  log('📸 Print após clique em "+ Adicionar" salvo como print_crlv_rgp.png');
+// Print após abrir a janela do CRLV
+const printAntesCRLV = path.resolve(__dirname, 'print_antes_clique_crlv.png');
+await page.screenshot({ path: printAntesCRLV });
+log('📸 Print após abrir o CRLV salvo como print_antes_clique_crlv.png');
+
+// Clica no "+ Adicionar"
+log('➕ Clicando em "+ Adicionar"...');
+const botaoAdicionar = await page.locator('text=+ Adicionar').first();
+await botaoAdicionar.click();
+await page.waitForTimeout(1000);
+
+// Print após clicar em "+ Adicionar"
+const printCRLV = path.resolve(__dirname, 'print_crlv_rgp.png');
+await page.screenshot({ path: printCRLV });
+log('📸 Print após clique em "+ Adicionar" salvo como print_crlv_rgp.png');
 
 } catch (err) {
   log(`❌ Erro crítico: ${err.message}`);
