@@ -583,7 +583,7 @@ app.get('/start-semrgp', async (req, res) => {
 
       const botoes = await page.locator('button:has-text("Create new card")');
       const total = await botoes.count();
-      for (let i = 0; i < total; i++) {
+            for (let i = 0; i < total; i++) {
         const botao = botoes.nth(i);
         const box = await botao.boundingBox();
         if (box && box.width > 200 && box.height > 30) {
@@ -592,7 +592,7 @@ app.get('/start-semrgp', async (req, res) => {
           await botao.click();
           break;
         }
-}
+      } // ✅ FECHA o try AQUI
 
       await page.screenshot({ path: printFinalCRLV });
       log('📸 Print final do CRLV salvo como print_final_crlv_semrgp.png');
@@ -615,4 +615,3 @@ app.get('/start-semrgp', async (req, res) => {
     }
   }, 60000); // Fim do setTimeout
 }); // Fim da rota app.get('/start-semrgp')
-
