@@ -311,16 +311,39 @@ app.get('/start-rgp', async (req, res) => {
 
       log('📂 Acessando Pipe RGP...');
       await page.getByText('RGP', { exact: true }).click();
-      await page.waitForTimeout(3000); // espera carregar o pipe
+      await page.waitForTimeout(3000);
 
-      log('📸 Tirando print da tela do Pipe RGP...');
+      // 🧩 Verifica se modal "Entrar no pipe" está visível
+      const botaoEntrarPipe = page.locator('text=Entrar no pipe');
+      if (await botaoEntrarPipe.count() > 0) {
+        log('📌 Modal detectado. Clicando em "Entrar no pipe"...');
+        await botaoEntrarPipe.first().click();
+        await page.waitForTimeout(3000);
+      } else {
+        log('✅ Modal não encontrado. Prosseguindo...');
+      }
+
+      // 🟦 Botão "Create new card"
+      log('🔘 Procurando botão "Create new card"...');
+      const span = await page.locator('span:text("Create new card")').first();
+      const pai = await span.evaluateHandle(node => node.closest('button, div'));
+
+      if (!pai) {
+        log('❌ Elemento pai clicável não encontrado.');
+        return res.end('</pre><p style="color:red">Erro: pai do botão não encontrado.</p>');
+      }
+
+      await pai.scrollIntoViewIfNeeded();
+      await pai.click();
+      log('✅ Clique no botão "Create new card" realizado com sucesso!');
+
       const screenshotPath = path.resolve(__dirname, 'print_rgp_card.png');
+      await page.waitForTimeout(3000);
       await page.screenshot({ path: screenshotPath });
-      log('✅ Print salvo como print_rgp_card.png');
 
       await browser.close();
 
-      res.write('</pre><h3>📷 Print da tela do RGP:</h3>');
+      res.write('</pre><h3>📸 Print após abrir o card:</h3>');
       const base64img = fs.readFileSync(screenshotPath).toString('base64');
       res.write(`<img src="data:image/png;base64,${base64img}" style="max-width:100%; border:1px solid #ccc;">`);
       res.end();
@@ -331,5 +354,5 @@ app.get('/start-rgp', async (req, res) => {
     } finally {
       if (fs.existsSync(LOCK_PATH)) fs.unlinkSync(LOCK_PATH);
     }
-  }, 60000); // Atraso de 1 minuto
+  }, 60000); // ⏱️ Espera inicial de 1 minuto
 });
