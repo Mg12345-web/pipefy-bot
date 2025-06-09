@@ -324,29 +324,40 @@ app.get('/start-rgp', async (req, res) => {
       }
 
       // 🟦 Botão "Create new card"
-      log('🔘 Procurando botão "Create new card"...');
-      const span = await page.locator('span:text("Create new card")').first();
-      const pai = await span.evaluateHandle(node => node.closest('button, div'));
+      log('🔘 Procurando <span> com texto "Create new card"...');
+const span = await page.locator('span:text("Create new card")').first();
 
-      if (!pai) {
-        log('❌ Elemento pai clicável não encontrado.');
-        return res.end('</pre><p style="color:red">Erro: pai do botão não encontrado.</p>');
-      }
+if (await span.count() === 0) {
+  log('❌ Elemento <span> "Create new card" não encontrado.');
+  return res.end('</pre><p style="color:red">Erro: span não encontrado.</p>');
+}
 
-      await pai.scrollIntoViewIfNeeded();
-      await pai.click();
-      log('✅ Clique no botão "Create new card" realizado com sucesso!');
+await span.scrollIntoViewIfNeeded();
 
-      const screenshotPath = path.resolve(__dirname, 'print_rgp_card.png');
-      await page.waitForTimeout(3000);
-      await page.screenshot({ path: screenshotPath });
+const beforeClickPath = path.resolve(__dirname, 'print_antes_click.png');
+await page.screenshot({ path: beforeClickPath });
+log('📸 Print antes do clique salvo.');
 
-      await browser.close();
+log('🧠 Tentando clique forçado via JavaScript...');
+await span.evaluate((el) => el.click());
 
-      res.write('</pre><h3>📸 Print após abrir o card:</h3>');
-      const base64img = fs.readFileSync(screenshotPath).toString('base64');
-      res.write(`<img src="data:image/png;base64,${base64img}" style="max-width:100%; border:1px solid #ccc;">`);
-      res.end();
+await page.waitForTimeout(3000);
+
+const afterClickPath = path.resolve(__dirname, 'print_depois_click.png');
+await page.screenshot({ path: afterClickPath });
+log('📸 Print depois do clique salvo.');
+
+await browser.close();
+
+res.write('</pre><h3>📸 Prints:</h3>');
+const base64Before = fs.readFileSync(beforeClickPath).toString('base64');
+res.write(`<p><b>Antes do clique:</b><br><img src="data:image/png;base64,${base64Before}" style="max-width:100%; border:1px solid #ccc;"></p>`);
+
+const base64After = fs.readFileSync(afterClickPath).toString('base64');
+res.write(`<p><b>Depois do clique:</b><br><img src="data:image/png;base64,${base64After}" style="max-width:100%; border:1px solid #ccc;"></p>`);
+
+res.end();
+
 
     } catch (err) {
       log(`❌ Erro crítico: ${err.message}`);
