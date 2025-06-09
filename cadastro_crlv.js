@@ -18,7 +18,7 @@ app.get('/start-crlv', async (req, res) => {
   res.write('<pre>🧠 Iniciando robô de CRLV...\n');
 
   function log(msg) {
-    res.write(`data: ${msg}\n`);
+    res.write(`${msg}\n`);
     console.log(msg);
   }
 
@@ -28,7 +28,7 @@ app.get('/start-crlv', async (req, res) => {
     fs.closeSync(lockFd);
   } catch (e) {
     log('⛔ Robô já em execução.');
-    return res.end();
+    return res.end('</pre>');
   }
 
   try {
@@ -116,8 +116,9 @@ app.get('/start-crlv', async (req, res) => {
 
     await browser.close();
 
-    res.write('</pre><h3>🖼️ Print final:</h3>');
-    res.write(`<img src="data:image/png;base64,${fs.readFileSync(screenshotPath).toString('base64')}" style="max-width:100%; border:1px solid #ccc;">`);
+    res.write('</pre><h3>🖼️ Print final da tela:</h3>');
+    const base64img = fs.readFileSync(screenshotPath).toString('base64');
+    res.write(`<img src="data:image/png;base64,${base64img}" style="max-width:100%; border:1px solid #ccc;">`);
     res.end();
 
   } catch (err) {
