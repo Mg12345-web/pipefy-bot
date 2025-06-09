@@ -28,7 +28,7 @@ app.get('/start-clientes', async (req, res) => {
     res.write(`${msg}\n`);
     console.log(msg);
   }
-
+  
   try {
     const lockFd = fs.openSync(LOCK_PATH, 'wx');
     fs.writeFileSync(lockFd, String(process.pid));
