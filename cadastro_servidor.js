@@ -360,31 +360,23 @@ app.get('/start-rgp', async (req, res) => {
       log('📸 Print após seleção do cliente salvo como print_cliente_rgp.png');
 
       log('🚗 Selecionando veículo pelo CRLV...');
-      const botaoCRLV = await page.locator('div:has-text("Veículo (CRLV)")').locator('text=Criar registro').first();
-      await botaoCRLV.click();
-      await page.waitForTimeout(1000);
-      await page.locator('input[placeholder*="cards pelo título"]').fill('OPB3D62');
-      await page.waitForTimeout(1500);
-      await page.screenshot({ path: printAntesCRLV });
-      log('📸 Print antes de tentar clicar no CRLV salvo como print_antes_clique_crlv.png');
+const botaoCRLV = await page.locator('div:has-text("Veículo (CRLV)")').locator('text=Criar registro').first();
+await botaoCRLV.click();
+await page.waitForTimeout(1000);
 
-      const itemCRLV = await page.locator('text=OPB3D62').first();
-      try {
-        await itemCRLV.scrollIntoViewIfNeeded();
-        await itemCRLV.click();
-        log('✅ Veículo selecionado com sucesso');
-      } catch {
-        log('⚠️ Clique direto falhou. Tentando clique via JavaScript...');
-        await itemCRLV.evaluate(el => el.click());
-        log('✅ Veículo selecionado com sucesso via JavaScript');
-      }
-      await page.screenshot({ path: printCRLV });
-      log('📸 Print após seleção do veículo salvo como print_crlv_rgp.png');
-    } catch (err) {
-      log(`❌ Erro crítico: ${err.message}`);
-    } finally {
-      try { if (browser) await browser.close(); } catch {}
-      if (fs.existsSync(LOCK_PATH)) fs.unlinkSync(LOCK_PATH);
+// Print da tela com o campo CRLV aberto
+await page.screenshot({ path: printAntesCRLV });
+log('📸 Print após abrir o CRLV salvo como print_antes_clique_crlv.png');
+
+// Clicar em "+ Adicionar" dentro da janela flutuante
+log('➕ Clicando em "+ Adicionar"...');
+const botaoAdicionar = await page.locator('text="+ Adicionar"').first();
+await botaoAdicionar.click();
+await page.waitForTimeout(1000);
+
+// Print após o clique no botão "+ Adicionar"
+await page.screenshot({ path: printCRLV });
+log('📸 Print após clique em "+ Adicionar" salvo como print_crlv_rgp.png');
 
       res.write('</pre><h3>📸 Prints:</h3>');
       if (fs.existsSync(beforeClickPath)) {
