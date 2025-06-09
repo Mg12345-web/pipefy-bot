@@ -21,7 +21,7 @@ app.get('/start-rgp', async (req, res) => {
       const browser = await chromium.launch({ headless: true });
       const context = await browser.newContext();
       const page = await context.newPage();
-
+      
       log('🔐 Realizando login...');
       await page.goto('https://signin.pipefy.com/realms/pipefy/protocol/openid-connect/auth?client_id=pipefy-auth&redirect_uri=https%3A%2F%2Fapp-auth.pipefy.com%2Fauth_callback&response_type=code&scope=openid+email+profile');
       await page.fill('input[name="username"]', 'juridicomgmultas@gmail.com');
