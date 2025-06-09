@@ -34,11 +34,19 @@ app.get('/start-rgp', async (req, res) => {
       log('📂 Acessando Pipe RGP...');
       await page.getByText('RGP', { exact: true }).click();
       await page.waitForSelector('button:has-text("Create new card")', { timeout: 10000 });
-      await page.evaluate(() => {
-  const botoes = Array.from(document.querySelectorAll('button'));
-  const alvo = botoes.find(b => b.innerText.trim() === 'Create new card');
-  if (alvo) alvo.click();
-});
+
+const botoes = await page.$$('button');
+for (const botao of botoes) {
+  const texto = await botao.innerText();
+  const box = await botao.boundingBox();
+
+  if (texto.trim() === 'Create new card' && box && box.width > 200) {
+    await botao.scrollIntoViewIfNeeded();
+    await botao.click();
+    log('✅ Botão correto clicado');
+    break;
+  }
+}
 
       log('👤 Selecionando cliente...');
       await page.locator('div:has-text("Cliente")').getByText('Criar registro').click();
