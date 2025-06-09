@@ -333,6 +333,7 @@ app.get('/start-rgp', async (req, res) => {
       await page.locator('input[placeholder*="cards pelo título"]').fill('143.461.936-25');
       await page.waitForTimeout(1500);
       await page.getByText('143.461.936-25', { exact: false }).first().click();
+      log('👤 Cliente selecionado com sucesso');
       await page.getByText('*Cliente', { exact: true }).click();
       await page.waitForTimeout(10000);
       await page.keyboard.press('PageDown');
@@ -345,23 +346,22 @@ app.get('/start-rgp', async (req, res) => {
       await page.locator('input[placeholder*="cards pelo título"]').fill('OPB3D62');
       await page.waitForTimeout(1500);
       await page.getByText('OPB3D62', { exact: false }).first().click();
+      log('🚗 CRLV selecionado com sucesso');
 
       // 📝 Preenchendo campo "Observação"
 try {
   const valorObservacao = req.query.observacao || 'nada de observações';
-
   const campoObs = await page.getByLabel('Observação');
   await campoObs.scrollIntoViewIfNeeded();
   await campoObs.fill(valorObservacao);
   log('✅ Observação preenchida');
 } catch (e) {
-  log('❌ Campo Observação não encontrado ou ignorado (vazio)');
+  log('❌ Campo Observação não encontrado ou ignorado');
 }
 
-// 📄 Preenchendo campos AIT e Órgão Autuador
+// 🧾 Preenchendo campos AIT e Órgão Autuador
 try {
   const inputs = await page.locator('input[placeholder="Digite aqui ..."]');
-
   await inputs.nth(0).scrollIntoViewIfNeeded();
   await inputs.nth(0).fill('AM09263379');
   log('✅ AIT preenchido');
@@ -373,14 +373,16 @@ try {
   log('❌ Erro ao preencher AIT ou Órgão Autuador');
 }
 
-// 📆 Preenchendo campo "Prazo para Protocolo"
+// 📆 Preenchendo campo "Prazo para Protocolo" com digitação humanizada
 try {
   const campoData = await page.getByLabel('Prazo para Protocolo');
   await campoData.scrollIntoViewIfNeeded();
-  await campoData.click();
-  await page.keyboard.type('09062025'); // Digita 09/06/2025
-  await page.keyboard.press('Tab');
-  await page.keyboard.type('0800'); // Hora 08:00
+  await campoData.click({ clickCount: 1 }); // dá foco no primeiro bloquinho (DD)
+
+  await page.keyboard.type('09062025'); // digita dia, mês e ano
+  await page.keyboard.press('Tab');     // pula para o campo de hora
+  await page.keyboard.type('0800');     // digita hora (08:00)
+
   log('✅ Prazo para Protocolo preenchido');
 } catch (e) {
   log('❌ Erro ao preencher o campo Prazo para Protocolo');
