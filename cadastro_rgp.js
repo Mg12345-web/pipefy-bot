@@ -55,46 +55,30 @@ app.get('/start-rgp', async (req, res) => {
 
       log('📂 Acessando Pipe RGP...');
       await page.getByText('RGP', { exact: true }).click();
-      await page.waitForTimeout(3000); // Espera o Pipe carregar os botões
+      await page.waitForTimeout(3000);
 
-const botoes = await page.$$('button');
-log(`🔍 Total de botões encontrados: ${botoes.length}`);
+      log('🔘 Procurando botão "Create new card"...');
+      const botoes = await page.$$('button');
+      let clicou = false;
 
-for (let i = 0; i < botoes.length; i++) {
-  const texto = await botoes[i].innerText().catch(() => '');
-  const box = await botoes[i].boundingBox().catch(() => null);
+      for (const botao of botoes) {
+        const texto = await botao.innerText().catch(() => '');
+        const box = await botao.boundingBox().catch(() => null);
 
-  if (!texto.trim()) continue;
+        if (texto.trim() === 'Create new card' && box && box.width > 200) {
+          await botao.scrollIntoViewIfNeeded();
+          await botao.click();
+          log('✅ Botão "Create new card" clicado com sucesso');
+          clicou = true;
+          break;
+        }
+      }
 
-  log(`📌 Botão [${i}] - Texto: "${texto.trim()}" | Width: ${box ? box.width : 'N/A'}`);
-
-  if (box) {
-    await page.evaluate((el) => {
-      const rect = el.getBoundingClientRect();
-      const marcador = document.createElement('div');
-      marcador.style.position = 'absolute';
-      marcador.style.top = `${rect.top + window.scrollY}px`;
-      marcador.style.left = `${rect.left + window.scrollX}px`;
-      marcador.style.width = `${rect.width}px`;
-      marcador.style.height = `${rect.height}px`;
-      marcador.style.border = '3px dashed red';
-      marcador.style.zIndex = '9999';
-      marcador.id = 'marcador-botao';
-      document.body.appendChild(marcador);
-    }, botoes[i]);
-
-    const screenshotPathBtn = path.resolve(__dirname, `botao_${i}.png`);
-    await page.screenshot({ path: screenshotPathBtn });
-    log(`📸 Print do botão [${i}] salvo: botao_${i}.png`);
-
-    await page.evaluate(() => {
-      const el = document.getElementById('marcador-botao');
-      if (el) el.remove();
-    });
-  }
-}
-
-log('✅ Fim da varredura dos botões. Verifique os prints.');
+      if (!clicou) {
+        log('❌ Nenhum botão "Create new card" clicável foi encontrado.');
+        res.end('</pre><p style="color:red">Erro: Botão não encontrado ou não clicável.</p>');
+        return;
+      }
 
       log('👤 Selecionando cliente...');
       await page.locator('div:has-text("Cliente")').getByText('Criar registro').click();
