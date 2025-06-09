@@ -34,6 +34,11 @@ app.get('/start-rgp', async (req, res) => {
       await page.getByText('RGP', { exact: true }).click();
       await page.waitForTimeout(3000);
 
+      // 🖼️ Capturando print do Pipe RGP logo após abrir
+const screenshotPipePath = path.resolve(__dirname, 'print_pipe_rgp.png');
+await page.screenshot({ path: screenshotPipePath });
+log('📸 Print do Pipe RGP salvo como print_pipe_rgp.png');
+
       log('🔘 Procurando <span> com texto "Create new card"...');
       const span = await page.locator('span:text("Create new card")').first();
       await span.scrollIntoViewIfNeeded();
@@ -44,12 +49,18 @@ app.get('/start-rgp', async (req, res) => {
         return res.end('</pre><p style="color:red">Erro: pai do botão não encontrado.</p>');
       }
 
-      await pai.scrollIntoViewIfNeeded();
-      await pai.click();
-      log('✅ Clique no botão pai do "Create new card" realizado com sucesso!');
+     await pai.scrollIntoViewIfNeeded();
+await pai.click();
+log('✅ Clique no botão pai do "Create new card" realizado com sucesso!');
 
-      await browser.close();
-      res.end('</pre><p style="color:green">✅ Robô finalizado com sucesso. Botão clicado.</p>');
+// Mostrar print no navegador
+const base64img = fs.readFileSync(screenshotPipePath).toString('base64');
+res.write('</pre><h3>🖼️ Print da tela após abrir o Pipe:</h3>');
+res.write(`<img src="data:image/png;base64,${base64img}" style="max-width:100%; border:1px solid #ccc;">`);
+
+await browser.close();
+res.end('<p style="color:green">✅ Robô finalizado com sucesso. Botão clicado.</p>');
+
 
     } catch (err) {
       log(`❌ Erro crítico: ${err.message}`);
