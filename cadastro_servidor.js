@@ -562,7 +562,7 @@ app.get('/start-semrgp', async (req, res) => {
       const nomePDF = 'anexo.pdf';
       const caminhoPDF = path.resolve(__dirname, nomePDF);
       await baixarArquivo(urlPDF, caminhoPDF);
-
+      
       const botaoUpload = await page.locator('button[data-testid="attachments-dropzone-button"]').last();
       await botaoUpload.scrollIntoViewIfNeeded();
       const [fileChooser] = await Promise.all([
@@ -588,16 +588,13 @@ app.get('/start-semrgp', async (req, res) => {
           await botao.click();
           break;
         }
-      }
-});
+}
+
       await page.screenshot({ path: printFinalCRLV });
       log('📸 Print final do CRLV salvo como print_final_crlv_semrgp.png');
 
-    } catch (err) {
-      log(`❌ Erro crítico: ${err.message}`);
-    } finally {
-      try { if (browser) await browser.close(); } catch {}
-      if (fs.existsSync(LOCK_PATH)) fs.unlinkSync(LOCK_PATH);
+      await browser.close();
+      fs.unlinkSync(LOCK_PATH);
 
       res.write('</pre><h3>📸 Print Final:</h3>');
       if (fs.existsSync(printFinalCRLV)) {
@@ -605,6 +602,13 @@ app.get('/start-semrgp', async (req, res) => {
         res.write(`<p><img src="data:image/png;base64,${base64Final}" style="max-width:100%; border:1px solid #ccc;"></p>`);
       }
       res.end('<p style="color:red"><b>⚠️ Finalizado.</b></p>');
+
+    } catch (err) {
+      log(`❌ Erro crítico: ${err.message}`);
+      if (browser) await browser.close();
+      if (fs.existsSync(LOCK_PATH)) fs.unlinkSync(LOCK_PATH);
+      res.end('<p style="color:red"><b>⚠️ Erro inesperado. Finalizado com falha.</b></p>');
     }
-    }, 60000); // Fim do setTimeout
-});         // Fim da rota app.get('/start-semrgp')
+  }, 60000); // Fim do setTimeout
+}); // Fim da rota app.get('/start-semrgp')
+
