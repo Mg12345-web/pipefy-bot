@@ -359,7 +359,6 @@ app.get('/start-rgp', async (req, res) => {
       await page.screenshot({ path: printCliente });
       log('📸 Print após seleção do cliente salvo como print_cliente_rgp.png');
 
-      try {
   log('🚗 Selecionando veículo pelo CRLV...');
   const botaoCRLV = await page.locator('div:has-text("Veículo (CRLV)")').locator('text=Criar registro').first();
   await botaoCRLV.click();
