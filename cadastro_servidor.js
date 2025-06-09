@@ -585,7 +585,7 @@ app.get('/start-semrgp', async (req, res) => {
           break;
         }
       }
-
+});
       await page.screenshot({ path: printFinalCRLV });
       log('📸 Print final do CRLV salvo como print_final_crlv_semrgp.png');
 
