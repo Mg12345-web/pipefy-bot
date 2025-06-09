@@ -276,7 +276,7 @@ app.listen(PORT, () => {
   console.log(`🖥️ Servidor escutando em http://localhost:${PORT}`);
 });
 
-// ➕ ROTA PARA CADASTRO RGP
+// ➕ ROTA PARA CADASTRO RGP (somente entrar e tirar print)
 app.get('/start-rgp', async (req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.write('<pre>⏳ Aguardando 1 minuto para iniciar o robô RGP...\n');
@@ -311,36 +311,16 @@ app.get('/start-rgp', async (req, res) => {
 
       log('📂 Acessando Pipe RGP...');
       await page.getByText('RGP', { exact: true }).click();
-      await page.waitForTimeout(3000);
+      await page.waitForTimeout(3000); // espera carregar o pipe
 
-      log('🕵️ Buscando elemento <span> "Create new card"...');
-      const botaoSpan = page.locator('span:text("Create new card")');
-
-      if (await botaoSpan.count() === 0) {
-        log('❌ Nenhum elemento <span> "Create new card" encontrado.');
-        return res.end('</pre><p style="color:red">Erro: botão não encontrado.</p>');
-      }
-
-      const span = await botaoSpan.first();
-await span.scrollIntoViewIfNeeded();
-
-const pai = await span.evaluateHandle(node => node.closest('button, div'));
-if (!pai) {
-  log('❌ Elemento pai clicável não encontrado.');
-  return res.end('</pre><p style="color:red">Erro: pai do botão não encontrado.</p>');
-}
-
-await pai.scrollIntoViewIfNeeded();
-await pai.click();
-log('✅ Clique no botão pai do "Create new card" realizado com sucesso!');
-
+      log('📸 Tirando print da tela do Pipe RGP...');
       const screenshotPath = path.resolve(__dirname, 'print_rgp_card.png');
-      await page.waitForTimeout(3000);
       await page.screenshot({ path: screenshotPath });
+      log('✅ Print salvo como print_rgp_card.png');
 
       await browser.close();
 
-      res.write('</pre><h3>📸 Print após clique:</h3>');
+      res.write('</pre><h3>📷 Print da tela do RGP:</h3>');
       const base64img = fs.readFileSync(screenshotPath).toString('base64');
       res.write(`<img src="data:image/png;base64,${base64img}" style="max-width:100%; border:1px solid #ccc;">`);
       res.end();
