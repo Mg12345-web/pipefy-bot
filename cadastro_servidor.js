@@ -321,9 +321,18 @@ app.get('/start-rgp', async (req, res) => {
         return res.end('</pre><p style="color:red">Erro: botão não encontrado.</p>');
       }
 
-      await botaoSpan.first().scrollIntoViewIfNeeded();
-      await botaoSpan.first().click();
-      log('✅ Clique no botão <span> "Create new card" realizado com sucesso!');
+      const span = await botaoSpan.first();
+await span.scrollIntoViewIfNeeded();
+
+const pai = await span.evaluateHandle(node => node.closest('button, div'));
+if (!pai) {
+  log('❌ Elemento pai clicável não encontrado.');
+  return res.end('</pre><p style="color:red">Erro: pai do botão não encontrado.</p>');
+}
+
+await pai.scrollIntoViewIfNeeded();
+await pai.click();
+log('✅ Clique no botão pai do "Create new card" realizado com sucesso!');
 
       const screenshotPath = path.resolve(__dirname, 'print_rgp_card.png');
       await page.waitForTimeout(3000);
