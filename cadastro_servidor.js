@@ -427,14 +427,13 @@ const [fileChooser] = await Promise.all([
 await fileChooser.setFiles(caminhoPDF);
 await page.waitForTimeout(3000);
 
-// Verifica se o PDF foi anexado com sucesso
-const sucessoAnexo = await page.locator(`text="${nomePDF}"`).first().isVisible({ timeout: 7000 });
+// Declare fora do bloco if, para ficar visível no finally
+const printAnexo = path.resolve(__dirname, 'print_pdf_anexado.png');
+
 if (sucessoAnexo) {
   log('✅ PDF anexado com sucesso');
 
-  // 📸 Tirar print do campo onde o PDF aparece
   const campoAnexo = await page.locator(`text="${nomePDF}"`).first();
-  const printAnexo = path.resolve(__dirname, 'print_pdf_anexado.png');
   await campoAnexo.scrollIntoViewIfNeeded();
   await page.screenshot({ path: printAnexo });
   log('📸 Print do anexo salvo como print_pdf_anexado.png');
