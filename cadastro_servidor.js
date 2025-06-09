@@ -360,7 +360,7 @@ app.get('/start-rgp', async (req, res) => {
       log('📸 Print após seleção do cliente salvo como print_cliente_rgp.png');
 
       log('🚗 Selecionando veículo pelo CRLV...');
-      const botaoCRLV = await page.locator('div:has-text("Veículo (CRLV)") >> text=Criar registro').first();
+      const botaoCRLV = await page.locator('div:has-text("Veículo (CRLV)")').locator('text=Criar registro').first();
       await botaoCRLV.click();
       await page.waitForTimeout(1000);
       await page.locator('input[placeholder*="cards pelo título"]').fill('OPB3D62');
