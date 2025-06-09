@@ -23,15 +23,29 @@ app.get('/start-clientes', async (req, res) => {
 });
 
 app.get('/start-crlv', async (req, res) => {
-  res.send('<p>✅ Robô de CRLV iniciado! Veja os logs no Railway.</p>');
-  await executarCadastroCRLV();
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive'
+  });
+
+  const enviar = msg => res.write(`data: ${msg}\n\n`);
+  enviar('✅ Robô de CRLV iniciado.');
+
+  try {
+    await executarCadastroCRLV(enviar);
+    enviar('✅ Robô finalizado com sucesso.');
+  } catch (err) {
+    enviar(`❌ Erro: ${err.message}`);
+  }
+
+  res.end();
 });
 
 app.listen(PORT, () => {
   console.log(`🖥️ Servidor escutando em http://localhost:${PORT}`);
 });
 
-// ========== Função: Cadastro de Cliente ==========
 async function executarCadastroCliente() {
   console.log('👤 Iniciando cadastro de cliente...');
   const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
@@ -39,7 +53,6 @@ async function executarCadastroCliente() {
   const page = await context.newPage();
 
   await loginPipefy(page);
-
   await page.getByText('Databases', { exact: true }).click();
   await page.getByText('Clientes', { exact: true }).click();
   await page.click('button:has-text("Criar registro")');
@@ -78,19 +91,24 @@ async function executarCadastroCliente() {
 
   await clicarBotaoCriar(page);
   await page.screenshot({ path: 'registro_cliente.png' });
-
   await browser.close();
 }
 
-// ========== Função: Cadastro de CRLV ==========
-async function executarCadastroCRLV() {
-  console.log('📄 Iniciando cadastro de CRLV...');
+async function executarCadastroCRLV(enviar) {
+  enviar('📄 Iniciando cadastro de CRLV...');
   const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
   const context = await browser.newContext();
   const page = await context.newPage();
 
-  await loginPipefy(page);
+  enviar('🔐 Login no Pipefy...');
+  await page.goto('https://signin.pipefy.com/realms/pipefy/protocol/openid-connect/auth?client_id=pipefy-auth&redirect_uri=https%3A%2F%2Fapp-auth.pipefy.com%2Fauth_callback&response_type=code&scope=openid+email+profile');
+  await page.fill('input[name="username"]', 'juridicomgmultas@gmail.com');
+  await page.click('#kc-login');
+  await page.fill('input[name="password"]', 'Mg.12345@');
+  await page.click('#kc-login');
+  await page.waitForNavigation({ waitUntil: 'load' });
 
+  enviar('📁 Acessando CRLV...');
   await page.getByText('Databases', { exact: true }).click();
   await page.getByText('CRLV', { exact: true }).click();
   await page.click('button:has-text("Criar registro")');
@@ -107,25 +125,22 @@ async function executarCadastroCRLV() {
       const label = await page.getByLabel(campo);
       await label.scrollIntoViewIfNeeded();
       await label.fill(valor);
-      console.log(`✅ ${campo}`);
+      enviar(`✅ ${campo}`);
     } catch {
-      console.log(`❌ ${campo}`);
+      enviar(`❌ ${campo}`);
     }
   }
 
   const filePath = path.resolve(__dirname, 'crlv_teste.pdf');
   await baixarArquivo('https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', filePath);
-  await enviarArquivo(page, 0, '* CRLV', filePath);
+  await enviarArquivo(page, 0, '* CRLV', filePath, enviar);
 
-  await clicarBotaoCriar(page);
+  await clicarBotaoCriar(page, enviar);
   await page.screenshot({ path: 'registro_crlv.png' });
-
   await browser.close();
 }
 
-// ========== Função: Login ==========
 async function loginPipefy(page) {
-  console.log('🔐 Login no Pipefy...');
   await page.goto('https://signin.pipefy.com/realms/pipefy/protocol/openid-connect/auth?client_id=pipefy-auth&redirect_uri=https%3A%2F%2Fapp-auth.pipefy.com%2Fauth_callback&response_type=code&scope=openid+email+profile');
   await page.fill('input[name="username"]', 'juridicomgmultas@gmail.com');
   await page.click('#kc-login');
@@ -134,8 +149,7 @@ async function loginPipefy(page) {
   await page.waitForNavigation({ waitUntil: 'load' });
 }
 
-// ========== Função: Enviar Arquivo ==========
-async function enviarArquivo(page, index, labelTexto, arquivoLocal) {
+async function enviarArquivo(page, index, labelTexto, arquivoLocal, enviar = console.log) {
   try {
     const nomeArquivo = path.basename(arquivoLocal);
     const botoesUpload = await page.locator('button[data-testid="attachments-dropzone-button"]');
@@ -152,16 +166,15 @@ async function enviarArquivo(page, index, labelTexto, arquivoLocal) {
 
     const sucesso = await page.locator(`text="${nomeArquivo}"`).first().isVisible({ timeout: 7000 });
     if (sucesso) {
-      console.log(`✅ ${labelTexto} enviado`);
+      enviar(`✅ ${labelTexto} enviado`);
     } else {
-      console.log(`❌ ${labelTexto} falhou`);
+      enviar(`❌ ${labelTexto} falhou`);
     }
   } catch {
-    console.log(`❌ Falha ao enviar ${labelTexto}`);
+    enviar(`❌ Falha ao enviar ${labelTexto}`);
   }
 }
 
-// ========== Função: Baixar Arquivo ==========
 function baixarArquivo(url, destino) {
   return new Promise((resolve, reject) => {
     const file = fs.createWriteStream(destino);
@@ -174,8 +187,7 @@ function baixarArquivo(url, destino) {
   });
 }
 
-// ========== Função: Clicar no botão "Criar registro" ==========
-async function clicarBotaoCriar(page) {
+async function clicarBotaoCriar(page, enviar = console.log) {
   const botoes = await page.$$('button');
   for (let i = 0; i < botoes.length; i++) {
     const texto = await botoes[i].innerText();
@@ -183,7 +195,7 @@ async function clicarBotaoCriar(page) {
     if (texto.trim() === 'Criar registro' && box && box.width > 200) {
       await botoes[i].scrollIntoViewIfNeeded();
       await botoes[i].click();
-      console.log(`✅ Registro criado`);
+      enviar(`✅ Registro criado`);
       break;
     }
   }
