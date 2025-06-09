@@ -8,18 +8,29 @@ const app = express();
 
 const PORT = process.env.PORT || 8080;
 const LOCK_PATH = path.join(os.tmpdir(), 'pipefy_robo.lock');
-const statusCampos = [];
 
-async function executarCadastroCRLV() {
-  console.log('🧠 Robô CRLV iniciado');
+// ========== ROTA PRINCIPAL ==========
+app.get('/', (req, res) => {
+  res.send('<h2>Robô de cadastro CRLV ativo.</h2><p><a href="/start-crlv">Iniciar cadastro CRLV</a></p>');
+});
+
+// ========== ROTA COM LOG AO VIVO ==========
+app.get('/start-crlv', async (req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.write('<pre>🧠 Iniciando robô de CRLV...\n');
+
+  function log(msg) {
+    res.write(msg + '\n');
+    console.log(msg);
+  }
 
   try {
     const lockFd = fs.openSync(LOCK_PATH, 'wx');
     fs.writeFileSync(lockFd, String(process.pid));
     fs.closeSync(lockFd);
   } catch (e) {
-    console.log('⛔ Robô já em execução.');
-    return;
+    log('⛔ Robô já em execução.');
+    return res.end();
   }
 
   try {
@@ -31,7 +42,7 @@ async function executarCadastroCRLV() {
     const context = await browser.newContext();
     const page = await context.newPage();
 
-    console.log('🔐 Login...');
+    log('🔐 Acessando login...');
     await page.goto('https://signin.pipefy.com/realms/pipefy/protocol/openid-connect/auth?client_id=pipefy-auth&redirect_uri=https%3A%2F%2Fapp-auth.pipefy.com%2Fauth_callback&response_type=code&scope=openid+email+profile');
     await page.fill('input[name="username"]', 'juridicomgmultas@gmail.com');
     await page.click('#kc-login');
@@ -39,7 +50,7 @@ async function executarCadastroCRLV() {
     await page.click('#kc-login');
     await page.waitForNavigation({ waitUntil: 'load' });
 
-    console.log('📁 Acessando CRLV...');
+    log('📁 Acessando banco CRLV...');
     await page.getByText('Databases', { exact: true }).click();
     await page.getByText('CRLV', { exact: true }).click();
     await page.click('button:has-text("Criar registro")');
@@ -48,7 +59,7 @@ async function executarCadastroCRLV() {
       'Placa': 'GKD0F82',
       'CHASSI': '9C2KF4300NR006285',
       'RENAVAM': '01292345630',
-      'Estado de emplacamento': 'SP',
+      'Estado de emplacamento': 'SP'
     };
 
     for (const [campo, valor] of Object.entries(dados)) {
@@ -56,24 +67,34 @@ async function executarCadastroCRLV() {
         const label = await page.getByLabel(campo);
         await label.scrollIntoViewIfNeeded();
         await label.fill(valor);
-        console.log(`✅ ${campo}`);
-        statusCampos.push(`✅ ${campo}`);
+        log(`✅ ${campo}`);
       } catch {
-        console.log(`❌ ${campo}`);
-        statusCampos.push(`❌ ${campo}`);
+        log(`❌ ${campo}`);
       }
     }
 
-    const arquivoCRLV = {
-      url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-      local: 'crlv_temp.pdf',
-      label: '* CRLV'
-    };
+    const fileURL = 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
+    const localPath = path.resolve(__dirname, 'crlv_temp.pdf');
+    await baixarArquivo(fileURL, localPath);
 
-    const localPath = path.resolve(__dirname, arquivoCRLV.local);
-    await baixarArquivo(arquivoCRLV.url, localPath);
-    if (fs.existsSync(localPath)) {
-      await enviarArquivo(page, 0, arquivoCRLV.label, localPath);
+    const nomeArquivo = path.basename(localPath);
+    const botoesUpload = await page.locator('button[data-testid="attachments-dropzone-button"]');
+    const botao = botoesUpload.nth(0);
+
+    await botao.scrollIntoViewIfNeeded();
+    const [fileChooser] = await Promise.all([
+      page.waitForEvent('filechooser'),
+      botao.click()
+    ]);
+
+    await fileChooser.setFiles(localPath);
+    await page.waitForTimeout(3000);
+
+    const sucesso = await page.locator(`text="${nomeArquivo}"`).first().isVisible({ timeout: 7000 });
+    if (sucesso) {
+      log('✅ Arquivo CRLV enviado');
+    } else {
+      log('❌ Falha no upload do CRLV');
     }
 
     await page.waitForTimeout(3000);
@@ -85,7 +106,7 @@ async function executarCadastroCRLV() {
       if (texto.trim() === 'Criar registro' && box && box.width > 200) {
         await botoes[i].scrollIntoViewIfNeeded();
         await botoes[i].click();
-        console.log(`✅ Registro CRLV criado`);
+        log('✅ Botão Criar Registro clicado');
         break;
       }
     }
@@ -93,18 +114,17 @@ async function executarCadastroCRLV() {
     await page.waitForTimeout(4000);
     await page.screenshot({ path: 'registro_crlv.png' });
 
-    fs.writeFileSync('status_crlv.txt', statusCampos.join('\n'));
+    log('✅ Finalizado com sucesso!');
     await browser.close();
   } catch (err) {
-    const msg = '❌ Erro: ' + err.message;
-    console.log(msg);
-    statusCampos.push(msg);
-    fs.writeFileSync('status_crlv.txt', statusCampos.join('\n'));
+    log('❌ Erro: ' + err.message);
   }
 
   if (fs.existsSync(LOCK_PATH)) fs.unlinkSync(LOCK_PATH);
-}
+  res.end('</pre>');
+});
 
+// ========== Função auxiliar para download ==========
 function baixarArquivo(url, destino) {
   return new Promise((resolve, reject) => {
     const file = fs.createWriteStream(destino);
@@ -116,42 +136,6 @@ function baixarArquivo(url, destino) {
     });
   });
 }
-
-async function enviarArquivo(page, index, labelTexto, arquivoLocal) {
-  try {
-    const nomeArquivo = path.basename(arquivoLocal);
-    const botoesUpload = await page.locator('button[data-testid="attachments-dropzone-button"]');
-    const botao = botoesUpload.nth(index);
-
-    await botao.scrollIntoViewIfNeeded();
-    const [fileChooser] = await Promise.all([
-      page.waitForEvent('filechooser'),
-      botao.click()
-    ]);
-
-    await fileChooser.setFiles(arquivoLocal);
-    await page.waitForTimeout(3000);
-
-    const sucesso = await page.locator(`text="${nomeArquivo}"`).first().isVisible({ timeout: 7000 });
-    if (sucesso) {
-      console.log(`✅ ${labelTexto} enviado`);
-      statusCampos.push(`✅ ${labelTexto} enviado`);
-    } else {
-      statusCampos.push(`❌ ${labelTexto} falhou`);
-    }
-  } catch {
-    statusCampos.push(`❌ Falha ao enviar ${labelTexto}`);
-  }
-}
-
-app.get('/', (req, res) => {
-  res.send('<h2>Robô de cadastro CRLV ativo.</h2><p><a href="/start-crlv">Iniciar cadastro CRLV</a></p>');
-});
-
-app.get('/start-crlv', async (req, res) => {
-  res.send('<p>✅ Robô CRLV iniciado. Acompanhe os logs no Railway.</p>');
-  await executarCadastroCRLV();
-});
 
 app.listen(PORT, () => {
   console.log(`🖥️ Servidor escutando em http://localhost:${PORT}`);
