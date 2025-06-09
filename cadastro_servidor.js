@@ -8,7 +8,6 @@ const os = require('os');
 const app = express();
 const PORT = process.env.PORT || 8080;
 const LOCK_PATH = path.join(os.tmpdir(), 'pipefy_robo.lock');
-const statusCampos = [];
 
 app.get('/', (req, res) => {
   res.send(`
@@ -32,28 +31,69 @@ app.listen(PORT, () => {
   console.log(`🖥️ Servidor escutando em http://localhost:${PORT}`);
 });
 
+// ========== Função: Cadastro de Cliente ==========
 async function executarCadastroCliente() {
-  // ... aqui entra o código completo de clientes que você já validou ...
-  console.log('👤 Cadastro de cliente executado');
-}
-
-async function executarCadastroCRLV() {
-  console.log('📄 Iniciando CRLV...');
+  console.log('👤 Iniciando cadastro de cliente...');
   const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
   const context = await browser.newContext();
   const page = await context.newPage();
 
-  await page.goto('https://signin.pipefy.com/realms/pipefy/protocol/openid-connect/auth?client_id=pipefy-auth&redirect_uri=https%3A%2F%2Fapp-auth.pipefy.com%2Fauth_callback&response_type=code&scope=openid+email+profile');
-  await page.fill('input[name="username"]', 'juridicomgmultas@gmail.com');
-  await page.click('#kc-login');
-  await page.fill('input[name="password"]', 'Mg.12345@');
-  await page.click('#kc-login');
-  await page.waitForNavigation({ waitUntil: 'load' });
+  await loginPipefy(page);
+
+  await page.getByText('Databases', { exact: true }).click();
+  await page.getByText('Clientes', { exact: true }).click();
+  await page.click('button:has-text("Criar registro")');
+
+  const dados = {
+    'Nome Completo': 'ADRIANO ANTONIO DE SOUZA',
+    'CPF OU CNPJ': '414.746.148-41',
+    'Estado Civil Atual': 'Solteiro',
+    'Profissão': 'Vigilante',
+    'Email': 'jonas1gui@gmail.com',
+    'Número de telefone': '31988429016',
+    'Endereço Completo': 'Rua Luzia de Jesus, 135, Jardim dos Comerciários, Ribeirão das Neves - MG'
+  };
+
+  for (const [campo, valor] of Object.entries(dados)) {
+    try {
+      const label = await page.getByLabel(campo);
+      await label.scrollIntoViewIfNeeded();
+      await label.fill(valor);
+      console.log(`✅ ${campo}`);
+    } catch {
+      console.log(`❌ ${campo}`);
+    }
+  }
+
+  const arquivos = [
+    { url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', local: 'cnh_teste.pdf', label: '* CNH' },
+    { url: 'https://www.africau.edu/images/default/sample.pdf', local: 'proc_teste.pdf', label: '* Procuração' }
+  ];
+
+  for (let i = 0; i < arquivos.length; i++) {
+    const file = path.resolve(__dirname, arquivos[i].local);
+    await baixarArquivo(arquivos[i].url, file);
+    await enviarArquivo(page, i, arquivos[i].label, file);
+  }
+
+  await clicarBotaoCriar(page);
+  await page.screenshot({ path: 'registro_cliente.png' });
+
+  await browser.close();
+}
+
+// ========== Função: Cadastro de CRLV ==========
+async function executarCadastroCRLV() {
+  console.log('📄 Iniciando cadastro de CRLV...');
+  const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
+  const context = await browser.newContext();
+  const page = await context.newPage();
+
+  await loginPipefy(page);
 
   await page.getByText('Databases', { exact: true }).click();
   await page.getByText('CRLV', { exact: true }).click();
   await page.click('button:has-text("Criar registro")');
-  await page.waitForTimeout(2000);
 
   const dados = {
     'Placa': 'GKD0F82',
@@ -73,29 +113,28 @@ async function executarCadastroCRLV() {
     }
   }
 
-  const crlvPath = path.resolve(__dirname, 'cnh_teste.pdf'); // usando dummy por enquanto
-  await enviarArquivo(page, 0, '* CRLV (teste)', crlvPath);
+  const filePath = path.resolve(__dirname, 'crlv_teste.pdf');
+  await baixarArquivo('https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', filePath);
+  await enviarArquivo(page, 0, '* CRLV', filePath);
 
-  await page.waitForTimeout(3000);
-
-  const botoes = await page.$$('button');
-  for (let i = 0; i < botoes.length; i++) {
-    const texto = await botoes[i].innerText();
-    const box = await botoes[i].boundingBox();
-    if (texto.trim() === 'Criar registro' && box && box.width > 200) {
-      await botoes[i].scrollIntoViewIfNeeded();
-      await botoes[i].click();
-      console.log(`✅ Botão Criar Registro clicado`);
-      break;
-    }
-  }
-
-  await page.waitForTimeout(3000);
+  await clicarBotaoCriar(page);
   await page.screenshot({ path: 'registro_crlv.png' });
 
   await browser.close();
 }
 
+// ========== Função: Login ==========
+async function loginPipefy(page) {
+  console.log('🔐 Login no Pipefy...');
+  await page.goto('https://signin.pipefy.com/realms/pipefy/protocol/openid-connect/auth?client_id=pipefy-auth&redirect_uri=https%3A%2F%2Fapp-auth.pipefy.com%2Fauth_callback&response_type=code&scope=openid+email+profile');
+  await page.fill('input[name="username"]', 'juridicomgmultas@gmail.com');
+  await page.click('#kc-login');
+  await page.fill('input[name="password"]', 'Mg.12345@');
+  await page.click('#kc-login');
+  await page.waitForNavigation({ waitUntil: 'load' });
+}
+
+// ========== Função: Enviar Arquivo ==========
 async function enviarArquivo(page, index, labelTexto, arquivoLocal) {
   try {
     const nomeArquivo = path.basename(arquivoLocal);
@@ -118,6 +157,34 @@ async function enviarArquivo(page, index, labelTexto, arquivoLocal) {
       console.log(`❌ ${labelTexto} falhou`);
     }
   } catch {
-    console.log(`❌ Erro ao enviar ${labelTexto}`);
+    console.log(`❌ Falha ao enviar ${labelTexto}`);
+  }
+}
+
+// ========== Função: Baixar Arquivo ==========
+function baixarArquivo(url, destino) {
+  return new Promise((resolve, reject) => {
+    const file = fs.createWriteStream(destino);
+    https.get(url, response => {
+      response.pipe(file);
+      file.on('finish', () => file.close(resolve));
+    }).on('error', err => {
+      fs.unlink(destino, () => reject(err));
+    });
+  });
+}
+
+// ========== Função: Clicar no botão "Criar registro" ==========
+async function clicarBotaoCriar(page) {
+  const botoes = await page.$$('button');
+  for (let i = 0; i < botoes.length; i++) {
+    const texto = await botoes[i].innerText();
+    const box = await botoes[i].boundingBox();
+    if (texto.trim() === 'Criar registro' && box && box.width > 200) {
+      await botoes[i].scrollIntoViewIfNeeded();
+      await botoes[i].click();
+      console.log(`✅ Registro criado`);
+      break;
+    }
   }
 }
