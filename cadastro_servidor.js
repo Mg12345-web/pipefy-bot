@@ -359,47 +359,55 @@ app.get('/start-rgp', async (req, res) => {
       await page.screenshot({ path: printCliente });
       log('📸 Print após seleção do cliente salvo como print_cliente_rgp.png');
 
-      log('🚗 Selecionando veículo pelo CRLV...');
-const botaoCRLV = await page.locator('div:has-text("Veículo (CRLV)")').locator('text=Criar registro').first();
-await botaoCRLV.click();
-await page.waitForTimeout(1000);
+      try {
+  log('🚗 Selecionando veículo pelo CRLV...');
+  const botaoCRLV = await page.locator('div:has-text("Veículo (CRLV)")').locator('text=Criar registro').first();
+  await botaoCRLV.click();
+  await page.waitForTimeout(1000);
 
-// Print da tela com o campo CRLV aberto
-await page.screenshot({ path: printAntesCRLV });
-log('📸 Print após abrir o CRLV salvo como print_antes_clique_crlv.png');
+  // Print da tela com o campo CRLV aberto
+  await page.screenshot({ path: printAntesCRLV });
+  log('📸 Print após abrir o CRLV salvo como print_antes_clique_crlv.png');
 
-// Clicar em "+ Adicionar" dentro da janela flutuante
-log('➕ Clicando em "+ Adicionar"...');
-const botaoAdicionar = await page.locator('text="+ Adicionar"').first();
-await botaoAdicionar.click();
-await page.waitForTimeout(1000);
+  // Clicar em "+ Adicionar" dentro da janela flutuante
+  log('➕ Clicando em "+ Adicionar"...');
+  const botaoAdicionar = await page.locator('text="+ Adicionar"').first();
+  await botaoAdicionar.click();
+  await page.waitForTimeout(1000);
 
-// Print após o clique no botão "+ Adicionar"
-await page.screenshot({ path: printCRLV });
-log('📸 Print após clique em "+ Adicionar" salvo como print_crlv_rgp.png');
+  // Print após o clique no botão "+ Adicionar"
+  await page.screenshot({ path: printCRLV });
+  log('📸 Print após clique em "+ Adicionar" salvo como print_crlv_rgp.png');
 
-      res.write('</pre><h3>📸 Prints:</h3>');
-      if (fs.existsSync(beforeClickPath)) {
-        const base64Before = fs.readFileSync(beforeClickPath).toString('base64');
-        res.write(`<p><b>Antes do clique:</b><br><img src="data:image/png;base64,${base64Before}" style="max-width:100%; border:1px solid #ccc;"></p>`);
-      }
-      if (fs.existsSync(afterClickPath)) {
-        const base64After = fs.readFileSync(afterClickPath).toString('base64');
-        res.write(`<p><b>Depois do clique:</b><br><img src="data:image/png;base64,${base64After}" style="max-width:100%; border:1px solid #ccc;"></p>`);
-      }
-      if (fs.existsSync(printCliente)) {
-        const base64Cliente = fs.readFileSync(printCliente).toString('base64');
-        res.write(`<p><b>Após selecionar cliente:</b><br><img src="data:image/png;base64,${base64Cliente}" style="max-width:100%; border:1px solid #ccc;"></p>`);
-      }
-      if (fs.existsSync(printAntesCRLV)) {
-        const base64AntesCRLV = fs.readFileSync(printAntesCRLV).toString('base64');
-        res.write(`<p><b>Antes de clicar no CRLV:</b><br><img src="data:image/png;base64,${base64AntesCRLV}" style="max-width:100%; border:1px solid #ccc;"></p>`);
-      }
-      if (fs.existsSync(printCRLV)) {
-        const base64CRLV = fs.readFileSync(printCRLV).toString('base64');
-        res.write(`<p><b>Após selecionar CRLV:</b><br><img src="data:image/png;base64,${base64CRLV}" style="max-width:100%; border:1px solid #ccc;"></p>`);
-      }
-      res.end('<p style="color:red"><b>⚠️ Finalizado. Verifique os prints para diagnosticar erros, se houver.</b></p>');
-    }
+} catch (err) {
+  log(`❌ Erro crítico: ${err.message}`);
+} finally {
+  try { if (browser) await browser.close(); } catch {}
+  if (fs.existsSync(LOCK_PATH)) fs.unlinkSync(LOCK_PATH);
+
+  res.write('</pre><h3>📸 Prints:</h3>');
+  if (fs.existsSync(beforeClickPath)) {
+    const base64Before = fs.readFileSync(beforeClickPath).toString('base64');
+    res.write(`<p><b>Antes do clique:</b><br><img src="data:image/png;base64,${base64Before}" style="max-width:100%; border:1px solid #ccc;"></p>`);
+  }
+  if (fs.existsSync(afterClickPath)) {
+    const base64After = fs.readFileSync(afterClickPath).toString('base64');
+    res.write(`<p><b>Depois do clique:</b><br><img src="data:image/png;base64,${base64After}" style="max-width:100%; border:1px solid #ccc;"></p>`);
+  }
+  if (fs.existsSync(printCliente)) {
+    const base64Cliente = fs.readFileSync(printCliente).toString('base64');
+    res.write(`<p><b>Após selecionar cliente:</b><br><img src="data:image/png;base64,${base64Cliente}" style="max-width:100%; border:1px solid #ccc;"></p>`);
+  }
+  if (fs.existsSync(printAntesCRLV)) {
+    const base64AntesCRLV = fs.readFileSync(printAntesCRLV).toString('base64');
+    res.write(`<p><b>Antes de clicar no CRLV:</b><br><img src="data:image/png;base64,${base64AntesCRLV}" style="max-width:100%; border:1px solid #ccc;"></p>`);
+  }
+  if (fs.existsSync(printCRLV)) {
+    const base64CRLV = fs.readFileSync(printCRLV).toString('base64');
+    res.write(`<p><b>Após selecionar CRLV:</b><br><img src="data:image/png;base64,${base64CRLV}" style="max-width:100%; border:1px solid #ccc;"></p>`);
+  }
+  res.end('<p style="color:red"><b>⚠️ Finalizado. Verifique os prints para diagnosticar erros, se houver.</b></p>');
+}
+
   }, 60000); // ⏱️ Espera inicial de 1 minuto
 });
