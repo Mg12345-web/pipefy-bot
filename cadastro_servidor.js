@@ -349,8 +349,11 @@ log('📸 Print depois do clique salvo.');
 
 // 🧩 Selecionando cliente por CPF
 log('👤 Selecionando cliente pelo CPF...');
-await page.getByText('Criar registro', { exact: true }).click();
+const secaoCliente = await page.locator('text=*Cliente').first();
+const botaoCliente = await secaoCliente.locator('text=Criar registro').first();
+await botaoCliente.click();
 await page.waitForTimeout(1000);
+
 await page.locator('input[placeholder*="cards pelo título"]').fill('143.461.936-25');
 await page.waitForTimeout(1500);
 await page.getByText('143.461.936-25', { exact: false }).first().click();
