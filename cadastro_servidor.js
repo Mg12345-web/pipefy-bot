@@ -594,6 +594,7 @@ app.get('/start-semrgp', async (req, res) => {
         }
       } // ✅ FECHA o try AQUI
 
+           }
       await page.screenshot({ path: printFinalCRLV });
       log('📸 Print final do CRLV salvo como print_final_crlv_semrgp.png');
 
@@ -613,5 +614,6 @@ app.get('/start-semrgp', async (req, res) => {
       if (fs.existsSync(LOCK_PATH)) fs.unlinkSync(LOCK_PATH);
       res.end('<p style="color:red"><b>⚠️ Erro inesperado. Finalizado com falha.</b></p>');
     }
-  }, 60000); // Fim do setTimeout
-}); // Fim da rota app.get('/start-semrgp')
+
+  }, 60000); // ✅ FECHA o setTimeout
+}); // ✅ FECHA a rota app.get()
