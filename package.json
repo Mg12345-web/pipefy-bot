@@ -1,7 +1,6 @@
 {
   "name": "pipefy-bots",
   "version": "1.0.0",
-  "main": "login.js",
   "scripts": {
     "start": "node cadastro_servidor.js"
   },
