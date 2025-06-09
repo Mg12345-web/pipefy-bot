@@ -379,6 +379,11 @@ await page.waitForTimeout(1000);
 await page.locator('input[placeholder*="cards pelo título"]').fill('OPB3D62');
 await page.waitForTimeout(1500);
 
+// 🖼️ Print da tela com o CRLV carregado (antes de tentar o clique)
+const printAntesCRLV = path.resolve(__dirname, 'print_antes_clique_crlv.png');
+await page.screenshot({ path: printAntesCRLV });
+log('📸 Print antes de tentar clicar no CRLV salvo como print_antes_clique_crlv.png');
+
 // Tenta localizar o item de CRLV na lista
 const itemCRLV = await page.locator('text=OPB3D62').first();
 
@@ -411,6 +416,9 @@ res.write(`<p><b>Após selecionar cliente:</b><br><img src="data:image/png;base6
 
 const base64CRLV = fs.readFileSync(printCRLV).toString('base64');
 res.write(`<p><b>Após selecionar CRLV:</b><br><img src="data:image/png;base64,${base64CRLV}" style="max-width:100%; border:1px solid #ccc;"></p>`);
+
+const base64AntesCRLV = fs.readFileSync(printAntesCRLV).toString('base64');
+res.write(`<p><b>Antes de clicar no CRLV:</b><br><img src="data:image/png;base64,${base64AntesCRLV}" style="max-width:100%; border:1px solid #ccc;"></p>`);
 
 res.end();
 
