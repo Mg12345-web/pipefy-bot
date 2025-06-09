@@ -366,27 +366,32 @@ await page.screenshot({ path: printCliente });
 log('📸 Print após seleção do cliente salvo como print_cliente_rgp.png');
 
 log('🚗 Selecionando veículo pelo CRLV...');
-
-// Encontra o botão "Criar registro" dentro do bloco do veículo
-const botaoVeiculo = await page.locator('div:has-text("Veículo") >> text=Criar registro').first();
-await botaoVeiculo.click();
+const botaoCRLV = await page.locator('div:has-text("Veículo (CRLV)") >> text=Criar registro').first();
+await botaoCRLV.click();
 await page.waitForTimeout(1000);
 
 // Preenche a placa
 await page.locator('input[placeholder*="cards pelo título"]').fill('OPB3D62');
 await page.waitForTimeout(1500);
 
-// Procura o card que contém a placa e clica nele
-const cardVeiculo = await page.locator('text=OPB3D62').first();
-await cardVeiculo.scrollIntoViewIfNeeded();
-await cardVeiculo.click();
+// Tenta localizar o item de CRLV na lista
+const itemCRLV = await page.locator('text=OPB3D62').first();
 
-log('✅ Veículo selecionado com sucesso');
+try {
+  await itemCRLV.scrollIntoViewIfNeeded();
+  await itemCRLV.click();
+  log('✅ Veículo selecionado com sucesso');
+} catch {
+  log('⚠️ Clique direto falhou. Tentando clique via JavaScript...');
+  await itemCRLV.evaluate(el => el.click());
+  log('✅ Veículo selecionado com sucesso via JavaScript');
+}
 
-// Print após seleção
-const printVeiculo = path.resolve(__dirname, 'print_veiculo_rgp.png');
-await page.screenshot({ path: printVeiculo });
-log('📸 Print após seleção do veículo salvo como print_veiculo_rgp.png');
+// Print após seleção do CRLV
+const printCRLV = path.resolve(__dirname, 'print_crlv_rgp.png');
+await page.screenshot({ path: printCRLV });
+log('📸 Print após seleção do veículo salvo como print_crlv_rgp.png');
+
 
 await browser.close();
 
