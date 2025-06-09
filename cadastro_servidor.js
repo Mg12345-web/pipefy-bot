@@ -372,12 +372,15 @@ const botaoVeiculo = await page.locator('div:has-text("Veículo") >> text=Criar 
 await botaoVeiculo.click();
 await page.waitForTimeout(1000);
 
-// Preenche a placa do veículo
+// Preenche a placa
 await page.locator('input[placeholder*="cards pelo título"]').fill('OPB3D62');
 await page.waitForTimeout(1500);
 
-// Clica no resultado correspondente
-await page.getByText('OPB3D62', { exact: false }).first().click();
+// Procura o card que contém a placa e clica nele
+const cardVeiculo = await page.locator('text=OPB3D62').first();
+await cardVeiculo.scrollIntoViewIfNeeded();
+await cardVeiculo.click();
+
 log('✅ Veículo selecionado com sucesso');
 
 // Print após seleção
