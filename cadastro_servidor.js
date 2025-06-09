@@ -66,15 +66,20 @@ app.get('/start-crlv', async (req, res) => {
     };
 
     for (const [campo, valor] of Object.entries(dados)) {
-      try {
-        const label = await page.getByLabel(campo);
-        await label.scrollIntoViewIfNeeded();
-        await label.fill(valor);
-        log(`✅ ${campo}`);
-      } catch {
-        log(`❌ ${campo}`);
-      }
+  try {
+    if (campo === 'Placa') {
+      await page.locator('input[placeholder="Digite aqui ..."]').first().fill(valor);
+      log(`✅ ${campo} (campo principal preenchido)`);
+    } else {
+      const label = await page.getByLabel(campo);
+      await label.scrollIntoViewIfNeeded();
+      await label.fill(valor);
+      log(`✅ ${campo}`);
     }
+  } catch {
+    log(`❌ ${campo}`);
+  }
+}
 
     const fileURL = 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
     const localPath = path.resolve(__dirname, 'crlv_temp.pdf');
