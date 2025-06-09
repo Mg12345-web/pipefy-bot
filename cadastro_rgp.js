@@ -3,23 +3,10 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const https = require('https');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
 const LOCK_PATH = path.join(os.tmpdir(), 'pipefy_robo.lock');
-
-function baixarArquivo(url, destino) {
-  return new Promise((resolve, reject) => {
-    const file = fs.createWriteStream(destino);
-    https.get(url, response => {
-      response.pipe(file);
-      file.on('finish', () => file.close(resolve));
-    }).on('error', err => {
-      fs.unlink(destino, () => reject(err));
-    });
-  });
-}
 
 app.get('/start-rgp', async (req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -57,80 +44,14 @@ app.get('/start-rgp', async (req, res) => {
       await page.getByText('RGP', { exact: true }).click();
       await page.waitForTimeout(3000);
 
-      log('🔘 Procurando botão "Create new card"...');
-      const botoes = await page.$$('button');
-      let clicou = false;
+      log('🔘 Procurando <span> com texto "Create new card"...');
+      const createCard = await page.locator('text=Create new card').first();
+      await createCard.scrollIntoViewIfNeeded();
+      await createCard.click();
+      log('✅ Clique no "Create new card" realizado com sucesso!');
 
-      for (const botao of botoes) {
-        const texto = await botao.innerText().catch(() => '');
-        const box = await botao.boundingBox().catch(() => null);
-
-        if (texto.trim() === 'Create new card' && box && box.width > 200) {
-          await botao.scrollIntoViewIfNeeded();
-          await botao.click();
-          log('✅ Botão "Create new card" clicado com sucesso');
-          clicou = true;
-          break;
-        }
-      }
-
-      if (!clicou) {
-        log('❌ Nenhum botão "Create new card" clicável foi encontrado.');
-        res.end('</pre><p style="color:red">Erro: Botão não encontrado ou não clicável.</p>');
-        return;
-      }
-
-      log('👤 Selecionando cliente...');
-      await page.locator('div:has-text("Cliente")').getByText('Criar registro').click();
-      await page.locator('input[placeholder*="cards pelo título"]').fill('039.325.432-11');
-      await page.waitForTimeout(1000);
-      await page.getByText('LEONARDO GARCIA DE BRITO').click();
-
-      log('🚗 Selecionando veículo...');
-      await page.locator('div:has-text("Veículo")').getByText('Criar registro').click();
-      await page.locator('input[placeholder*="cards pelo título"]').fill('SHU4H96');
-      await page.waitForTimeout(1000);
-      await page.getByText('SHU4H96').click();
-
-      log('✍️ Preenchendo dados...');
-      await page.getByLabel('AIT').fill('uyhvbkiuhn');
-      await page.getByLabel('Órgão').fill('PRF');
-      await page.getByLabel('Prazo para Protocolo').fill('2025-06-08T12:00');
-
-      log('📎 Enviando documento...');
-      const fileURL = 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
-      const localPath = path.resolve(__dirname, 'rgp_doc.pdf');
-      await baixarArquivo(fileURL, localPath);
-      const [fileChooser] = await Promise.all([
-        page.waitForEvent('filechooser'),
-        page.getByText('Adicionar novos arquivos').click()
-      ]);
-      await fileChooser.setFiles(localPath);
-
-      await page.waitForTimeout(2000);
-
-      const botoesCriar = await page.$$('button');
-      for (const botao of botoesCriar) {
-        const texto = await botao.innerText();
-        const box = await botao.boundingBox();
-        if (texto.trim() === 'Criar registro' && box && box.width > 200) {
-          await botao.scrollIntoViewIfNeeded();
-          await botao.click();
-          log('✅ Registro criado com sucesso');
-          break;
-        }
-      }
-
-      const screenshotPath = path.resolve(__dirname, 'print_rgp.png');
-      await page.waitForTimeout(4000);
-      await page.screenshot({ path: screenshotPath });
       await browser.close();
-
-      log('✅ Cadastro RGP realizado com sucesso!');
-      res.write('</pre><h3>🖼️ Print final:</h3>');
-      const base64img = fs.readFileSync(screenshotPath).toString('base64');
-      res.write(`<img src="data:image/png;base64,${base64img}" style="max-width:100%; border:1px solid #ccc;">`);
-      res.end();
+      res.end('</pre><p style="color:green">✅ Robô finalizado com sucesso. Botão clicado.</p>');
 
     } catch (err) {
       log(`❌ Erro crítico: ${err.message}`);
@@ -138,7 +59,7 @@ app.get('/start-rgp', async (req, res) => {
     } finally {
       if (fs.existsSync(LOCK_PATH)) fs.unlinkSync(LOCK_PATH);
     }
-  }, 60000);
+  }, 60000); // 1 minuto
 });
 
 app.listen(PORT, () => {
