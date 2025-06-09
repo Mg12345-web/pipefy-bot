@@ -416,6 +416,8 @@ log('📎 Anexando PDF...');
 const urlPDF = 'https://www.africau.edu/images/default/sample.pdf';
 const nomePDF = 'anexo.pdf';
 const caminhoPDF = path.resolve(__dirname, nomePDF);
+const printAnexo = path.resolve(__dirname, 'print_pdf_anexado.png'); // já declarado para uso no finally
+
 await baixarArquivo(urlPDF, caminhoPDF);
 
 const botaoUpload = await page.locator('button[data-testid="attachments-dropzone-button"]').last();
@@ -427,18 +429,19 @@ const [fileChooser] = await Promise.all([
 await fileChooser.setFiles(caminhoPDF);
 await page.waitForTimeout(3000);
 
-// Declare fora do bloco if, para ficar visível no finally
-const printAnexo = path.resolve(__dirname, 'print_pdf_anexado.png');
-
-if (sucessoAnexo) {
-  log('✅ PDF anexado com sucesso');
-
+// Verifica se o PDF foi anexado com sucesso
+try {
   const campoAnexo = await page.locator(`text="${nomePDF}"`).first();
-  await campoAnexo.scrollIntoViewIfNeeded();
-  await page.screenshot({ path: printAnexo });
-  log('📸 Print do anexo salvo como print_pdf_anexado.png');
-} else {
-  log('❌ Falha ao anexar PDF');
+  if (await campoAnexo.isVisible({ timeout: 7000 })) {
+    log('✅ PDF anexado com sucesso');
+    await campoAnexo.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: printAnexo });
+    log('📸 Print do anexo salvo como print_pdf_anexado.png');
+  } else {
+    log('❌ Falha ao anexar PDF');
+  }
+} catch {
+  log('❌ Falha ao localizar o PDF após o upload');
 }
 
 // Print final da seção CRLV com todos os dados
@@ -476,7 +479,8 @@ log('📸 Print final do CRLV salvo como print_final_crlv.png');
   if (fs.existsSync(printAnexo)) {
     const base64Anexo = fs.readFileSync(printAnexo).toString('base64');
     res.write(`<p><b>Print do PDF Anexado:</b><br><img src="data:image/png;base64,${base64Anexo}" style="max-width:100%; border:1px solid #ccc;"></p>`);
-}
+  }
+
   res.end('<p style="color:red"><b>⚠️ Finalizado. Verifique os prints para diagnosticar erros, se houver.</b></p>');
 }
 
