@@ -367,10 +367,8 @@ await page.waitForTimeout(1000);
 
   log('🚗 Selecionando veículo pelo CRLV...');
 
-// Localiza o campo específico com base no título "Veículo (CRLV)"
-const secaoCRLV = await page.locator('div:has-text("Veículo (CRLV)")').first();
-const botaoCRLV = await secaoCRLV.locator('button[title="Criar registro"]').first();
-
+// Clica diretamente no segundo "Criar registro" da página
+const botaoCRLV = await page.locator('text=Criar registro').nth(1);
 await botaoCRLV.scrollIntoViewIfNeeded();
 await botaoCRLV.click();
 await page.waitForTimeout(1000);
