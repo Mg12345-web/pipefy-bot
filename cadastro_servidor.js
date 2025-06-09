@@ -349,17 +349,18 @@ log('📸 Print depois do clique salvo.');
 
 // 🧩 Selecionando cliente por CPF
 log('👤 Selecionando cliente pelo CPF...');
-const secaoCliente = await page.locator('text=*Cliente').first();
-const botaoCliente = await secaoCliente.locator('text=Criar registro').first();
+// Encontra o botão "Criar registro" dentro do contexto certo
+const botaoCliente = await page.locator('div:has-text("Cliente") >> text=Criar registro').first();
 await botaoCliente.click();
 await page.waitForTimeout(1000);
 
+// Preenche o CPF e seleciona
 await page.locator('input[placeholder*="cards pelo título"]').fill('143.461.936-25');
 await page.waitForTimeout(1500);
 await page.getByText('143.461.936-25', { exact: false }).first().click();
 log('✅ Cliente selecionado com sucesso');
 
-// 📸 Print após seleção do cliente
+// Print após seleção
 const printCliente = path.resolve(__dirname, 'print_cliente_rgp.png');
 await page.screenshot({ path: printCliente });
 log('📸 Print após seleção do cliente salvo como print_cliente_rgp.png');
