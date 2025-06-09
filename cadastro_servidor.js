@@ -373,30 +373,31 @@ try {
   log('❌ Erro ao preencher AIT ou Órgão Autuador');
 }
 
-// 📆 Preenchendo campo "Prazo para Protocolo" com digitação humanizada
+log('📆 Preenchendo campo "Prazo para Protocolo"...');
+
 try {
-  const campoData = await page.getByLabel('Prazo para Protocolo');
-  await campoData.scrollIntoViewIfNeeded();
-  await campoData.click({ clickCount: 2, delay: 200 }); // Força foco no campo de data
+  const segmentoDia = await page.locator('[data-testid="day-input"]').first();
+  const segmentoMes = await page.locator('[data-testid="month-input"]').first();
+  const segmentoAno = await page.locator('[data-testid="year-input"]').first();
+  const segmentoHora = await page.locator('[data-testid="hour-input"]').first();
+  const segmentoMinuto = await page.locator('[data-testid="minute-input"]').first();
 
-  // Digita dia, mês e ano um por um
-  const data = '09062025';
-  for (const char of data) {
-    await page.keyboard.press(char);
-    await page.waitForTimeout(100); // simula humano digitando
-  }
+  await segmentoDia.click();
+  await page.keyboard.type('09', { delay: 100 });
 
-  await page.keyboard.press('Tab');
-  await page.waitForTimeout(300);
+  await segmentoMes.click();
+  await page.keyboard.type('06', { delay: 100 });
 
-  // Digita a hora: 0800
-  const hora = '0800';
-  for (const char of hora) {
-    await page.keyboard.press(char);
-    await page.waitForTimeout(100);
-  }
+  await segmentoAno.click();
+  await page.keyboard.type('2025', { delay: 100 });
 
-  log('✅ Prazo para Protocolo preenchido');
+  await segmentoHora.click();
+  await page.keyboard.type('08', { delay: 100 });
+
+  await segmentoMinuto.click();
+  await page.keyboard.type('00', { delay: 100 });
+
+  log('✅ Prazo para Protocolo preenchido corretamente');
 } catch (e) {
   log('❌ Erro ao preencher o campo Prazo para Protocolo');
 }
