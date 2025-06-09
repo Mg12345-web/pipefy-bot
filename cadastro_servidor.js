@@ -390,6 +390,54 @@ const printCRLV = path.resolve(__dirname, 'print_crlv_rgp.png');
 await page.screenshot({ path: printCRLV });
 log('📸 Print após selecionar o CRLV salvo como print_crlv_rgp.png');
 
+// Preenchendo campos AIT, Órgão e Prazo
+log('✍️ Preenchendo campos adicionais...');
+const camposExtras = {
+  'AIT': 'AM09263379',
+  'Órgão Autuador': 'Prefeitura de BH',
+  'Prazo para Protocolo': '09/06/2025'
+};
+
+for (const [campo, valor] of Object.entries(camposExtras)) {
+  try {
+    const input = await page.getByLabel(campo, { exact: true });
+    await input.scrollIntoViewIfNeeded();
+    await input.fill(valor);
+    log(`✅ ${campo} preenchido`);
+  } catch {
+    log(`❌ Erro ao preencher o campo: ${campo}`);
+  }
+}
+
+// Anexando PDF de teste externo
+log('📎 Anexando PDF...');
+const urlPDF = 'https://www.africau.edu/images/default/sample.pdf';
+const nomePDF = 'anexo.pdf';
+const caminhoPDF = path.resolve(__dirname, nomePDF);
+await baixarArquivo(urlPDF, caminhoPDF);
+
+const botaoUpload = await page.locator('button[data-testid="attachments-dropzone-button"]').last();
+await botaoUpload.scrollIntoViewIfNeeded();
+const [fileChooser] = await Promise.all([
+  page.waitForEvent('filechooser'),
+  botaoUpload.click()
+]);
+await fileChooser.setFiles(caminhoPDF);
+await page.waitForTimeout(3000);
+
+// Verifica se o PDF foi anexado com sucesso
+const sucessoAnexo = await page.locator(`text="${nomePDF}"`).first().isVisible({ timeout: 7000 });
+if (sucessoAnexo) {
+  log('✅ PDF anexado com sucesso');
+} else {
+  log('❌ Falha ao anexar PDF');
+}
+
+// Print final da seção CRLV com todos os dados
+const printFinalCRLV = path.resolve(__dirname, 'print_final_crlv.png');
+await page.screenshot({ path: printFinalCRLV });
+log('📸 Print final do CRLV salvo como print_final_crlv.png');
+
 } catch (err) {
   log(`❌ Erro crítico: ${err.message}`);
 } finally {
