@@ -311,45 +311,30 @@ app.get('/start-rgp', async (req, res) => {
 
       log('📂 Acessando Pipe RGP...');
       await page.getByText('RGP', { exact: true }).click();
+      await page.waitForTimeout(3000);
 
-      const botoes = await page.$$('button');
-      log(`🔍 Total de botões encontrados: ${botoes.length}`);
+      log('🕵️ Buscando elemento <span> "Create new card"...');
+      const botaoSpan = page.locator('span:text("Create new card")');
 
-      for (let i = 0; i < botoes.length; i++) {
-        const texto = await botoes[i].innerText().catch(() => '');
-        const box = await botoes[i].boundingBox().catch(() => null);
-        if (!texto.trim()) continue;
-        log(`📌 Botão [${i}] - Texto: "${texto.trim()}" | Width: ${box ? box.width : 'N/A'}`);
-
-        if (box) {
-          await page.evaluate((el) => {
-            const rect = el.getBoundingClientRect();
-            const marcador = document.createElement('div');
-            marcador.style.position = 'absolute';
-            marcador.style.top = `${rect.top + window.scrollY}px`;
-            marcador.style.left = `${rect.left + window.scrollX}px`;
-            marcador.style.width = `${rect.width}px`;
-            marcador.style.height = `${rect.height}px`;
-            marcador.style.border = '3px dashed red';
-            marcador.style.zIndex = '9999';
-            marcador.id = 'marcador-botao';
-            document.body.appendChild(marcador);
-          }, botoes[i]);
-
-          const screenshotPath = path.resolve(__dirname, `botao_rgp_${i}.png`);
-          await page.screenshot({ path: screenshotPath });
-          log(`📸 Print do botão [${i}] salvo: botao_rgp_${i}.png`);
-
-          await page.evaluate(() => {
-            const el = document.getElementById('marcador-botao');
-            if (el) el.remove();
-          });
-        }
+      if (await botaoSpan.count() === 0) {
+        log('❌ Nenhum elemento <span> "Create new card" encontrado.');
+        return res.end('</pre><p style="color:red">Erro: botão não encontrado.</p>');
       }
 
+      await botaoSpan.first().scrollIntoViewIfNeeded();
+      await botaoSpan.first().click();
+      log('✅ Clique no botão <span> "Create new card" realizado com sucesso!');
+
+      const screenshotPath = path.resolve(__dirname, 'print_rgp_card.png');
+      await page.waitForTimeout(3000);
+      await page.screenshot({ path: screenshotPath });
+
       await browser.close();
-      log('✅ Análise de botões RGP finalizada. Veja os prints.');
-      res.end('</pre><p style="color:green">✅ Análise finalizada com prints dos botões.</p>');
+
+      res.write('</pre><h3>📸 Print após clique:</h3>');
+      const base64img = fs.readFileSync(screenshotPath).toString('base64');
+      res.write(`<img src="data:image/png;base64,${base64img}" style="max-width:100%; border:1px solid #ccc;">`);
+      res.end();
 
     } catch (err) {
       log(`❌ Erro crítico: ${err.message}`);
@@ -357,5 +342,5 @@ app.get('/start-rgp', async (req, res) => {
     } finally {
       if (fs.existsSync(LOCK_PATH)) fs.unlinkSync(LOCK_PATH);
     }
-  }, 60000);
+  }, 60000); // Atraso de 1 minuto
 });
