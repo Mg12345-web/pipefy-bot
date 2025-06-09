@@ -55,62 +55,46 @@ app.get('/start-rgp', async (req, res) => {
 
       log('📂 Acessando Pipe RGP...');
       await page.getByText('RGP', { exact: true }).click();
-      await page.waitForTimeout(3000);
+      await page.waitForTimeout(3000); // Espera o Pipe carregar os botões
 
-      const botoes = await page.$$('button');
-      let encontrou = false;
+const botoes = await page.$$('button');
+log(`🔍 Total de botões encontrados: ${botoes.length}`);
 
-      for (let i = 0; i < botoes.length; i++) {
-        const texto = await botoes[i].innerText().catch(() => '');
-        const box = await botoes[i].boundingBox().catch(() => null);
+for (let i = 0; i < botoes.length; i++) {
+  const texto = await botoes[i].innerText().catch(() => '');
+  const box = await botoes[i].boundingBox().catch(() => null);
 
-        if (texto.trim() === 'Create new card') {
-          log(`🔍 Encontrado botão na posição ${i} com largura: ${box ? box.width : 'null'}`);
+  if (!texto.trim()) continue;
 
-          await botoes[i].scrollIntoViewIfNeeded();
+  log(`📌 Botão [${i}] - Texto: "${texto.trim()}" | Width: ${box ? box.width : 'N/A'}`);
 
-          await page.evaluate((element) => {
-            const rect = element.getBoundingClientRect();
-            const div = document.createElement('div');
-            div.style.position = 'absolute';
-            div.style.top = `${rect.top + window.scrollY}px`;
-            div.style.left = `${rect.left + window.scrollX}px`;
-            div.style.width = `${rect.width}px`;
-            div.style.height = `${rect.height}px`;
-            div.style.border = '4px solid red';
-            div.style.zIndex = '9999';
-            div.id = 'highlight-botao';
-            document.body.appendChild(div);
-          }, botoes[i]);
+  if (box) {
+    await page.evaluate((el) => {
+      const rect = el.getBoundingClientRect();
+      const marcador = document.createElement('div');
+      marcador.style.position = 'absolute';
+      marcador.style.top = `${rect.top + window.scrollY}px`;
+      marcador.style.left = `${rect.left + window.scrollX}px`;
+      marcador.style.width = `${rect.width}px`;
+      marcador.style.height = `${rect.height}px`;
+      marcador.style.border = '3px dashed red';
+      marcador.style.zIndex = '9999';
+      marcador.id = 'marcador-botao';
+      document.body.appendChild(marcador);
+    }, botoes[i]);
 
-          const screenshotPathBtn = path.resolve(__dirname, 'botao_create_new_card.png');
-          await page.screenshot({ path: screenshotPathBtn });
-          log('📸 Print do botão "Create new card" capturado');
+    const screenshotPathBtn = path.resolve(__dirname, `botao_${i}.png`);
+    await page.screenshot({ path: screenshotPathBtn });
+    log(`📸 Print do botão [${i}] salvo: botao_${i}.png`);
 
-          await page.evaluate(() => {
-            const el = document.getElementById('highlight-botao');
-            if (el) el.remove();
-          });
+    await page.evaluate(() => {
+      const el = document.getElementById('marcador-botao');
+      if (el) el.remove();
+    });
+  }
+}
 
-          if (box && box.width > 200) {
-            try {
-              await botoes[i].click();
-              log('✅ Botão clicado com sucesso');
-            } catch (e) {
-              log('⚠️ Erro ao tentar clicar: ' + e.message);
-            }
-          } else {
-            log('⚠️ Botão encontrado, mas não clicável (sem boundingBox)');
-          }
-
-          encontrou = true;
-          break;
-        }
-      }
-
-      if (!encontrou) {
-        log('❌ Nenhum botão "Create new card" encontrado');
-      }
+log('✅ Fim da varredura dos botões. Verifique os prints.');
 
       log('👤 Selecionando cliente...');
       await page.locator('div:has-text("Cliente")').getByText('Criar registro').click();
