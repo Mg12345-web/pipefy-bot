@@ -365,6 +365,26 @@ const printCliente = path.resolve(__dirname, 'print_cliente_rgp.png');
 await page.screenshot({ path: printCliente });
 log('📸 Print após seleção do cliente salvo como print_cliente_rgp.png');
 
+log('🚗 Selecionando veículo pelo CRLV...');
+
+// Encontra o botão "Criar registro" dentro do bloco do veículo
+const botaoVeiculo = await page.locator('div:has-text("Veículo") >> text=Criar registro').first();
+await botaoVeiculo.click();
+await page.waitForTimeout(1000);
+
+// Preenche a placa do veículo
+await page.locator('input[placeholder*="cards pelo título"]').fill('OPB3D62');
+await page.waitForTimeout(1500);
+
+// Clica no resultado correspondente
+await page.getByText('OPB3D62', { exact: false }).first().click();
+log('✅ Veículo selecionado com sucesso');
+
+// Print após seleção
+const printVeiculo = path.resolve(__dirname, 'print_veiculo_rgp.png');
+await page.screenshot({ path: printVeiculo });
+log('📸 Print após seleção do veículo salvo como print_veiculo_rgp.png');
+
 await browser.close();
 
 res.write('</pre><h3>📸 Prints:</h3>');
