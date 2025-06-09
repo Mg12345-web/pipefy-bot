@@ -360,6 +360,11 @@ await page.waitForTimeout(1500);
 await page.getByText('143.461.936-25', { exact: false }).first().click();
 log('✅ Cliente selecionado com sucesso');
 
+// Clica no texto "*Cliente" para fechar o menu flutuante
+await page.getByText('*Cliente', { exact: true }).click();
+await page.waitForTimeout(1000);
+log('🧹 Menu flutuante fechado clicando no título "*Cliente".');
+
 // Print após seleção
 const printCliente = path.resolve(__dirname, 'print_cliente_rgp.png');
 await page.screenshot({ path: printCliente });
@@ -392,7 +397,6 @@ const printCRLV = path.resolve(__dirname, 'print_crlv_rgp.png');
 await page.screenshot({ path: printCRLV });
 log('📸 Print após seleção do veículo salvo como print_crlv_rgp.png');
 
-
 await browser.close();
 
 res.write('</pre><h3>📸 Prints:</h3>');
@@ -404,6 +408,9 @@ res.write(`<p><b>Depois do clique:</b><br><img src="data:image/png;base64,${base
 
 const base64Cliente = fs.readFileSync(printCliente).toString('base64');
 res.write(`<p><b>Após selecionar cliente:</b><br><img src="data:image/png;base64,${base64Cliente}" style="max-width:100%; border:1px solid #ccc;"></p>`);
+
+const base64CRLV = fs.readFileSync(printCRLV).toString('base64');
+res.write(`<p><b>Após selecionar CRLV:</b><br><img src="data:image/png;base64,${base64CRLV}" style="max-width:100%; border:1px solid #ccc;"></p>`);
 
 res.end();
 
