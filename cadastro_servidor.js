@@ -422,21 +422,25 @@ try {
       await page.keyboard.press('PageDown');
       await page.waitForTimeout(1000);
 
-      const botoes = await page.locator('button:has-text("Create new card")');
-      const total = await botoes.count();
-      for (let i = 0; i < total; i++) {
-        const botao = botoes.nth(i);
-        const box = await botao.boundingBox();
-        if (box && box.width > 200 && box.height > 30) {
-          await botao.scrollIntoViewIfNeeded();
-          await page.waitForTimeout(500);
-          await botao.click();
-          break;
-        }
-      }
-      
-// ✅ FECHA o setTimeout da rota anterior corretamente:
-});
+      try {
+  const botoes = await page.locator('button:has-text("Create new card")');
+  const total = await botoes.count();
+  for (let i = 0; i < total; i++) {
+    const botao = botoes.nth(i);
+    const box = await botao.boundingBox();
+    if (box && box.width > 200 && box.height > 30) {
+      await botao.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(500);
+      await botao.click();
+      break;
+    }
+  }
+
+  await page.screenshot({ path: printFinalCRLV });
+  log('📸 Print final do CRLV salvo como print_final_crlv_semrgp.png');
+} catch (e) {
+  log('❌ Erro ao finalizar o card ou tirar print');
+}
 
   
      // ➕ ROTA PARA CADASTRO SEM RGP (cópia do RGP com nome ajustado)
