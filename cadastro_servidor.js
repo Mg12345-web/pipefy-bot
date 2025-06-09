@@ -65,15 +65,20 @@ app.get('/start-clientes', async (req, res) => {
     };
 
     for (const [campo, valor] of Object.entries(dados)) {
-      try {
-        const label = await page.getByLabel(campo);
-        await label.scrollIntoViewIfNeeded();
-        await label.fill(valor);
-        log(`✅ ${campo}`);
-      } catch {
-        log(`❌ ${campo}`);
-      }
+  try {
+    if (campo === 'Placa') {
+      await page.locator('input[placeholder="Digite aqui ..."]').first().fill(valor);
+      log(`✅ ${campo} (campo especial preenchido)`);
+    } else {
+      const label = await page.getByLabel(campo);
+      await label.scrollIntoViewIfNeeded();
+      await label.fill(valor);
+      log(`✅ ${campo}`);
     }
+  } catch {
+    log(`❌ ${campo}`);
+  }
+}
 
     const arquivos = [
       { url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', nome: 'cnh_teste.pdf' },
