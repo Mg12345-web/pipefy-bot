@@ -287,11 +287,7 @@ app.get('/start-rgp', async (req, res) => {
   }
 
   let browser;
-  const beforeClickPath = path.resolve(__dirname, 'print_antes_click.png');
-  const afterClickPath = path.resolve(__dirname, 'print_depois_click.png');
-  const printCliente = path.resolve(__dirname, 'print_cliente_rgp.png');
-  const printAntesCRLV = path.resolve(__dirname, 'print_antes_clique_crlv.png');
-  const printCRLV = path.resolve(__dirname, 'print_crlv_rgp.png');
+  const printFinalCRLV = path.resolve(__dirname, 'print_final_crlv.png');
 
   try {
     const lockFd = fs.openSync(LOCK_PATH, 'wx');
@@ -322,192 +318,89 @@ app.get('/start-rgp', async (req, res) => {
 
       const botaoEntrarPipe = page.locator('text=Entrar no pipe');
       if (await botaoEntrarPipe.count() > 0) {
-        log('📌 Modal detectado. Clicando em "Entrar no pipe"...');
         await botaoEntrarPipe.first().click();
         await page.waitForTimeout(3000);
-      } else {
-        log('✅ Modal não encontrado. Prosseguindo...');
       }
 
-      log('🔶 Procurando <span> com texto "Create new card"...');
       const span = await page.locator('span:text("Create new card")').first();
-      if (await span.count() === 0) {
-        log('❌ Elemento <span> "Create new card" não encontrado.');
-        return res.end('</pre><p style="color:red">Erro: span não encontrado.</p>');
-      }
       await span.scrollIntoViewIfNeeded();
-      await page.screenshot({ path: beforeClickPath });
-      log('📸 Print antes do clique salvo.');
-
-      log('🧠 Tentando clique forçado via JavaScript...');
       await span.evaluate(el => el.click());
       await page.waitForTimeout(3000);
-      await page.screenshot({ path: afterClickPath });
-      log('📸 Print depois do clique salvo.');
 
-      log('👤 Selecionando cliente pelo CPF...');
       const botaoCliente = await page.locator('div:has-text("Cliente") >> text=Criar registro').first();
       await botaoCliente.click();
       await page.waitForTimeout(1000);
       await page.locator('input[placeholder*="cards pelo título"]').fill('143.461.936-25');
       await page.waitForTimeout(1500);
       await page.getByText('143.461.936-25', { exact: false }).first().click();
-      log('✅ Cliente selecionado com sucesso');
       await page.getByText('*Cliente', { exact: true }).click();
+      await page.waitForTimeout(10000);
+      await page.keyboard.press('PageDown');
       await page.waitForTimeout(1000);
-      log('🪝 Menu flutuante fechado clicando no título "*Cliente".');
-      await page.screenshot({ path: printCliente });
-      log('📸 Print após seleção do cliente salvo como print_cliente_rgp.png');
 
-log('⏳ Aguardando 10 segundos para garantir fechamento do menu flutuante...');
-await page.waitForTimeout(10000);
-log('📜 Descendo a página com PageDown para exibir o campo CRLV...');
-await page.keyboard.press('PageDown');
-await page.waitForTimeout(1000);
+      const botaoCRLV = await page.locator('text=Criar registro').nth(1);
+      await botaoCRLV.scrollIntoViewIfNeeded();
+      await botaoCRLV.click();
+      await page.waitForTimeout(1000);
+      await page.locator('input[placeholder*="cards pelo título"]').fill('OPB3D62');
+      await page.waitForTimeout(1500);
+      await page.getByText('OPB3D62', { exact: false }).first().click();
 
-  log('🚗 Selecionando veículo pelo CRLV...');
+      const inputs = await page.locator('input[placeholder="Digite aqui ..."]');
+      await inputs.nth(0).scrollIntoViewIfNeeded();
+      await inputs.nth(0).fill('AM09263379');
+      await inputs.nth(1).scrollIntoViewIfNeeded();
+      await inputs.nth(1).fill('Prefeitura de BH');
+      await inputs.nth(2).scrollIntoViewIfNeeded();
+      await inputs.nth(2).fill('09/06/2025');
 
-// Clica diretamente no segundo "Criar registro" da página (referente ao CRLV)
-const botaoCRLV = await page.locator('text=Criar registro').nth(1);
-await botaoCRLV.scrollIntoViewIfNeeded();
-await botaoCRLV.click();
-await page.waitForTimeout(1000);
+      const urlPDF = 'https://www.africau.edu/images/default/sample.pdf';
+      const nomePDF = 'anexo.pdf';
+      const caminhoPDF = path.resolve(__dirname, nomePDF);
+      await baixarArquivo(urlPDF, caminhoPDF);
 
-// Print após abrir o CRLV
-const printAntesCRLV = path.resolve(__dirname, 'print_antes_clique_crlv.png');
-await page.screenshot({ path: printAntesCRLV });
-log('📸 Print após abrir o CRLV salvo como print_antes_clique_crlv.png');
+      const botaoUpload = await page.locator('button[data-testid="attachments-dropzone-button"]').last();
+      await botaoUpload.scrollIntoViewIfNeeded();
+      const [fileChooser] = await Promise.all([
+        page.waitForEvent('filechooser'),
+        botaoUpload.click()
+      ]);
+      await fileChooser.setFiles(caminhoPDF);
+      await page.waitForTimeout(3000);
 
-// Preenche a placa e seleciona o item correspondente
-log('🔍 Buscando placa do CRLV...');
-await page.locator('input[placeholder*="cards pelo título"]').fill('OPB3D62');
-await page.waitForTimeout(1500);
-await page.getByText('OPB3D62', { exact: false }).first().click();
-log('✅ Placa selecionada com sucesso');
+      await page.keyboard.press('PageDown');
+      await page.waitForTimeout(1000);
+      await page.keyboard.press('PageDown');
+      await page.waitForTimeout(1000);
 
-// Print após seleção
-const printCRLV = path.resolve(__dirname, 'print_crlv_rgp.png');
-await page.screenshot({ path: printCRLV });
-log('📸 Print após selecionar o CRLV salvo como print_crlv_rgp.png');
+      const botoes = await page.locator('button:has-text("Create new card")');
+      const total = await botoes.count();
+      for (let i = 0; i < total; i++) {
+        const botao = botoes.nth(i);
+        const box = await botao.boundingBox();
+        if (box && box.width > 200 && box.height > 30) {
+          await botao.scrollIntoViewIfNeeded();
+          await page.waitForTimeout(500);
+          await botao.click();
+          break;
+        }
+      }
 
-// Preenchendo campos AIT, Órgão e Prazo
-log('✍️ Preenchendo campos adicionais...');
+      await page.screenshot({ path: printFinalCRLV });
+      log('📸 Print final do CRLV salvo como print_final_crlv.png');
 
-try {
-  const inputs = await page.locator('input[placeholder="Digite aqui ..."]');
+    } catch (err) {
+      log(`❌ Erro crítico: ${err.message}`);
+    } finally {
+      try { if (browser) await browser.close(); } catch {}
+      if (fs.existsSync(LOCK_PATH)) fs.unlinkSync(LOCK_PATH);
 
-  await inputs.nth(0).scrollIntoViewIfNeeded();
-  await inputs.nth(0).fill('AM09263379');
-  log('✅ AIT preenchido');
-
-  await inputs.nth(1).scrollIntoViewIfNeeded();
-  await inputs.nth(1).fill('Prefeitura de BH');
-  log('✅ Órgão Autuador preenchido');
-
-  await inputs.nth(2).scrollIntoViewIfNeeded();
-  await inputs.nth(2).fill('09/06/2025');
-  log('✅ Prazo para Protocolo preenchido');
-} catch (e) {
-  log(`❌ Erro ao preencher campos extras: ${e.message}`);
-}
-
-// Anexando PDF de teste externo
-log('📎 Anexando PDF...');
-const urlPDF = 'https://www.africau.edu/images/default/sample.pdf';
-const nomePDF = 'anexo.pdf';
-const caminhoPDF = path.resolve(__dirname, nomePDF);
-const printAnexo = path.resolve(__dirname, 'print_pdf_anexado.png'); // já declarado para uso no finally
-
-await baixarArquivo(urlPDF, caminhoPDF);
-
-const botaoUpload = await page.locator('button[data-testid="attachments-dropzone-button"]').last();
-await botaoUpload.scrollIntoViewIfNeeded();
-const [fileChooser] = await Promise.all([
-  page.waitForEvent('filechooser'),
-  botaoUpload.click()
-]);
-await fileChooser.setFiles(caminhoPDF);
-await page.waitForTimeout(3000);
-
-// Verifica se o PDF foi anexado com sucesso
-try {
-  const campoAnexo = await page.locator(`text="${nomePDF}"`).first();
-  if (await campoAnexo.isVisible({ timeout: 7000 })) {
-    log('✅ PDF anexado com sucesso');
-    await campoAnexo.scrollIntoViewIfNeeded();
-    await page.screenshot({ path: printAnexo });
-    log('📸 Print do anexo salvo como print_pdf_anexado.png');
-  } else {
-    log('❌ Falha ao anexar PDF');
-  }
-} catch {
-  log('❌ Falha ao localizar o PDF após o upload');
-}
-
-      // 🧭 Rolando até o final do formulário flutuante
-log('🔽 Descendo até o final do formulário flutuante...');
-await page.keyboard.press('PageDown');
-await page.waitForTimeout(1000);
-await page.keyboard.press('PageDown');
-await page.waitForTimeout(1000);
-
-// 💾 Tentando clicar no botão "Create new card" correto
-log('💾 Procurando botão correto "Create new card"...');
-const botoes = await page.locator('button:has-text("Create new card")');
-const total = await botoes.count();
-
-for (let i = 0; i < total; i++) {
-  const botao = botoes.nth(i);
-  const box = await botao.boundingBox();
-
-  if (box && box.width > 200 && box.height > 30) { // Considera apenas botões grandes visíveis
-    await botao.scrollIntoViewIfNeeded();
-    await page.waitForTimeout(500);
-    await botao.click();
-    log('✅ Clique no botão "Create new card" efetuado com sucesso');
-    break;
-  }
-}
-
-    // Print final da seção CRLV com todos os dados
-const printFinalCRLV = path.resolve(__dirname, 'print_final_crlv.png');
-await page.screenshot({ path: printFinalCRLV });
-log('📸 Print final do CRLV salvo como print_final_crlv.png');
-
-} catch (err) {
-  log(`❌ Erro crítico: ${err.message}`);
-} finally {
-  try { if (browser) await browser.close(); } catch {}
-  if (fs.existsSync(LOCK_PATH)) fs.unlinkSync(LOCK_PATH);
-
-  res.write('</pre><h3>📸 Prints:</h3>');
-  if (fs.existsSync(beforeClickPath)) {
-    const base64Before = fs.readFileSync(beforeClickPath).toString('base64');
-    res.write(`<p><b>Antes do clique:</b><br><img src="data:image/png;base64,${base64Before}" style="max-width:100%; border:1px solid #ccc;"></p>`);
-  }
-  if (fs.existsSync(afterClickPath)) {
-    const base64After = fs.readFileSync(afterClickPath).toString('base64');
-    res.write(`<p><b>Depois do clique:</b><br><img src="data:image/png;base64,${base64After}" style="max-width:100%; border:1px solid #ccc;"></p>`);
-  }
-  if (fs.existsSync(printCliente)) {
-    const base64Cliente = fs.readFileSync(printCliente).toString('base64');
-    res.write(`<p><b>Após selecionar cliente:</b><br><img src="data:image/png;base64,${base64Cliente}" style="max-width:100%; border:1px solid #ccc;"></p>`);
-  }
-  if (fs.existsSync(printAntesCRLV)) {
-    const base64AntesCRLV = fs.readFileSync(printAntesCRLV).toString('base64');
-    res.write(`<p><b>Antes de clicar no CRLV:</b><br><img src="data:image/png;base64,${base64AntesCRLV}" style="max-width:100%; border:1px solid #ccc;"></p>`);
-  }
-  if (fs.existsSync(printCRLV)) {
-    const base64CRLV = fs.readFileSync(printCRLV).toString('base64');
-    res.write(`<p><b>Após selecionar CRLV:</b><br><img src="data:image/png;base64,${base64CRLV}" style="max-width:100%; border:1px solid #ccc;"></p>`);
-  }
-  if (fs.existsSync(printAnexo)) {
-    const base64Anexo = fs.readFileSync(printAnexo).toString('base64');
-    res.write(`<p><b>Print do PDF Anexado:</b><br><img src="data:image/png;base64,${base64Anexo}" style="max-width:100%; border:1px solid #ccc;"></p>`);
-  }
-
-  res.end('<p style="color:red"><b>⚠️ Finalizado. Verifique os prints para diagnosticar erros, se houver.</b></p>');
-}
-
-  }, 60000); // ⏱️ Espera inicial de 1 minuto
+      res.write('</pre><h3>📸 Print Final:</h3>');
+      if (fs.existsSync(printFinalCRLV)) {
+        const base64Final = fs.readFileSync(printFinalCRLV).toString('base64');
+        res.write(`<p><img src="data:image/png;base64,${base64Final}" style="max-width:100%; border:1px solid #ccc;"></p>`);
+      }
+      res.end('<p style="color:red"><b>⚠️ Finalizado.</b></p>');
+    }
+  }, 60000);
 });
