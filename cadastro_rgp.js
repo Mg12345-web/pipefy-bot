@@ -1,3 +1,26 @@
+const { chromium } = require('playwright');
+const express = require('express');
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+const https = require('https');
+
+const app = express();
+const PORT = process.env.PORT || 8080;
+const LOCK_PATH = path.join(os.tmpdir(), 'pipefy_robo.lock');
+
+function baixarArquivo(url, destino) {
+  return new Promise((resolve, reject) => {
+    const file = fs.createWriteStream(destino);
+    https.get(url, response => {
+      response.pipe(file);
+      file.on('finish', () => file.close(resolve));
+    }).on('error', err => {
+      fs.unlink(destino, () => reject(err));
+    });
+  });
+}
+
 // ➕ NOVA ROTA: /start-rgp
 app.get('/start-rgp', async (req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -35,18 +58,17 @@ app.get('/start-rgp', async (req, res) => {
       await page.getByText('RGP', { exact: true }).click();
       await page.waitForSelector('button:has-text("Create new card")', { timeout: 10000 });
 
-const botoes = await page.$$('button');
-for (const botao of botoes) {
-  const texto = await botao.innerText();
-  const box = await botao.boundingBox();
-
-  if (texto.trim() === 'Create new card' && box && box.width > 200) {
-    await botao.scrollIntoViewIfNeeded();
-    await botao.click();
-    log('✅ Botão correto clicado');
-    break;
-  }
-}
+      const botoes = await page.$$('button');
+      for (const botao of botoes) {
+        const texto = await botao.innerText();
+        const box = await botao.boundingBox();
+        if (texto.trim() === 'Create new card' && box && box.width > 200) {
+          await botao.scrollIntoViewIfNeeded();
+          await botao.click();
+          log('✅ Botão correto clicado');
+          break;
+        }
+      }
 
       log('👤 Selecionando cliente...');
       await page.locator('div:has-text("Cliente")').getByText('Criar registro').click();
@@ -76,7 +98,18 @@ for (const botao of botoes) {
       await fileChooser.setFiles(localPath);
 
       await page.waitForTimeout(2000);
-      await page.click('button:has-text("Create new card")');
+
+      const botoesCriar = await page.$$('button');
+      for (const botao of botoesCriar) {
+        const texto = await botao.innerText();
+        const box = await botao.boundingBox();
+        if (texto.trim() === 'Criar registro' && box && box.width > 200) {
+          await botao.scrollIntoViewIfNeeded();
+          await botao.click();
+          log('✅ Registro criado com sucesso');
+          break;
+        }
+      }
 
       const screenshotPath = path.resolve(__dirname, 'print_rgp.png');
       await page.waitForTimeout(4000);
@@ -95,5 +128,9 @@ for (const botao of botoes) {
     } finally {
       if (fs.existsSync(LOCK_PATH)) fs.unlinkSync(LOCK_PATH);
     }
-  }, 60000);
+  }, 60000); // 1 minuto
+});
+
+app.listen(PORT, () => {
+  console.log(`🖥️ Robô do Pipe RGP escutando em http://localhost:${PORT}`);
 });
