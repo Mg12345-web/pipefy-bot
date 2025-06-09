@@ -14,6 +14,7 @@ app.get('/', (req, res) => {
     <h2>🚀 <b>Robô Pipefy</b></h2>
     <p><a href="/start-clientes">Iniciar cadastro de cliente</a></p>
     <p><a href="/start-crlv">Iniciar cadastro de CRLV</a></p>
+     <p><a href="/start-rgp">Iniciar cadastro de serviço RGP</a></p>
     <p><a href="/print-crlv" target="_blank">📸 Ver último print do CRLV</a></p>
   `);
 });
