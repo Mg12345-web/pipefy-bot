@@ -7,10 +7,10 @@ const express = require('express');
 const app = express();
 
 const PORT = process.env.PORT || 8080;
-const LOCK_PATH = path.join(os.tmpdir(), 'pipefy_crlv.lock');
+const LOCK_PATH = path.join(os.tmpdir(), 'pipefy_robo.lock');
 const statusCampos = [];
 
-async function executarRobo() {
+async function executarCadastroCRLV() {
   console.log('🧠 Robô CRLV iniciado');
 
   try {
@@ -31,7 +31,7 @@ async function executarRobo() {
     const context = await browser.newContext();
     const page = await context.newPage();
 
-    console.log('🔐 Fazendo login...');
+    console.log('🔐 Login...');
     await page.goto('https://signin.pipefy.com/realms/pipefy/protocol/openid-connect/auth?client_id=pipefy-auth&redirect_uri=https%3A%2F%2Fapp-auth.pipefy.com%2Fauth_callback&response_type=code&scope=openid+email+profile');
     await page.fill('input[name="username"]', 'juridicomgmultas@gmail.com');
     await page.click('#kc-login');
@@ -39,36 +39,42 @@ async function executarRobo() {
     await page.click('#kc-login');
     await page.waitForNavigation({ waitUntil: 'load' });
 
-    console.log('📁 Acessando banco CRLV...');
+    console.log('📁 Acessando CRLV...');
     await page.getByText('Databases', { exact: true }).click();
     await page.getByText('CRLV', { exact: true }).click();
-    await page.waitForTimeout(3000);
     await page.click('button:has-text("Criar registro")');
 
-    const dadosCRLV = {
+    const dados = {
       'Placa': 'GKD0F82',
       'CHASSI': '9C2KF4300NR006285',
       'RENAVAM': '01292345630',
-      'Estado de emplacamento': 'SP'
+      'Estado de emplacamento': 'SP',
     };
 
-    for (const [campo, valor] of Object.entries(dadosCRLV)) {
+    for (const [campo, valor] of Object.entries(dados)) {
       try {
         const label = await page.getByLabel(campo);
         await label.scrollIntoViewIfNeeded();
         await label.fill(valor);
-        console.log(`✅ ${campo} preenchido`);
-        statusCampos.push(`✅ ${campo} preenchido`);
+        console.log(`✅ ${campo}`);
+        statusCampos.push(`✅ ${campo}`);
       } catch {
-        console.log(`❌ ${campo} não encontrado`);
-        statusCampos.push(`❌ ${campo} não encontrado`);
+        console.log(`❌ ${campo}`);
+        statusCampos.push(`❌ ${campo}`);
       }
     }
 
-    const fileUrl = 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
-    const filePath = path.resolve(__dirname, 'crlv_teste.pdf');
-    await baixarArquivo(fileUrl, filePath);
-    await enviarArquivo(page, 0, '* CRLV', filePath);
+    const arquivoCRLV = {
+      url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+      local: 'crlv_temp.pdf',
+      label: '* CRLV'
+    };
+
+    const localPath = path.resolve(__dirname, arquivoCRLV.local);
+    await baixarArquivo(arquivoCRLV.url, localPath);
+    if (fs.existsSync(localPath)) {
+      await enviarArquivo(page, 0, arquivoCRLV.label, localPath);
+    }
 
     await page.waitForTimeout(3000);
 
@@ -84,7 +90,7 @@ async function executarRobo() {
       }
     }
 
-    await page.waitForTimeout(3000);
+    await page.waitForTimeout(4000);
     await page.screenshot({ path: 'registro_crlv.png' });
 
     fs.writeFileSync('status_crlv.txt', statusCampos.join('\n'));
@@ -139,12 +145,12 @@ async function enviarArquivo(page, index, labelTexto, arquivoLocal) {
 }
 
 app.get('/', (req, res) => {
-  res.send('<h2>Robô de cadastro CRLV ativo.</h2><p><a href="/start">Iniciar cadastro CRLV</a></p>');
+  res.send('<h2>Robô de cadastro CRLV ativo.</h2><p><a href="/start-crlv">Iniciar cadastro CRLV</a></p>');
 });
 
-app.get('/start', async (req, res) => {
+app.get('/start-crlv', async (req, res) => {
   res.send('<p>✅ Robô CRLV iniciado. Acompanhe os logs no Railway.</p>');
-  await executarRobo();
+  await executarCadastroCRLV();
 });
 
 app.listen(PORT, () => {
