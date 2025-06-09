@@ -434,7 +434,11 @@ try {
           break;
         }
       }
+      
+// ✅ FECHA o setTimeout da rota anterior corretamente:
 });
+
+  
      // ➕ ROTA PARA CADASTRO SEM RGP (cópia do RGP com nome ajustado)
 app.get('/start-semrgp', async (req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
