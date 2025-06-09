@@ -286,6 +286,13 @@ app.get('/start-rgp', async (req, res) => {
     console.log(msg);
   }
 
+  let browser;
+  const beforeClickPath = path.resolve(__dirname, 'print_antes_click.png');
+  const afterClickPath = path.resolve(__dirname, 'print_depois_click.png');
+  const printCliente = path.resolve(__dirname, 'print_cliente_rgp.png');
+  const printAntesCRLV = path.resolve(__dirname, 'print_antes_clique_crlv.png');
+  const printCRLV = path.resolve(__dirname, 'print_crlv_rgp.png');
+
   try {
     const lockFd = fs.openSync(LOCK_PATH, 'wx');
     fs.writeFileSync(lockFd, String(process.pid));
@@ -297,7 +304,7 @@ app.get('/start-rgp', async (req, res) => {
 
   setTimeout(async () => {
     try {
-      const browser = await chromium.launch({ headless: true });
+      browser = await chromium.launch({ headless: true });
       const context = await browser.newContext();
       const page = await context.newPage();
 
@@ -313,120 +320,94 @@ app.get('/start-rgp', async (req, res) => {
       await page.getByText('RGP', { exact: true }).click();
       await page.waitForTimeout(3000);
 
-      // 🧩 Verifica se modal "Entrar no pipe" está visível
       const botaoEntrarPipe = page.locator('text=Entrar no pipe');
-if (await botaoEntrarPipe.count() > 0) {
-  log('📌 Modal detectado. Clicando em "Entrar no pipe"...');
-  await botaoEntrarPipe.first().click();
-  await page.waitForTimeout(3000);
-} else {
-  log('✅ Modal não encontrado. Prosseguindo...');
-}
+      if (await botaoEntrarPipe.count() > 0) {
+        log('📌 Modal detectado. Clicando em "Entrar no pipe"...');
+        await botaoEntrarPipe.first().click();
+        await page.waitForTimeout(3000);
+      } else {
+        log('✅ Modal não encontrado. Prosseguindo...');
+      }
 
-// 🟦 Botão "Create new card"
-log('🔘 Procurando <span> com texto "Create new card"...');
-const span = await page.locator('span:text("Create new card")').first();
+      log('🔶 Procurando <span> com texto "Create new card"...');
+      const span = await page.locator('span:text("Create new card")').first();
+      if (await span.count() === 0) {
+        log('❌ Elemento <span> "Create new card" não encontrado.');
+        return res.end('</pre><p style="color:red">Erro: span não encontrado.</p>');
+      }
+      await span.scrollIntoViewIfNeeded();
+      await page.screenshot({ path: beforeClickPath });
+      log('📸 Print antes do clique salvo.');
 
-if (await span.count() === 0) {
-  log('❌ Elemento <span> "Create new card" não encontrado.');
-  return res.end('</pre><p style="color:red">Erro: span não encontrado.</p>');
-}
+      log('🧠 Tentando clique forçado via JavaScript...');
+      await span.evaluate(el => el.click());
+      await page.waitForTimeout(3000);
+      await page.screenshot({ path: afterClickPath });
+      log('📸 Print depois do clique salvo.');
 
-await span.scrollIntoViewIfNeeded();
+      log('👤 Selecionando cliente pelo CPF...');
+      const botaoCliente = await page.locator('div:has-text("Cliente") >> text=Criar registro').first();
+      await botaoCliente.click();
+      await page.waitForTimeout(1000);
+      await page.locator('input[placeholder*="cards pelo título"]').fill('143.461.936-25');
+      await page.waitForTimeout(1500);
+      await page.getByText('143.461.936-25', { exact: false }).first().click();
+      log('✅ Cliente selecionado com sucesso');
+      await page.getByText('*Cliente', { exact: true }).click();
+      await page.waitForTimeout(1000);
+      log('🪝 Menu flutuante fechado clicando no título "*Cliente".');
+      await page.screenshot({ path: printCliente });
+      log('📸 Print após seleção do cliente salvo como print_cliente_rgp.png');
 
-const beforeClickPath = path.resolve(__dirname, 'print_antes_click.png');
-await page.screenshot({ path: beforeClickPath });
-log('📸 Print antes do clique salvo.');
+      log('🚗 Selecionando veículo pelo CRLV...');
+      const botaoCRLV = await page.locator('div:has-text("Veículo (CRLV)") >> text=Criar registro').first();
+      await botaoCRLV.click();
+      await page.waitForTimeout(1000);
+      await page.locator('input[placeholder*="cards pelo título"]').fill('OPB3D62');
+      await page.waitForTimeout(1500);
+      await page.screenshot({ path: printAntesCRLV });
+      log('📸 Print antes de tentar clicar no CRLV salvo como print_antes_clique_crlv.png');
 
-log('🧠 Tentando clique forçado via JavaScript...');
-await span.evaluate((el) => el.click());
-
-await page.waitForTimeout(3000);
-
-const afterClickPath = path.resolve(__dirname, 'print_depois_click.png');
-await page.screenshot({ path: afterClickPath });
-log('📸 Print depois do clique salvo.');
-
-// 🧩 Selecionando cliente por CPF
-log('👤 Selecionando cliente pelo CPF...');
-// Encontra o botão "Criar registro" dentro do contexto certo
-const botaoCliente = await page.locator('div:has-text("Cliente") >> text=Criar registro').first();
-await botaoCliente.click();
-await page.waitForTimeout(1000);
-
-// Preenche o CPF e seleciona
-await page.locator('input[placeholder*="cards pelo título"]').fill('143.461.936-25');
-await page.waitForTimeout(1500);
-await page.getByText('143.461.936-25', { exact: false }).first().click();
-log('✅ Cliente selecionado com sucesso');
-
-// Clica no texto "*Cliente" para fechar o menu flutuante
-await page.getByText('*Cliente', { exact: true }).click();
-await page.waitForTimeout(1000);
-log('🧹 Menu flutuante fechado clicando no título "*Cliente".');
-
-// Print após seleção
-const printCliente = path.resolve(__dirname, 'print_cliente_rgp.png');
-await page.screenshot({ path: printCliente });
-log('📸 Print após seleção do cliente salvo como print_cliente_rgp.png');
-
-log('🚗 Selecionando veículo pelo CRLV...');
-const botaoCRLV = await page.locator('div:has-text("Veículo (CRLV)") >> text=Criar registro').first();
-await botaoCRLV.click();
-await page.waitForTimeout(1000);
-
-// Preenche a placa
-await page.locator('input[placeholder*="cards pelo título"]').fill('OPB3D62');
-await page.waitForTimeout(1500);
-
-// 🖼️ Print da tela com o CRLV carregado (antes de tentar o clique)
-const printAntesCRLV = path.resolve(__dirname, 'print_antes_clique_crlv.png');
-await page.screenshot({ path: printAntesCRLV });
-log('📸 Print antes de tentar clicar no CRLV salvo como print_antes_clique_crlv.png');
-
-// Tenta localizar o item de CRLV na lista
-const itemCRLV = await page.locator('text=OPB3D62').first();
-
-try {
-  await itemCRLV.scrollIntoViewIfNeeded();
-  await itemCRLV.click();
-  log('✅ Veículo selecionado com sucesso');
-} catch {
-  log('⚠️ Clique direto falhou. Tentando clique via JavaScript...');
-  await itemCRLV.evaluate(el => el.click());
-  log('✅ Veículo selecionado com sucesso via JavaScript');
-}
-
-// Print após seleção do CRLV
-const printCRLV = path.resolve(__dirname, 'print_crlv_rgp.png');
-await page.screenshot({ path: printCRLV });
-log('📸 Print após seleção do veículo salvo como print_crlv_rgp.png');
-
-await browser.close();
-
-res.write('</pre><h3>📸 Prints:</h3>');
-const base64Before = fs.readFileSync(beforeClickPath).toString('base64');
-res.write(`<p><b>Antes do clique:</b><br><img src="data:image/png;base64,${base64Before}" style="max-width:100%; border:1px solid #ccc;"></p>`);
-
-const base64After = fs.readFileSync(afterClickPath).toString('base64');
-res.write(`<p><b>Depois do clique:</b><br><img src="data:image/png;base64,${base64After}" style="max-width:100%; border:1px solid #ccc;"></p>`);
-
-const base64Cliente = fs.readFileSync(printCliente).toString('base64');
-res.write(`<p><b>Após selecionar cliente:</b><br><img src="data:image/png;base64,${base64Cliente}" style="max-width:100%; border:1px solid #ccc;"></p>`);
-
-const base64CRLV = fs.readFileSync(printCRLV).toString('base64');
-res.write(`<p><b>Após selecionar CRLV:</b><br><img src="data:image/png;base64,${base64CRLV}" style="max-width:100%; border:1px solid #ccc;"></p>`);
-
-const base64AntesCRLV = fs.readFileSync(printAntesCRLV).toString('base64');
-res.write(`<p><b>Antes de clicar no CRLV:</b><br><img src="data:image/png;base64,${base64AntesCRLV}" style="max-width:100%; border:1px solid #ccc;"></p>`);
-
-res.end();
-
+      const itemCRLV = await page.locator('text=OPB3D62').first();
+      try {
+        await itemCRLV.scrollIntoViewIfNeeded();
+        await itemCRLV.click();
+        log('✅ Veículo selecionado com sucesso');
+      } catch {
+        log('⚠️ Clique direto falhou. Tentando clique via JavaScript...');
+        await itemCRLV.evaluate(el => el.click());
+        log('✅ Veículo selecionado com sucesso via JavaScript');
+      }
+      await page.screenshot({ path: printCRLV });
+      log('📸 Print após seleção do veículo salvo como print_crlv_rgp.png');
     } catch (err) {
       log(`❌ Erro crítico: ${err.message}`);
-      res.end('</pre><p style="color:red">Erro crítico. Verifique os logs.</p>');
     } finally {
+      try { if (browser) await browser.close(); } catch {}
       if (fs.existsSync(LOCK_PATH)) fs.unlinkSync(LOCK_PATH);
+
+      res.write('</pre><h3>📸 Prints:</h3>');
+      if (fs.existsSync(beforeClickPath)) {
+        const base64Before = fs.readFileSync(beforeClickPath).toString('base64');
+        res.write(`<p><b>Antes do clique:</b><br><img src="data:image/png;base64,${base64Before}" style="max-width:100%; border:1px solid #ccc;"></p>`);
+      }
+      if (fs.existsSync(afterClickPath)) {
+        const base64After = fs.readFileSync(afterClickPath).toString('base64');
+        res.write(`<p><b>Depois do clique:</b><br><img src="data:image/png;base64,${base64After}" style="max-width:100%; border:1px solid #ccc;"></p>`);
+      }
+      if (fs.existsSync(printCliente)) {
+        const base64Cliente = fs.readFileSync(printCliente).toString('base64');
+        res.write(`<p><b>Após selecionar cliente:</b><br><img src="data:image/png;base64,${base64Cliente}" style="max-width:100%; border:1px solid #ccc;"></p>`);
+      }
+      if (fs.existsSync(printAntesCRLV)) {
+        const base64AntesCRLV = fs.readFileSync(printAntesCRLV).toString('base64');
+        res.write(`<p><b>Antes de clicar no CRLV:</b><br><img src="data:image/png;base64,${base64AntesCRLV}" style="max-width:100%; border:1px solid #ccc;"></p>`);
+      }
+      if (fs.existsSync(printCRLV)) {
+        const base64CRLV = fs.readFileSync(printCRLV).toString('base64');
+        res.write(`<p><b>Após selecionar CRLV:</b><br><img src="data:image/png;base64,${base64CRLV}" style="max-width:100%; border:1px solid #ccc;"></p>`);
+      }
+      res.end('<p style="color:red"><b>⚠️ Finalizado. Verifique os prints para diagnosticar erros, se houver.</b></p>');
     }
   }, 60000); // ⏱️ Espera inicial de 1 minuto
 });
