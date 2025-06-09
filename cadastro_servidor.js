@@ -359,6 +359,12 @@ app.get('/start-rgp', async (req, res) => {
       await page.screenshot({ path: printCliente });
       log('📸 Print após seleção do cliente salvo como print_cliente_rgp.png');
 
+log('⏳ Aguardando 10 segundos para garantir fechamento do menu flutuante...');
+await page.waitForTimeout(10000);
+log('📜 Descendo a página com PageDown para exibir o campo CRLV...');
+await page.keyboard.press('PageDown');
+await page.waitForTimeout(1000);
+
   log('🚗 Selecionando veículo pelo CRLV...');
 
 // Localiza o campo específico com base no título "Veículo (CRLV)"
