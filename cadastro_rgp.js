@@ -1,13 +1,3 @@
-const { chromium } = require('playwright');
-const express = require('express');
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
-
-const app = express();
-const PORT = process.env.PORT || 8080;
-const LOCK_PATH = path.join(os.tmpdir(), 'pipefy_robo.lock');
-
 app.get('/start-rgp', async (req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.write('<pre>⏳ Aguardando 1 minuto para iniciar o robô RGP...\n');
@@ -45,10 +35,18 @@ app.get('/start-rgp', async (req, res) => {
       await page.waitForTimeout(3000);
 
       log('🔘 Procurando <span> com texto "Create new card"...');
-      const createCard = await page.locator('text=Create new card').first();
-      await createCard.scrollIntoViewIfNeeded();
-      await createCard.click();
-      log('✅ Clique no "Create new card" realizado com sucesso!');
+      const span = await page.locator('span:text("Create new card")').first();
+      await span.scrollIntoViewIfNeeded();
+
+      const pai = await span.evaluateHandle(node => node.closest('button, div'));
+      if (!pai) {
+        log('❌ Elemento pai clicável não encontrado.');
+        return res.end('</pre><p style="color:red">Erro: pai do botão não encontrado.</p>');
+      }
+
+      await pai.scrollIntoViewIfNeeded();
+      await pai.click();
+      log('✅ Clique no botão pai do "Create new card" realizado com sucesso!');
 
       await browser.close();
       res.end('</pre><p style="color:green">✅ Robô finalizado com sucesso. Botão clicado.</p>');
@@ -59,9 +57,5 @@ app.get('/start-rgp', async (req, res) => {
     } finally {
       if (fs.existsSync(LOCK_PATH)) fs.unlinkSync(LOCK_PATH);
     }
-  }, 60000); // 1 minuto
-});
-
-app.listen(PORT, () => {
-  console.log(`🖥️ Robô do Pipe RGP escutando em http://localhost:${PORT}`);
+  }, 60000);
 });
