@@ -346,13 +346,45 @@ app.get('/start-rgp', async (req, res) => {
       await page.waitForTimeout(1500);
       await page.getByText('OPB3D62', { exact: false }).first().click();
 
-      const inputs = await page.locator('input[placeholder="Digite aqui ..."]');
-      await inputs.nth(0).scrollIntoViewIfNeeded();
-      await inputs.nth(0).fill('AM09263379');
-      await inputs.nth(1).scrollIntoViewIfNeeded();
-      await inputs.nth(1).fill('Prefeitura de BH');
-      await inputs.nth(2).scrollIntoViewIfNeeded();
-      await inputs.nth(2).fill('09/06/2025');
+      // 📝 Preenchendo campo "Observação"
+try {
+  const valorObservacao = req.query.observacao || 'nada de observações';
+
+  const campoObs = await page.getByLabel('Observação');
+  await campoObs.scrollIntoViewIfNeeded();
+  await campoObs.fill(valorObservacao);
+  log('✅ Observação preenchida');
+} catch (e) {
+  log('❌ Campo Observação não encontrado ou ignorado (vazio)');
+}
+
+// 📄 Preenchendo campos AIT e Órgão Autuador
+try {
+  const inputs = await page.locator('input[placeholder="Digite aqui ..."]');
+
+  await inputs.nth(0).scrollIntoViewIfNeeded();
+  await inputs.nth(0).fill('AM09263379');
+  log('✅ AIT preenchido');
+
+  await inputs.nth(1).scrollIntoViewIfNeeded();
+  await inputs.nth(1).fill('Prefeitura de BH');
+  log('✅ Órgão Autuador preenchido');
+} catch (e) {
+  log('❌ Erro ao preencher AIT ou Órgão Autuador');
+}
+
+// 📆 Preenchendo campo "Prazo para Protocolo"
+try {
+  const campoData = await page.getByLabel('Prazo para Protocolo');
+  await campoData.scrollIntoViewIfNeeded();
+  await campoData.click();
+  await page.keyboard.type('09062025'); // Digita 09/06/2025
+  await page.keyboard.press('Tab');
+  await page.keyboard.type('0800'); // Hora 08:00
+  log('✅ Prazo para Protocolo preenchido');
+} catch (e) {
+  log('❌ Erro ao preencher o campo Prazo para Protocolo');
+}
 
       const urlPDF = 'https://www.africau.edu/images/default/sample.pdf';
       const nomePDF = 'anexo.pdf';
