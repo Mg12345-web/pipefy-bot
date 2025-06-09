@@ -9,18 +9,16 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 const LOCK_PATH = path.join(os.tmpdir(), 'pipefy_robo.lock');
 
-// ========== ROTA PRINCIPAL ==========
 app.get('/', (req, res) => {
   res.send('<h2>Robô de cadastro CRLV ativo.</h2><p><a href="/start-crlv">Iniciar cadastro CRLV</a></p>');
 });
 
-// ========== ROTA COM LOG AO VIVO ==========
 app.get('/start-crlv', async (req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.write('<pre>🧠 Iniciando robô de CRLV...\n');
 
   function log(msg) {
-    res.write(msg + '\n');
+    res.write(`data: ${msg}\n`);
     console.log(msg);
   }
 
@@ -106,25 +104,30 @@ app.get('/start-crlv', async (req, res) => {
       if (texto.trim() === 'Criar registro' && box && box.width > 200) {
         await botoes[i].scrollIntoViewIfNeeded();
         await botoes[i].click();
-        log('✅ Botão Criar Registro clicado');
+        log('✅ Registro criado');
         break;
       }
     }
 
     await page.waitForTimeout(4000);
-    await page.screenshot({ path: 'registro_crlv.png' });
+    const screenshotPath = path.resolve(__dirname, 'registro_crlv.png');
+    await page.screenshot({ path: screenshotPath });
+    log('📸 Capturado print da tela final');
 
-    log('✅ Finalizado com sucesso!');
     await browser.close();
-  } catch (err) {
-    log('❌ Erro: ' + err.message);
-  }
 
-  if (fs.existsSync(LOCK_PATH)) fs.unlinkSync(LOCK_PATH);
-  res.end('</pre>');
+    res.write('</pre><h3>🖼️ Print final:</h3>');
+    res.write(`<img src="data:image/png;base64,${fs.readFileSync(screenshotPath).toString('base64')}" style="max-width:100%; border:1px solid #ccc;">`);
+    res.end();
+
+  } catch (err) {
+    log(`❌ Erro: ${err.message}`);
+    res.end('</pre><p style="color:red">Erro crítico. Verifique os logs.</p>');
+  } finally {
+    if (fs.existsSync(LOCK_PATH)) fs.unlinkSync(LOCK_PATH);
+  }
 });
 
-// ========== Função auxiliar para download ==========
 function baixarArquivo(url, destino) {
   return new Promise((resolve, reject) => {
     const file = fs.createWriteStream(destino);
