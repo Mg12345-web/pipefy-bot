@@ -1,21 +1,18 @@
 const { chromium } = require('playwright');
-const path = require('path');
-const fs = require('fs');
-const os = require('os');
 const express = require('express');
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+const https = require('https');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
 const LOCK_PATH = path.join(os.tmpdir(), 'pipefy_robo.lock');
 
-app.get('/', (req, res) => {
-  res.send('<h2>🤖 Robô de cadastro no Pipe RGP</h2><p><a href="/start-rgp">Iniciar cadastro RGP</a></p>');
-});
-
 app.get('/start-rgp', async (req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.write('<pre>⏳ Aguardando 1 minuto para iniciar o robô...\n');
-  
+  res.write('<pre>⏳ Aguardando 1 minuto para iniciar...\n');
+
   function log(msg) {
     res.write(`${msg}\n`);
     console.log(msg);
@@ -26,13 +23,12 @@ app.get('/start-rgp', async (req, res) => {
     fs.writeFileSync(lockFd, String(process.pid));
     fs.closeSync(lockFd);
   } catch {
-    log('⛔ Robô já está em execução.');
+    log('⛔ Robô já em execução.');
     return res.end('</pre>');
   }
 
   setTimeout(async () => {
     try {
-      log('🧠 Iniciando navegador...');
       const browser = await chromium.launch({ headless: true });
       const context = await browser.newContext();
       const page = await context.newPage();
@@ -47,15 +43,46 @@ app.get('/start-rgp', async (req, res) => {
 
       log('📂 Acessando Pipe RGP...');
       await page.getByText('RGP', { exact: true }).click();
-      await page.waitForTimeout(3000);
+      await page.waitForSelector('button:has-text("Create new card")', { timeout: 10000 });
+      await page.click('button:has-text("Create new card")');
 
-      const screenshotPath = path.resolve(__dirname, 'rgp_acesso.png');
+      log('👤 Selecionando cliente...');
+      await page.locator('div:has-text("Cliente")').getByText('Criar registro').click();
+      await page.locator('input[placeholder*="cards pelo título"]').fill('039.325.432-11');
+      await page.waitForTimeout(1000);
+      await page.getByText('LEONARDO GARCIA DE BRITO').click();
+
+      log('🚗 Selecionando veículo...');
+      await page.locator('div:has-text("Veículo")').getByText('Criar registro').click();
+      await page.locator('input[placeholder*="cards pelo título"]').fill('SHU4H96');
+      await page.waitForTimeout(1000);
+      await page.getByText('SHU4H96').click();
+
+      log('✍️ Preenchendo dados...');
+      await page.getByLabel('AIT').fill('uyhvbkiuhn');
+      await page.getByLabel('Órgão').fill('PRF');
+      await page.getByLabel('Prazo para Protocolo').fill('2025-06-08T12:00');
+
+      log('📎 Enviando documento...');
+      const fileURL = 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
+      const localPath = path.resolve(__dirname, 'rgp_doc.pdf');
+      await baixarArquivo(fileURL, localPath);
+      const [fileChooser] = await Promise.all([
+        page.waitForEvent('filechooser'),
+        page.getByText('Adicionar novos arquivos').click()
+      ]);
+      await fileChooser.setFiles(localPath);
+
+      await page.waitForTimeout(2000);
+      await page.click('button:has-text("Create new card")');
+
+      const screenshotPath = path.resolve(__dirname, 'print_rgp.png');
+      await page.waitForTimeout(4000);
       await page.screenshot({ path: screenshotPath });
-      log('📸 Print da tela do Pipe RGP capturado');
-
       await browser.close();
 
-      res.write('</pre><h3>🖼️ Tela do Pipe RGP:</h3>');
+      log('✅ Cadastro realizado com sucesso!');
+      res.write('</pre><h3>🖼️ Print final:</h3>');
       const base64img = fs.readFileSync(screenshotPath).toString('base64');
       res.write(`<img src="data:image/png;base64,${base64img}" style="max-width:100%; border:1px solid #ccc;">`);
       res.end();
@@ -66,8 +93,20 @@ app.get('/start-rgp', async (req, res) => {
     } finally {
       if (fs.existsSync(LOCK_PATH)) fs.unlinkSync(LOCK_PATH);
     }
-  }, 60000); // ⏱️ Delay de 1 minuto
+  }, 60000); // Delay de 1 minuto
 });
+
+function baixarArquivo(url, destino) {
+  return new Promise((resolve, reject) => {
+    const file = fs.createWriteStream(destino);
+    https.get(url, response => {
+      response.pipe(file);
+      file.on('finish', () => file.close(resolve));
+    }).on('error', err => {
+      fs.unlink(destino, () => reject(err));
+    });
+  });
+}
 
 app.listen(PORT, () => {
   console.log(`🖥️ Robô do Pipe RGP escutando em http://localhost:${PORT}`);
