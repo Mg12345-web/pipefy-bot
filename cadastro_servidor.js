@@ -315,16 +315,16 @@ app.get('/start-rgp', async (req, res) => {
 
       // 🧩 Verifica se modal "Entrar no pipe" está visível
       const botaoEntrarPipe = page.locator('text=Entrar no pipe');
-      if (await botaoEntrarPipe.count() > 0) {
-        log('📌 Modal detectado. Clicando em "Entrar no pipe"...');
-        await botaoEntrarPipe.first().click();
-        await page.waitForTimeout(3000);
-      } else {
-        log('✅ Modal não encontrado. Prosseguindo...');
-      }
+if (await botaoEntrarPipe.count() > 0) {
+  log('📌 Modal detectado. Clicando em "Entrar no pipe"...');
+  await botaoEntrarPipe.first().click();
+  await page.waitForTimeout(3000);
+} else {
+  log('✅ Modal não encontrado. Prosseguindo...');
+}
 
-      // 🟦 Botão "Create new card"
-      log('🔘 Procurando <span> com texto "Create new card"...');
+// 🟦 Botão "Create new card"
+log('🔘 Procurando <span> com texto "Create new card"...');
 const span = await page.locator('span:text("Create new card")').first();
 
 if (await span.count() === 0) {
@@ -347,6 +347,20 @@ const afterClickPath = path.resolve(__dirname, 'print_depois_click.png');
 await page.screenshot({ path: afterClickPath });
 log('📸 Print depois do clique salvo.');
 
+// 🧩 Selecionando cliente por CPF
+log('👤 Selecionando cliente pelo CPF...');
+await page.getByText('Criar registro', { exact: true }).click();
+await page.waitForTimeout(1000);
+await page.locator('input[placeholder*="cards pelo título"]').fill('143.461.936-25');
+await page.waitForTimeout(1500);
+await page.getByText('143.461.936-25', { exact: false }).first().click();
+log('✅ Cliente selecionado com sucesso');
+
+// 📸 Print após seleção do cliente
+const printCliente = path.resolve(__dirname, 'print_cliente_rgp.png');
+await page.screenshot({ path: printCliente });
+log('📸 Print após seleção do cliente salvo como print_cliente_rgp.png');
+
 await browser.close();
 
 res.write('</pre><h3>📸 Prints:</h3>');
@@ -356,8 +370,10 @@ res.write(`<p><b>Antes do clique:</b><br><img src="data:image/png;base64,${base6
 const base64After = fs.readFileSync(afterClickPath).toString('base64');
 res.write(`<p><b>Depois do clique:</b><br><img src="data:image/png;base64,${base64After}" style="max-width:100%; border:1px solid #ccc;"></p>`);
 
-res.end();
+const base64Cliente = fs.readFileSync(printCliente).toString('base64');
+res.write(`<p><b>Após selecionar cliente:</b><br><img src="data:image/png;base64,${base64Cliente}" style="max-width:100%; border:1px solid #ccc;"></p>`);
 
+res.end();
 
     } catch (err) {
       log(`❌ Erro crítico: ${err.message}`);
