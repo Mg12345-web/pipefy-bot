@@ -431,6 +431,13 @@ await page.waitForTimeout(3000);
 const sucessoAnexo = await page.locator(`text="${nomePDF}"`).first().isVisible({ timeout: 7000 });
 if (sucessoAnexo) {
   log('✅ PDF anexado com sucesso');
+
+  // 📸 Tirar print do campo onde o PDF aparece
+  const campoAnexo = await page.locator(`text="${nomePDF}"`).first();
+  const printAnexo = path.resolve(__dirname, 'print_pdf_anexado.png');
+  await campoAnexo.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: printAnexo });
+  log('📸 Print do anexo salvo como print_pdf_anexado.png');
 } else {
   log('❌ Falha ao anexar PDF');
 }
@@ -467,6 +474,10 @@ log('📸 Print final do CRLV salvo como print_final_crlv.png');
     const base64CRLV = fs.readFileSync(printCRLV).toString('base64');
     res.write(`<p><b>Após selecionar CRLV:</b><br><img src="data:image/png;base64,${base64CRLV}" style="max-width:100%; border:1px solid #ccc;"></p>`);
   }
+  if (fs.existsSync(printAnexo)) {
+    const base64Anexo = fs.readFileSync(printAnexo).toString('base64');
+    res.write(`<p><b>Print do PDF Anexado:</b><br><img src="data:image/png;base64,${base64Anexo}" style="max-width:100%; border:1px solid #ccc;"></p>`);
+}
   res.end('<p style="color:red"><b>⚠️ Finalizado. Verifique os prints para diagnosticar erros, se houver.</b></p>');
 }
 
