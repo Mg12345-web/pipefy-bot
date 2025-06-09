@@ -56,19 +56,21 @@ app.get('/start-rgp', async (req, res) => {
 
       log('📂 Acessando Pipe RGP...');
       await page.getByText('RGP', { exact: true }).click();
-      await page.waitForSelector('button:has-text("Create new card")', { timeout: 10000 });
-
-     const botoes = await page.$$('button');
+      await page.waitForTimeout(3000); // Espera extra antes de buscar o botão
+const botoes = await page.$$('button');
 let encontrou = false;
 
-for (const botao of botoes) {
-  const texto = await botao.innerText();
-  const box = await botao.boundingBox();
+for (let i = 0; i < botoes.length; i++) {
+  const texto = await botoes[i].innerText().catch(() => '');
+  const box = await botoes[i].boundingBox().catch(() => null);
 
-  if (texto.trim() === 'Create new card' && box && box.width > 200) {
-    await botao.scrollIntoViewIfNeeded();
+  if (texto.trim() === 'Create new card') {
+    log(`🔍 Encontrado botão na posição ${i} com largura: ${box ? box.width : 'null'}`);
 
-    const highlightBox = await page.evaluateHandle((element) => {
+    // Força highlight e print mesmo se o clique não acontecer
+    await botoes[i].scrollIntoViewIfNeeded();
+
+    await page.evaluate((element) => {
       const rect = element.getBoundingClientRect();
       const div = document.createElement('div');
       div.style.position = 'absolute';
@@ -78,29 +80,38 @@ for (const botao of botoes) {
       div.style.height = `${rect.height}px`;
       div.style.border = '4px solid red';
       div.style.zIndex = '9999';
-      div.id = 'debug-highlight';
+      div.id = 'highlight-botao';
       document.body.appendChild(div);
-      return div;
-    }, botao);
+    }, botoes[i]);
 
     const screenshotPathBtn = path.resolve(__dirname, 'botao_create_new_card.png');
     await page.screenshot({ path: screenshotPathBtn });
-    log('📸 Print do botão capturado: botao_create_new_card.png');
+    log('📸 Print do botão "Create new card" capturado');
 
     await page.evaluate(() => {
-      const el = document.getElementById('debug-highlight');
+      const el = document.getElementById('highlight-botao');
       if (el) el.remove();
     });
 
-    await botao.click();
-    log('✅ Botão correto clicado');
+    // Só tenta clicar se tiver boundingBox
+    if (box && box.width > 200) {
+      try {
+        await botoes[i].click();
+        log('✅ Botão clicado com sucesso');
+      } catch (e) {
+        log('⚠️ Erro ao tentar clicar: ' + e.message);
+      }
+    } else {
+      log('⚠️ Botão encontrado, mas não clicável (sem boundingBox)');
+    }
+
     encontrou = true;
     break;
   }
 }
 
 if (!encontrou) {
-  log('❌ Botão "Create new card" não encontrado ou bloqueado por outro elemento.');
+  log('❌ Nenhum botão "Create new card" encontrado');
 }
 
       log('👤 Selecionando cliente...');
