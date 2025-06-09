@@ -377,11 +377,24 @@ try {
 try {
   const campoData = await page.getByLabel('Prazo para Protocolo');
   await campoData.scrollIntoViewIfNeeded();
-  await campoData.click({ clickCount: 1 }); // dá foco no primeiro bloquinho (DD)
+  await campoData.click({ clickCount: 2, delay: 200 }); // Força foco no campo de data
 
-  await page.keyboard.type('09062025'); // digita dia, mês e ano
-  await page.keyboard.press('Tab');     // pula para o campo de hora
-  await page.keyboard.type('0800');     // digita hora (08:00)
+  // Digita dia, mês e ano um por um
+  const data = '09062025';
+  for (const char of data) {
+    await page.keyboard.press(char);
+    await page.waitForTimeout(100); // simula humano digitando
+  }
+
+  await page.keyboard.press('Tab');
+  await page.waitForTimeout(300);
+
+  // Digita a hora: 0800
+  const hora = '0800';
+  for (const char of hora) {
+    await page.keyboard.press(char);
+    await page.waitForTimeout(100);
+  }
 
   log('✅ Prazo para Protocolo preenchido');
 } catch (e) {
