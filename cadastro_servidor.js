@@ -392,21 +392,23 @@ log('📸 Print após selecionar o CRLV salvo como print_crlv_rgp.png');
 
 // Preenchendo campos AIT, Órgão e Prazo
 log('✍️ Preenchendo campos adicionais...');
-const camposExtras = {
-  'AIT': 'AM09263379',
-  'Órgão Autuador': 'Prefeitura de BH',
-  'Prazo para Protocolo': '09/06/2025'
-};
 
-for (const [campo, valor] of Object.entries(camposExtras)) {
-  try {
-    const input = await page.getByLabel(campo, { exact: true });
-    await input.scrollIntoViewIfNeeded();
-    await input.fill(valor);
-    log(`✅ ${campo} preenchido`);
-  } catch {
-    log(`❌ Erro ao preencher o campo: ${campo}`);
-  }
+try {
+  const inputs = await page.locator('input[placeholder="Digite aqui ..."]');
+
+  await inputs.nth(0).scrollIntoViewIfNeeded();
+  await inputs.nth(0).fill('AM09263379');
+  log('✅ AIT preenchido');
+
+  await inputs.nth(1).scrollIntoViewIfNeeded();
+  await inputs.nth(1).fill('Prefeitura de BH');
+  log('✅ Órgão Autuador preenchido');
+
+  await inputs.nth(2).scrollIntoViewIfNeeded();
+  await inputs.nth(2).fill('09/06/2025');
+  log('✅ Prazo para Protocolo preenchido');
+} catch (e) {
+  log(`❌ Erro ao preencher campos extras: ${e.message}`);
 }
 
 // Anexando PDF de teste externo
