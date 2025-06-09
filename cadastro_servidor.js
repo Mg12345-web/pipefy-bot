@@ -444,7 +444,32 @@ try {
   log('❌ Falha ao localizar o PDF após o upload');
 }
 
-// Print final da seção CRLV com todos os dados
+      // 🧭 Rolando até o final do formulário flutuante
+log('🔽 Descendo até o final do formulário flutuante...');
+await page.keyboard.press('PageDown');
+await page.waitForTimeout(1000);
+await page.keyboard.press('PageDown');
+await page.waitForTimeout(1000);
+
+// 💾 Tentando clicar no botão "Create new card" correto
+log('💾 Procurando botão correto "Create new card"...');
+const botoes = await page.locator('button:has-text("Create new card")');
+const total = await botoes.count();
+
+for (let i = 0; i < total; i++) {
+  const botao = botoes.nth(i);
+  const box = await botao.boundingBox();
+
+  if (box && box.width > 200 && box.height > 30) { // Considera apenas botões grandes visíveis
+    await botao.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(500);
+    await botao.click();
+    log('✅ Clique no botão "Create new card" efetuado com sucesso');
+    break;
+  }
+}
+
+    // Print final da seção CRLV com todos os dados
 const printFinalCRLV = path.resolve(__dirname, 'print_final_crlv.png');
 await page.screenshot({ path: printFinalCRLV });
 log('📸 Print final do CRLV salvo como print_final_crlv.png');
