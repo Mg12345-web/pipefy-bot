@@ -59,6 +59,7 @@ app.get('/start-clientes', async (req, res) => {
     const dados = {
       'Nome Completo': 'ADRIANO ANTONIO DE SOUZA',
       'CPF OU CNPJ': '414.746.148-41',
+      'Estado Civil Atual': 'Solteiro',
       'Profissão': 'Vigilante',
       'Email': 'jonas1gui@gmail.com',
       'Número de telefone': '31988429016',
