@@ -367,27 +367,28 @@ await page.waitForTimeout(1000);
 
   log('🚗 Selecionando veículo pelo CRLV...');
 
-// Clica diretamente no segundo "Criar registro" da página
+// Clica diretamente no segundo "Criar registro" da página (referente ao CRLV)
 const botaoCRLV = await page.locator('text=Criar registro').nth(1);
 await botaoCRLV.scrollIntoViewIfNeeded();
 await botaoCRLV.click();
 await page.waitForTimeout(1000);
 
-// Print após abrir a janela do CRLV
+// Print após abrir o CRLV
 const printAntesCRLV = path.resolve(__dirname, 'print_antes_clique_crlv.png');
 await page.screenshot({ path: printAntesCRLV });
 log('📸 Print após abrir o CRLV salvo como print_antes_clique_crlv.png');
 
-// Clica no "+ Adicionar"
-log('➕ Clicando em "+ Adicionar"...');
-const botaoAdicionar = await page.locator('text=+ Adicionar').first();
-await botaoAdicionar.click();
-await page.waitForTimeout(1000);
+// Preenche a placa e seleciona o item correspondente
+log('🔍 Buscando placa do CRLV...');
+await page.locator('input[placeholder*="cards pelo título"]').fill('OPB3D62');
+await page.waitForTimeout(1500);
+await page.getByText('OPB3D62', { exact: false }).first().click();
+log('✅ Placa selecionada com sucesso');
 
-// Print após clicar em "+ Adicionar"
+// Print após seleção
 const printCRLV = path.resolve(__dirname, 'print_crlv_rgp.png');
 await page.screenshot({ path: printCRLV });
-log('📸 Print após clique em "+ Adicionar" salvo como print_crlv_rgp.png');
+log('📸 Print após selecionar o CRLV salvo como print_crlv_rgp.png');
 
 } catch (err) {
   log(`❌ Erro crítico: ${err.message}`);
