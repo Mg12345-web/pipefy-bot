@@ -58,17 +58,50 @@ app.get('/start-rgp', async (req, res) => {
       await page.getByText('RGP', { exact: true }).click();
       await page.waitForSelector('button:has-text("Create new card")', { timeout: 10000 });
 
-      const botoes = await page.$$('button');
-      for (const botao of botoes) {
-        const texto = await botao.innerText();
-        const box = await botao.boundingBox();
-        if (texto.trim() === 'Create new card' && box && box.width > 200) {
-          await botao.scrollIntoViewIfNeeded();
-          await botao.click();
-          log('✅ Botão correto clicado');
-          break;
-        }
-      }
+     const botoes = await page.$$('button');
+let encontrou = false;
+
+for (const botao of botoes) {
+  const texto = await botao.innerText();
+  const box = await botao.boundingBox();
+
+  if (texto.trim() === 'Create new card' && box && box.width > 200) {
+    await botao.scrollIntoViewIfNeeded();
+
+    const highlightBox = await page.evaluateHandle((element) => {
+      const rect = element.getBoundingClientRect();
+      const div = document.createElement('div');
+      div.style.position = 'absolute';
+      div.style.top = `${rect.top + window.scrollY}px`;
+      div.style.left = `${rect.left + window.scrollX}px`;
+      div.style.width = `${rect.width}px`;
+      div.style.height = `${rect.height}px`;
+      div.style.border = '4px solid red';
+      div.style.zIndex = '9999';
+      div.id = 'debug-highlight';
+      document.body.appendChild(div);
+      return div;
+    }, botao);
+
+    const screenshotPathBtn = path.resolve(__dirname, 'botao_create_new_card.png');
+    await page.screenshot({ path: screenshotPathBtn });
+    log('📸 Print do botão capturado: botao_create_new_card.png');
+
+    await page.evaluate(() => {
+      const el = document.getElementById('debug-highlight');
+      if (el) el.remove();
+    });
+
+    await botao.click();
+    log('✅ Botão correto clicado');
+    encontrou = true;
+    break;
+  }
+}
+
+if (!encontrou) {
+  log('❌ Botão "Create new card" não encontrado ou bloqueado por outro elemento.');
+}
 
       log('👤 Selecionando cliente...');
       await page.locator('div:has-text("Cliente")').getByText('Criar registro').click();
