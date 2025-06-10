@@ -1,7 +1,12 @@
-// ➕ ROTA PARA CADASTRO RGP (somente entrar e tirar print)
-app.get('/start-rgp', async (req, res) => {
+const { chromium } = require('playwright');
+const path = require('path');
+const fs = require('fs');
+const { baixarArquivo, LOCK_PATH } = require('./utils/baixarArquivo');
+
+module.exports = async function cadastroRGP(req, res) {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.write('<pre>⏳ Aguardando 1 minuto para iniciar o robô RGP...\n');
+  res.write('<pre>⏳ Aguardando 1 minuto para iniciar o robô RGP...
+');
 
   function log(msg) {
     res.write(`${msg}\n`);
@@ -9,7 +14,7 @@ app.get('/start-rgp', async (req, res) => {
   }
 
   let browser;
-  const printFinalCRLV = path.resolve(__dirname, 'print_final_crlv.png');
+  const printFinal = path.resolve(__dirname, 'print_final_rgp.png');
 
   try {
     const lockFd = fs.openSync(LOCK_PATH, 'wx');
@@ -82,44 +87,29 @@ app.get('/start-rgp', async (req, res) => {
 
       try {
         const inputs = await page.locator('input[placeholder="Digite aqui ..."]');
-        await inputs.nth(0).scrollIntoViewIfNeeded();
         await inputs.nth(0).fill('AM09263379');
-        log('✅ AIT preenchido');
-
-        await inputs.nth(1).scrollIntoViewIfNeeded();
         await inputs.nth(1).fill('Prefeitura de BH');
-        log('✅ Órgão Autuador preenchido');
-      } catch (e) {
-        log('❌ Erro ao preencher AIT ou Órgão Autuador');
+        log('✅ AIT e Órgão preenchidos');
+      } catch {
+        log('❌ Erro ao preencher AIT e órgão');
       }
 
-      log('📆 Preenchendo campo "Prazo para Protocolo"...');
-
       try {
-        const segmentoDia = await page.locator('[data-testid="day-input"]').first();
-        const segmentoMes = await page.locator('[data-testid="month-input"]').first();
-        const segmentoAno = await page.locator('[data-testid="year-input"]').first();
-        const segmentoHora = await page.locator('[data-testid="hour-input"]').first();
-        const segmentoMinuto = await page.locator('[data-testid="minute-input"]').first();
+        const dia = await page.locator('[data-testid="day-input"]').first();
+        const mes = await page.locator('[data-testid="month-input"]').first();
+        const ano = await page.locator('[data-testid="year-input"]').first();
+        const hora = await page.locator('[data-testid="hour-input"]').first();
+        const minuto = await page.locator('[data-testid="minute-input"]').first();
 
-        await segmentoDia.click();
-        await page.keyboard.type('09', { delay: 100 });
+        await dia.click(); await page.keyboard.type('09', { delay: 100 });
+        await mes.click(); await page.keyboard.type('06', { delay: 100 });
+        await ano.click(); await page.keyboard.type('2025', { delay: 100 });
+        await hora.click(); await page.keyboard.type('08', { delay: 100 });
+        await minuto.click(); await page.keyboard.type('00', { delay: 100 });
 
-        await segmentoMes.click();
-        await page.keyboard.type('06', { delay: 100 });
-
-        await segmentoAno.click();
-        await page.keyboard.type('2025', { delay: 100 });
-
-        await segmentoHora.click();
-        await page.keyboard.type('08', { delay: 100 });
-
-        await segmentoMinuto.click();
-        await page.keyboard.type('00', { delay: 100 });
-
-        log('✅ Prazo para Protocolo preenchido corretamente');
-      } catch (e) {
-        log('❌ Erro ao preencher o campo Prazo para Protocolo');
+        log('✅ Prazo preenchido');
+      } catch {
+        log('❌ Erro ao preencher prazo');
       }
 
       const urlPDF = 'https://www.africau.edu/images/default/sample.pdf';
@@ -128,7 +118,6 @@ app.get('/start-rgp', async (req, res) => {
       await baixarArquivo(urlPDF, caminhoPDF);
 
       const botaoUpload = await page.locator('button[data-testid="attachments-dropzone-button"]').last();
-      await botaoUpload.scrollIntoViewIfNeeded();
       const [fileChooser] = await Promise.all([
         page.waitForEvent('filechooser'),
         botaoUpload.click()
@@ -139,34 +128,29 @@ app.get('/start-rgp', async (req, res) => {
       await page.keyboard.press('PageDown');
       await page.waitForTimeout(1000);
       await page.keyboard.press('PageDown');
-      await page.waitForTimeout(1000);
 
-      try {
-        const botoes = await page.locator('button:has-text("Create new card")');
-        const total = await botoes.count();
-        for (let i = 0; i < total; i++) {
-          const botao = botoes.nth(i);
-          const box = await botao.boundingBox();
-          if (box && box.width > 200 && box.height > 30) {
-            await botao.scrollIntoViewIfNeeded();
-            await page.waitForTimeout(500);
-            await botao.click();
-            break;
-          }
+      const botoes = await page.locator('button:has-text("Create new card")');
+      const total = await botoes.count();
+      for (let i = 0; i < total; i++) {
+        const botao = botoes.nth(i);
+        const box = await botao.boundingBox();
+        if (box && box.width > 200 && box.height > 30) {
+          await botao.scrollIntoViewIfNeeded();
+          await page.waitForTimeout(500);
+          await botao.click();
+          break;
         }
-
-        await page.screenshot({ path: printFinalCRLV });
-        log('📸 Print final do CRLV salvo como print_final_crlv_semrgp.png');
-      } catch (e) {
-        log('❌ Erro ao finalizar o card ou tirar print');
       }
+
+      await page.screenshot({ path: printFinal });
+      log('📸 Print final do RGP salvo como print_final_rgp.png');
 
       await browser.close();
       fs.unlinkSync(LOCK_PATH);
 
       res.write('</pre><h3>📸 Print Final:</h3>');
-      if (fs.existsSync(printFinalCRLV)) {
-        const base64Final = fs.readFileSync(printFinalCRLV).toString('base64');
+      if (fs.existsSync(printFinal)) {
+        const base64Final = fs.readFileSync(printFinal).toString('base64');
         res.write(`<p><img src="data:image/png;base64,${base64Final}" style="max-width:100%; border:1px solid #ccc;"></p>`);
       }
       res.end('<p style="color:green"><b>✅ Robô RGP finalizado com sucesso!</b></p>');
@@ -178,5 +162,4 @@ app.get('/start-rgp', async (req, res) => {
       res.end('<p style="color:red"><b>❌ Erro ao executar robô RGP.</b></p>');
     }
   }, 60000); // fim do setTimeout
-}); // fim da rota /start-rgp
-
+};
