@@ -24,10 +24,9 @@ async function runRgpRobot(req, res) {
   setTimeout(async () => {
     try {
       browser = await chromium.launch({
-        headless: true,
-        executablePath: '/usr/bin/google-chrome-stable',
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
-      });
+  headless: true,
+  args: ['--no-sandbox', '--disable-setuid-sandbox']
+});
 
       const context = await browser.newContext();
       const page = await context.newPage();
