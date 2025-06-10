@@ -573,27 +573,20 @@ app.get('/start-semrgp', async (req, res) => {
         }
       }
 
-      await page.screenshot({ path: printFinal });
-      log('📸 Print final do SEM RGP salvo como print_final_semrgp.png');
       await browser.close();
-      if (fs.existsSync(LOCK_PATH)) fs.unlinkSync(LOCK_PATH);
-
-      res.write('</pre><h3>📸 Print Final:</h3>');
-      if (fs.existsSync(printFinal)) {
-        const base64Final = fs.readFileSync(printFinal).toString('base64');
-        res.write(`<p><img src="data:image/png;base64,${base64Final}" style="max-width:100%; border:1px solid #ccc;"></p>`);
-      }
-      res.end('<p style="color:green"><b>✅ Robô SEM RGP finalizado com sucesso!</b></p>');
+      fs.unlinkSync(LOCK_PATH);
+      log('✅ Robô SEM RGP finalizado com sucesso!');
+      res.end('</pre><p><b>✅ Processo SEM RGP concluído.</b></p>');
 
     } catch (err) {
       log(`❌ Erro crítico: ${err.message}`);
       if (browser) await browser.close();
       if (fs.existsSync(LOCK_PATH)) fs.unlinkSync(LOCK_PATH);
-      res.end('<p style="color:red"><b>❌ Erro ao executar robô SEM RGP.</b></p>');
+      res.end('</pre><p style="color:red"><b>❌ Erro ao executar robô SEM RGP.</b></p>');
     }
-  }, 0); // fim do setTimeout
-});
 
+  }, 60000); // espera de 1 minuto
+});
 
             await page.screenshot({ path: printFinal });
       log('📸 Print final do SEM RGP salvo como print_final_semrgp.png');
