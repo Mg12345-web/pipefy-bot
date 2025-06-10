@@ -606,17 +606,13 @@ try {
     }
   }
 
-  await page.screenshot({ path: printFinalCRLV });
+ await page.screenshot({ path: printFinal });
   log('📸 Print final do CRLV salvo como print_final_crlv_semrgp.png');
 } catch (e) {
   log('❌ Erro ao finalizar o card ou tirar print');
 }
 
-app.listen(PORT, () => {
-  console.log(`🖥️ Servidor escutando em http://localhost:${PORT}`);
-});
-
-            await page.screenshot({ path: printFinal });
+      await page.screenshot({ path: printFinal });
       log('📸 Print final do SEM RGP salvo como print_final_semrgp.png');
 
       await browser.close();
@@ -641,4 +637,8 @@ app.listen(PORT, () => {
 // 🔒 Libera o lock ao sair do processo (opcional, segurança extra)
 process.on('exit', () => {
   try { fs.unlinkSync(LOCK_PATH); } catch {}
+});
+
+app.listen(PORT, () => {
+console.log(`🖥️ Servidor escutando em http://localhost:${PORT}`);
 });
