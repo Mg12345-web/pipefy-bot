@@ -160,7 +160,11 @@ try {
       break;
     }
   }
-      if (!finalizado) log('❌ Botão final "Create new card" não encontrado');
+      await page.screenshot({ path: printFinalCRLV });
+  log('📸 Print final do CRLV salvo como print_final_crlv_semrgp.png');
+} catch (e) {
+  log('❌ Erro ao finalizar o card ou tirar print');
+}
 
       // PRINT
       const caminhoPrint = path.resolve(__dirname, '../../prints/print_final_rgp.png');
