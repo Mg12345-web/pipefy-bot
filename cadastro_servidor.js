@@ -273,32 +273,6 @@ function baixarArquivo(url, destino) {
   });
 }
 
-app.listen(PORT, () => {
-  console.log(`🖥️ Servidor escutando em http://localhost:${PORT}`);
-});
-
-const { chromium } = require('playwright');
-const path = require('path');
-const fs = require('fs');
-const https = require('https');
-const os = require('os');
-const express = require('express');
-const app = express();
-
-const PORT = process.env.PORT || 8080;
-const LOCK_PATH = path.join(os.tmpdir(), 'pipefy_robo.lock');
-
-app.get('/', (req, res) => {
-  res.send(`
-    <h2>🚀 <b>Robô Pipefy</b></h2>
-    <p><a href="/start-clientes">Iniciar cadastro de cliente</a></p>
-    <p><a href="/start-crlv">Iniciar cadastro de CRLV</a></p>
-    <p><a href="/start-rgp">Iniciar cadastro de serviço RGP</a></p>
-    <p><a href="/start-semrgp">Iniciar cadastro de serviço sem RGP</a></p>
-  `);
-});
-
-
 // ➕ ROTA PARA CADASTRO RGP (somente entrar e tirar print)
 app.get('/start-rgp', async (req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
