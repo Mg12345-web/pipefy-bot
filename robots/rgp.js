@@ -84,9 +84,12 @@ await page.waitForTimeout(1000);
 await page.waitForSelector('input[placeholder*="Pesquisar"]', { timeout: 10000 });
 await page.locator('input[placeholder*="Pesquisar"]').fill('OPB3D62');
 
-// Aguarda a opção aparecer e clica
-await page.waitForSelector('text=OPB3D62', { timeout: 10000 });
-await page.getByText('OPB3D62', { exact: false }).first().click();
+// Aguarda a lista de opções carregar visualmente
+await page.waitForSelector(`div:has-text("OPB3D62")`, { timeout: 10000 });
+const opcao = await page.getByText('OPB3D62', { exact: false }).first();
+await opcao.scrollIntoViewIfNeeded();
+await page.waitForTimeout(500); // garante estabilidade
+await opcao.click();
 
 log('✅ CRLV selecionado com sucesso');
 await page.waitForTimeout(1000);
