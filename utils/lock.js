@@ -2,25 +2,26 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
+// Caminho do arquivo de lock (em pasta temporária do sistema)
 const LOCK_PATH = path.join(os.tmpdir(), 'pipefy_robo.lock');
 
 /**
- * Tenta adquirir um lock para evitar múltiplas execuções.
- * @returns {boolean} True se o lock foi adquirido, false se já estiver em uso.
+ * Tenta adquirir o lock para impedir execuções simultâneas do robô.
+ * @returns {boolean} Retorna true se o lock foi adquirido com sucesso, false se já estiver em uso.
  */
 function acquireLock() {
   try {
-    const lockFd = fs.openSync(LOCK_PATH, 'wx'); // 'wx' abre para escrita, falha se existir
-    fs.writeFileSync(lockFd, String(process.pid));
+    const lockFd = fs.openSync(LOCK_PATH, 'wx'); // 'wx': write e erro se já existir
+    fs.writeFileSync(lockFd, String(process.pid)); // Grava o PID atual no arquivo
     fs.closeSync(lockFd);
     return true;
-  } catch (e) {
-    return false; // Lock já existe
+  } catch {
+    return false; // Lock já existe, não pode continuar
   }
 }
 
 /**
- * Libera o lock.
+ * Libera o lock, permitindo uma nova execução futura.
  */
 function releaseLock() {
   try {
@@ -28,19 +29,13 @@ function releaseLock() {
       fs.unlinkSync(LOCK_PATH);
     }
   } catch (e) {
-    console.error("Erro ao tentar liberar o lock:", e.message);
+    console.error("❌ Erro ao tentar liberar o lock:", e.message);
   }
 }
 
-// Adiciona um handler para garantir a liberação do lock ao encerrar o processo
+// Garante liberação do lock ao sair do processo (natural ou forçado)
 process.on('exit', releaseLock);
-process.on('SIGINT', () => { // Interrupção (Ctrl+C)
-  releaseLock();
-  process.exit();
-});
-process.on('SIGTERM', () => { // Sinal de término
-  releaseLock();
-  process.exit();
-});
+process.on('SIGINT', () => { releaseLock(); process.exit(); }); // Ctrl+C
+process.on('SIGTERM', () => { releaseLock(); process.exit(); }); // kill
 
 module.exports = { acquireLock, releaseLock, LOCK_PATH };
