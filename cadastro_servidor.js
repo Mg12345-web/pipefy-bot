@@ -616,3 +616,14 @@ app.get('/start-semrgp', async (req, res) => {
 
   }, 60000); // ✅ FECHA o setTimeout
 }); // ✅ FECHA a rota app.get()
+      
+// 🔒 Liberar lock após execução (opcional)
+process.on('exit', () => {
+  try { fs.unlinkSync(LOCK_PATH); } catch {}
+});
+
+// 🚀 Inicia o servidor
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, () => {
+  console.log(`🖥️ Servidor rodando em http://localhost:${PORT}`);
+});
