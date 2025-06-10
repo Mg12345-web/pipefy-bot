@@ -54,7 +54,7 @@ async function runRgpRobot(req, res) {
       const botaoCliente = await page.locator('div:has-text("Cliente") >> text=Criar registro').first();
       await botaoCliente.click();
       await page.waitForTimeout(1000);
-      await page.locator('input[placeholder*="cards pelo título"]').fill('143.461.936-25');
+      await page.locator('input[placeholder*="pesquisar"]').fill('143.461.936-25');
       await page.waitForTimeout(1500);
       await page.getByText('143.461.936-25', { exact: false }).first().click();
       log('👤 Cliente selecionado com sucesso');
