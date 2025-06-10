@@ -28,7 +28,11 @@ async function runClientRobot(req, res) {
   let browser; // Declara a variável browser aqui para estar disponível no finally
 
   try {
-    browser = await chromium.launch({ headless: true });
+    browser = await chromium.launch({
+  headless: true,
+  executablePath: '/usr/bin/google-chrome-stable', // Caminho explícito para o executável do Chromium
+  args: ['--no-sandbox', '--disable-setuid-sandbox'] // Argumentos recomendados para Docker
+});
     const context = await browser.newContext();
     const page = await context.newPage();
 
