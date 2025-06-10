@@ -44,9 +44,9 @@ async function runRgpRobot(req, res) {
       }
 
       log('🆕 Criando novo card...');
-      const botaoNovo = page.locator('span:text("Create new card")').first();
-      await botaoNovo.scrollIntoViewIfNeeded();
-      await botaoNovo.evaluate(el => el.click());
+      const span = await page.locator('span:text("Create new card")').first();
+      await span.scrollIntoViewIfNeeded();
+      await span.evaluate(el => el.click());
       await page.waitForTimeout(3000);
 
       // CLIENTE
