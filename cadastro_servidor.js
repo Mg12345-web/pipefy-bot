@@ -435,7 +435,10 @@ try {
       break;
     }
   }
-
+        
+ app.listen(PORT, () => {
+  console.log(`🖥️ Servidor escutando em http://localhost:${PORT}`);
+});
 
         // ➕ ROTA PARA CADASTRO SEM RGP
 app.get('/start-semrgp', async (req, res) => {
