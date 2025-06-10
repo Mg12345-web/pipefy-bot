@@ -453,10 +453,7 @@ app.get('/start-semrgp', async (req, res) => {
     console.log(msg);
   }
 
-  let browser;
-  const printFinalCRLV = path.resolve(__dirname, 'print_final_crlv_semrgp.png');
-
-  try {
+ try {
     const lockFd = fs.openSync(LOCK_PATH, 'wx');
     fs.writeFileSync(lockFd, String(process.pid));
     fs.closeSync(lockFd);
