@@ -1,3 +1,6 @@
+from pathlib import Path
+
+codigo_corrigido = """
 const { chromium } = require('playwright');
 const path = require('path');
 const { acquireLock, releaseLock } = require('../utils/lock');
@@ -7,10 +10,10 @@ const fs = require('fs');
 
 async function runClientRobot(req, res) {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.write('<pre>🧠 Iniciando robô de CLIENTES...\n');
+  res.write('<pre>🧠 Iniciando robô de CLIENTES...\\n');
 
   const log = (msg) => {
-    res.write(`${msg}\n`);
+    res.write(`${msg}\\n`);
     console.log(msg);
   };
 
@@ -23,10 +26,9 @@ async function runClientRobot(req, res) {
 
   try {
     browser = await chromium.launch({
-  headless: true,
-  args: ['--no-sandbox', '--disable-setuid-sandbox']
-});
-
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
 
     const context = await browser.newContext();
     const page = await context.newPage();
@@ -108,23 +110,16 @@ async function runClientRobot(req, res) {
     }
 
     log('✅ Criando registro...');
-    const botoesRegistro = await page.locator('button:has-text("Criar registro")').all();
-    let registroCriado = false;
-
-    for (const botao of botoesRegistro) {
-      const box = await botao.boundingBox();
-      if (box && box.width > 100 && box.height > 20) {
-        await botao.scrollIntoViewIfNeeded();
-        await page.waitForTimeout(500);
-        await botao.click();
-        registroCriado = true;
-        log('✅ Registro criado com sucesso');
+    const botoes = await page.$$('button');
+    for (let i = 0; i < botoes.length; i++) {
+      const texto = await botoes[i].innerText();
+      const box = await botoes[i].boundingBox();
+      if (texto.trim() === 'Criar registro' && box && box.width > 200) {
+        await botoes[i].scrollIntoViewIfNeeded();
+        await botoes[i].click();
+        log('✅ Registro de cliente criado');
         break;
       }
-    }
-
-    if (!registroCriado) {
-      log('❌ Não foi possível encontrar o botão final de "Criar registro"');
     }
 
     log('📸 Salvando print...');
@@ -148,3 +143,9 @@ async function runClientRobot(req, res) {
 }
 
 module.exports = { runClientRobot };
+"""
+
+# Salvar o conteúdo corrigido
+output_path = Path("/mnt/data/client.js")
+output_path.write_text(codigo_corrigido.strip(), encoding="utf-8")
+output_path
