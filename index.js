@@ -2,6 +2,7 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const { runClientRobot } = require('./robots/client'); // Importa o robô de cliente
+const { runCrlvRobot } = require('./robots/crlv');   // Importa o robô de CRLV
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -15,14 +16,17 @@ app.get('/', (req, res) => {
     <p><a href="/start-rgp">Iniciar cadastro de serviço RGP</a></p>
     <p><a href="/start-semrgp">Iniciar cadastro de serviço sem RGP</a></p>
     <p><a href="/view-client-print">Ver último print de cliente</a></p>
-    <p><a href="/print-crlv">Ver último print de CRLV</a></p>
+    <p><a href="/view-crlv-print">Ver último print de CRLV</a></p>
   `);
 });
 
 // 📋 ROTA CLIENTES
-app.get('/start-clientes', runClientRobot); // Conecta a rota com a função do robô individual
+app.get('/start-clientes', runClientRobot); // Conecta a rota com a função do robô de cliente
 
-// 🔎 VISUALIZAR PRINT DE CLIENTES (Nova rota para o print do cliente)
+// 🚗 ROTA CRLV
+app.get('/start-crlv', runCrlvRobot); // Conecta a rota com a função do robô de CRLV
+
+// 🔎 VISUALIZAR PRINT DE CLIENTES
 app.get('/view-client-print', (req, res) => {
   const screenshotPath = path.resolve(__dirname, 'prints/print_final_clientes.png');
   if (fs.existsSync(screenshotPath)) {
@@ -37,15 +41,9 @@ app.get('/view-client-print', (req, res) => {
   }
 });
 
-
-// As outras rotas (start-crlv, start-rgp, start-semrgp, print-crlv) serão adicionadas aqui
-// conforme individualizarmos os outros robôs. Por enquanto, elas não estarão conectadas
-// a funções que ainda não criamos nos arquivos separados.
-
-// Exemplo: Deixei a rota /print-crlv aqui, mas você terá que garantir que o print_crlv.png seja gerado
-// na pasta 'prints' também.
-app.get('/print-crlv', (req, res) => {
-  const screenshotPath = path.resolve(__dirname, 'prints/registro_crlv.png'); // Ajuste o caminho se necessário
+// 🔎 VISUALIZAR PRINT DE CRLV (Rota atualizada para o print do CRLV)
+app.get('/view-crlv-print', (req, res) => { // Renomeei para view-crlv-print para consistência
+  const screenshotPath = path.resolve(__dirname, 'prints/registro_crlv.png'); // Caminho ajustado
   if (fs.existsSync(screenshotPath)) {
     const base64 = fs.readFileSync(screenshotPath).toString('base64');
     res.send(`
@@ -54,7 +52,7 @@ app.get('/print-crlv', (req, res) => {
       <p><a href="/">⬅️ Voltar</a></p>
     `);
   } else {
-    res.send('<p>❌ Nenhum print encontrado ainda.</p><p><a href="/">⬅️ Voltar</a></p>');
+    res.send('<p>❌ Nenhum print de CRLV encontrado ainda.</p><p><a href="/">⬅️ Voltar</a></p>');
   }
 });
 
