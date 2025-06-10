@@ -634,11 +634,11 @@ try {
   }, 60000); // fim do setTimeout
 }); // fim da rota /start-semrgp
 
+app.listen(PORT, () => {
+console.log(`🖥️ Servidor escutando em http://localhost:${PORT}`);
+});
+
 // 🔒 Libera o lock ao sair do processo (opcional, segurança extra)
 process.on('exit', () => {
   try { fs.unlinkSync(LOCK_PATH); } catch {}
-});
-
-app.listen(PORT, () => {
-console.log(`🖥️ Servidor escutando em http://localhost:${PORT}`);
 });
