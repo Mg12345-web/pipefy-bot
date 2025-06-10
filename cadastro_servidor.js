@@ -450,16 +450,15 @@ app.listen(PORT, () => {
      // ➕ ROTA PARA CADASTRO SEM RGP
 app.get('/start-semrgp', async (req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.write('<pre>⏳ Aguardando 1 minuto para iniciar o robô SEM RGP...\n');
 
   function log(msg) {
     res.write(`${msg}\n`);
     console.log(msg);
   }
 
-  const printFinal = path.resolve(__dirname, 'print_final_semrgp.png');
   let browser;
-
+  const printFinal = path.resolve(__dirname, 'print_final_semrgp.png');
+ 
   try {
     const lockFd = fs.openSync(LOCK_PATH, 'wx');
     fs.writeFileSync(lockFd, String(process.pid));
@@ -509,6 +508,7 @@ app.get('/start-semrgp', async (req, res) => {
       await page.getByText('*Cliente', { exact: true }).click();
       await page.waitForTimeout(10000);
       await page.keyboard.press('PageDown');
+      await page.waitForTimeout(1000);
 
       log('🚗 Selecionando CRLV...');
       const botaoCRLV = await page.locator('text=Criar registro').nth(1);
@@ -519,33 +519,59 @@ app.get('/start-semrgp', async (req, res) => {
       await page.waitForTimeout(1500);
       await page.getByText('OPB3D62', { exact: false }).first().click();
 
-      log('📌 Preenchendo dados...');
-      try {
-        const inputs = await page.locator('input[placeholder="Digite aqui ..."]');
-        await inputs.nth(0).fill('AM09263379');
-        await inputs.nth(1).fill('Prefeitura de BH');
-        log('✅ AIT e Órgão preenchidos');
-      } catch {
-        log('❌ Erro ao preencher AIT e órgão');
-      }
+      // 📝 Preenchendo campo "Observação"
+try {
+  const valorObservacao = req.query.observacao || 'nada de observações';
+  const campoObs = await page.getByLabel('Observação');
+  await campoObs.scrollIntoViewIfNeeded();
+  await campoObs.fill(valorObservacao);
+  log('✅ Observação preenchida');
+} catch (e) {
+  log('❌ Campo Observação não encontrado ou ignorado');
+}
 
-      try {
-        const dia = await page.locator('[data-testid="day-input"]').first();
-        const mes = await page.locator('[data-testid="month-input"]').first();
-        const ano = await page.locator('[data-testid="year-input"]').first();
-        const hora = await page.locator('[data-testid="hour-input"]').first();
-        const minuto = await page.locator('[data-testid="minute-input"]').first();
+// 🧾 Preenchendo campos AIT e Órgão Autuador
+try {
+  const inputs = await page.locator('input[placeholder="Digite aqui ..."]');
+  await inputs.nth(0).scrollIntoViewIfNeeded();
+  await inputs.nth(0).fill('AM09263379');
+  log('✅ AIT preenchido');
 
-        await dia.click(); await page.keyboard.type('09', { delay: 100 });
-        await mes.click(); await page.keyboard.type('06', { delay: 100 });
-        await ano.click(); await page.keyboard.type('2025', { delay: 100 });
-        await hora.click(); await page.keyboard.type('08', { delay: 100 });
-        await minuto.click(); await page.keyboard.type('00', { delay: 100 });
+  await inputs.nth(1).scrollIntoViewIfNeeded();
+  await inputs.nth(1).fill('Prefeitura de BH');
+  log('✅ Órgão Autuador preenchido');
+} catch (e) {
+  log('❌ Erro ao preencher AIT ou Órgão Autuador');
+}
 
-        log('✅ Prazo preenchido');
-      } catch {
-        log('❌ Erro ao preencher prazo');
-      }
+log('📆 Preenchendo campo "Prazo para Protocolo"...');
+
+try {
+  const segmentoDia = await page.locator('[data-testid="day-input"]').first();
+  const segmentoMes = await page.locator('[data-testid="month-input"]').first();
+  const segmentoAno = await page.locator('[data-testid="year-input"]').first();
+  const segmentoHora = await page.locator('[data-testid="hour-input"]').first();
+  const segmentoMinuto = await page.locator('[data-testid="minute-input"]').first();
+
+  await segmentoDia.click();
+  await page.keyboard.type('09', { delay: 100 });
+
+  await segmentoMes.click();
+  await page.keyboard.type('06', { delay: 100 });
+
+  await segmentoAno.click();
+  await page.keyboard.type('2025', { delay: 100 });
+
+  await segmentoHora.click();
+  await page.keyboard.type('08', { delay: 100 });
+
+  await segmentoMinuto.click();
+  await page.keyboard.type('00', { delay: 100 });
+
+  log('✅ Prazo para Protocolo preenchido corretamente');
+} catch (e) {
+  log('❌ Erro ao preencher o campo Prazo para Protocolo');
+}
 
       const urlPDF = 'https://www.africau.edu/images/default/sample.pdf';
       const nomePDF = 'anexo.pdf';
@@ -553,6 +579,7 @@ app.get('/start-semrgp', async (req, res) => {
       await baixarArquivo(urlPDF, caminhoPDF);
 
       const botaoUpload = await page.locator('button[data-testid="attachments-dropzone-button"]').last();
+      await botaoUpload.scrollIntoViewIfNeeded();
       const [fileChooser] = await Promise.all([
         page.waitForEvent('filechooser'),
         botaoUpload.click()
@@ -563,33 +590,31 @@ app.get('/start-semrgp', async (req, res) => {
       await page.keyboard.press('PageDown');
       await page.waitForTimeout(1000);
       await page.keyboard.press('PageDown');
+      await page.waitForTimeout(1000);
 
-      log('🚀 Finalizando card...');
-      const botoes = await page.locator('button:has-text("Create new card")');
-      const total = await botoes.count();
-      for (let i = 0; i < total; i++) {
-        const botao = botoes.nth(i);
-        const box = await botao.boundingBox();
-        if (box && box.width > 200 && box.height > 30) {
-          await botao.scrollIntoViewIfNeeded();
-          await botao.click();
-          break;
-        }
-      }
-
-      await browser.close();
-      fs.unlinkSync(LOCK_PATH);
-      log('✅ Robô SEM RGP finalizado com sucesso!');
-      res.end('</pre><p><b>✅ Processo SEM RGP concluído.</b></p>');
-
-    } catch (err) {
-      log(`❌ Erro crítico: ${err.message}`);
-      if (browser) await browser.close();
-      if (fs.existsSync(LOCK_PATH)) fs.unlinkSync(LOCK_PATH);
-      res.end('</pre><p style="color:red"><b>❌ Erro ao executar robô SEM RGP.</b></p>');
+      try {
+  const botoes = await page.locator('button:has-text("Create new card")');
+  const total = await botoes.count();
+  for (let i = 0; i < total; i++) {
+    const botao = botoes.nth(i);
+    const box = await botao.boundingBox();
+    if (box && box.width > 200 && box.height > 30) {
+      await botao.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(500);
+      await botao.click();
+      break;
     }
+  }
 
-  }, 60000); // espera de 1 minuto
+  await page.screenshot({ path: printFinalCRLV });
+  log('📸 Print final do CRLV salvo como print_final_crlv_semrgp.png');
+} catch (e) {
+  log('❌ Erro ao finalizar o card ou tirar print');
+}
+
+app.listen(PORT, () => {
+  console.log(`🖥️ Servidor escutando em http://localhost:${PORT}`);
+});
 });
 
             await page.screenshot({ path: printFinal });
