@@ -51,17 +51,20 @@ async function runRgpRobot(req, res) {
 
       // CLIENTE
       log('👤 Selecionando cliente...');
-const botaoCliente = await page.locator('div:has-text("Cliente") >> text=Criar registro').first();
-await botaoCliente.click();
-await page.waitForTimeout(1000);
+      const botaoCliente = await page.locator('div:has-text("Cliente") >> text=Criar registro').first();
+      await botaoCliente.click();
+      await page.waitForTimeout(1000); // Espera básica antes de procurar o campo
 
-const inputBuscaCliente = page.locator('input[placeholder*="cards pelo título"]');
-await inputBuscaCliente.waitFor({ state: 'visible', timeout: 10000 });
-await inputBuscaCliente.fill('143.461.936-25');
+// Aguarda explicitamente o campo de input aparecer
+const campoCPF = page.locator('input[placeholder*="cards pelo título"]');
+await campoCPF.waitFor({ state: 'attached', timeout: 15000 }); // espera até 15s
+
+await campoCPF.fill('143.461.936-25');
 await page.waitForTimeout(1500);
 
 await page.getByText('143.461.936-25', { exact: false }).first().click();
-await page.getByText('*Cliente', { exact: true }).click(); // fecha o dropdown
+await page.waitForTimeout(1000);
+await page.getByText('*Cliente', { exact: true }).click(); // Fecha o dropdown
 log('✅ Cliente selecionado');
 
       // CRLV
