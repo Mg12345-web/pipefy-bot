@@ -140,9 +140,3 @@ async function runClientRobot(req, res) {
 }
 
 module.exports = { runClientRobot };
-"""
-
-# Salvar o conteúdo corrigido
-output_path = Path("/mnt/data/client.js")
-output_path.write_text(codigo_corrigido.strip(), encoding="utf-8")
-output_path
