@@ -38,8 +38,8 @@ async function runSemRgpRobot(req, res) {
 
       await loginPipefy(page, log);
 
-      log('📂 Acessando Pipe sem RGP...');
-      await page.getByText('sem RGP', { exact: true }).click();
+      log('📂 Acessando Pipe Sem RGP...');
+      await page.getByText('Sem RGP', { exact: true }).click();
       await page.waitForTimeout(3000);
 
       const botaoEntrarPipe = page.locator('text=Entrar no pipe');
