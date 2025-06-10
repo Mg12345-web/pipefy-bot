@@ -100,20 +100,18 @@ async function runCrlvRobot(req, res) {
     }
 
     log('✅ Criando registro CRLV...');
-    const botoesRegistro = await page.locator('button:has-text("Criar registro")').all();
-    let registroCriado = false;
-
-    for (const botao of botoesRegistro) {
-      const box = await botao.boundingBox();
-      if (box && box.width > 100 && box.height > 20) {
-        await botao.scrollIntoViewIfNeeded();
-        await page.waitForTimeout(500);
-        await botao.click();
-        registroCriado = true;
-        log('✅ Registro CRLV criado com sucesso');
-        break;
-      }
-    }
+    const botoes = await page.$$('button');
+for (let i = 0; i < botoes.length; i++) {
+  const texto = await botoes[i].innerText();
+  const box = await botoes[i].boundingBox();
+  if (texto.trim() === 'Criar registro' && box && box.width > 200) {
+    await botoes[i].scrollIntoViewIfNeeded();
+    await page.waitForTimeout(500);
+    await botoes[i].click();
+    log('✅ Registro CRLV criado');
+    break;
+  }
+}
 
     if (!registroCriado) {
       log('❌ Botão final "Criar registro" não encontrado');
