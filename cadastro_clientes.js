@@ -10,8 +10,8 @@ const LOCK_PATH = path.join(os.tmpdir(), 'pipefy_robo_clientes.lock');
 
 router.get('/start-clientes', async (req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.write('<pre>⏳ Aguardando 1 minuto para iniciar o robô de CLIENTES...
-');
+  res.write('<pre>⏳ Aguardando 1 minuto para iniciar o robô de CLIENTES...\n');
+
 
   function log(msg) {
     res.write(`${msg}\n`);
