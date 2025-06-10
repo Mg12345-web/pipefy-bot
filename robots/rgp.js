@@ -70,7 +70,8 @@ log('🚗 Selecionando CRLV...');
 // Encontra a seção correta pelo título "Veículo (CRLV)" e clica no botão "Criar registro" dentro dela
 const secaoCRLV = await page.locator('div:has-text("Veículo (CRLV)")').first();
 const botaoCRLV = await secaoCRLV.locator('text=Criar registro').first();
-await botaoCRLV.click();
+await botaoCRLV.scrollIntoViewIfNeeded();
+await botaoCRLV.evaluate(el => el.click()); // 🔧 clique forçado via JS
 
 // Aguarda o campo de pesquisa
 await page.waitForSelector('input[placeholder*="Pesquisar"]', { timeout: 10000 });
