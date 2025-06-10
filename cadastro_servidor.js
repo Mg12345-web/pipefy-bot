@@ -440,9 +440,9 @@ try {
   log('📸 Print final do CRLV salvo como print_final_crlv_semrgp.png');
 } catch (e) {
   log('❌ Erro ao finalizar o card ou tirar print');
-}
-
+  });
 });
+}
       
      // ➕ ROTA PARA CADASTRO SEM RGP
 app.get('/start-semrgp', async (req, res) => {
