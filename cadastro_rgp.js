@@ -1,20 +1,22 @@
+// cadastro_rgp.js
 const { chromium } = require('playwright');
 const path = require('path');
 const fs = require('fs');
-const { baixarArquivo, LOCK_PATH } = require('./utils/baixarArquivo');
+const os = require('os');
+const express = require('express');
+const router = express.Router();
+const { baixarArquivo } = require('./utils/baixarArquivo');
 
-module.exports = async function cadastroRGP(req, res) {
+const LOCK_PATH = path.join(os.tmpdir(), 'pipefy_robo_rgp.lock');
+
+router.get('/start-rgp', async (req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.write('<pre>⏳ Aguardando 1 minuto para iniciar o robô RGP...
-');
+  res.write('<pre>⏳ Aguardando 1 minuto para iniciar o robô RGP...\n');
 
   function log(msg) {
     res.write(`${msg}\n`);
     console.log(msg);
   }
-
-  let browser;
-  const printFinal = path.resolve(__dirname, 'print_final_rgp.png');
 
   try {
     const lockFd = fs.openSync(LOCK_PATH, 'wx');
@@ -26,6 +28,9 @@ module.exports = async function cadastroRGP(req, res) {
   }
 
   setTimeout(async () => {
+    let browser;
+    const printFinal = path.resolve(__dirname, 'print_final_rgp.png');
+
     try {
       browser = await chromium.launch({ headless: true });
       const context = await browser.newContext();
@@ -161,5 +166,7 @@ module.exports = async function cadastroRGP(req, res) {
       if (fs.existsSync(LOCK_PATH)) fs.unlinkSync(LOCK_PATH);
       res.end('<p style="color:red"><b>❌ Erro ao executar robô RGP.</b></p>');
     }
-  }, 60000); // fim do setTimeout
-};
+  }, 60000);
+});
+
+module.exports = router;
