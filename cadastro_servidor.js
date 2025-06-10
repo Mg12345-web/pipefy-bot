@@ -615,7 +615,6 @@ try {
 app.listen(PORT, () => {
   console.log(`🖥️ Servidor escutando em http://localhost:${PORT}`);
 });
-});
 
             await page.screenshot({ path: printFinal });
       log('📸 Print final do SEM RGP salvo como print_final_semrgp.png');
