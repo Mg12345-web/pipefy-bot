@@ -13,10 +13,6 @@ RUN npm install
 # Garante que o Playwright localize ou baixe os navegadores na localização correta
 RUN npx playwright install --with-deps
 
-# --- ADICIONE ESTAS DUAS LINHAS TEMPORARIAMENTE PARA DEBUG ---
-RUN ls -la /root/.cache/ms-playwright/
-RUN npx playwright install --dry-run
-
 # Expõe porta para servidor Express (caso esteja usando)
 EXPOSE 8080
 
