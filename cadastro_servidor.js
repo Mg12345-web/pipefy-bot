@@ -442,7 +442,11 @@ try {
   log('❌ Erro ao finalizar o card ou tirar print');
 }
 
-  
+app.listen(PORT, () => {
+  console.log(`🖥️ Servidor escutando em http://localhost:${PORT}`);
+});
+
+      
      // ➕ ROTA PARA CADASTRO SEM RGP
 app.get('/start-semrgp', async (req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
