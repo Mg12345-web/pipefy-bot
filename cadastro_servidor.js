@@ -627,3 +627,21 @@ const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`🖥️ Servidor rodando em http://localhost:${PORT}`);
 });
+      await browser.close();
+      fs.unlinkSync(LOCK_PATH);
+
+      res.write('</pre><h3>📸 Print Final:</h3>');
+      if (fs.existsSync(printFinalCRLV)) {
+        const base64Final = fs.readFileSync(printFinalCRLV).toString('base64');
+        res.write(`<p><img src="data:image/png;base64,${base64Final}" style="max-width:100%; border:1px solid #ccc;"></p>`);
+      }
+      res.end('<p style="color:red"><b>⚠️ Finalizado.</b></p>');
+
+    } catch (err) {
+      log(`❌ Erro crítico: ${err.message}`);
+      if (browser) await browser.close();
+      if (fs.existsSync(LOCK_PATH)) fs.unlinkSync(LOCK_PATH);
+      res.end('<p style="color:red"><b>⚠️ Finalizado com erro crítico.</b></p>');
+    }
+  }, 60000); // fim do setTimeout
+}); // fim do app.get('/start-semrgp')
