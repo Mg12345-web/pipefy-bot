@@ -61,17 +61,22 @@ log('✅ Cliente selecionado');
 await page.waitForTimeout(1000);
 
       // CRLV
-      log('🚗 Selecionando CRLV...');
-// Encontra o bloco que contém "Veículo (CRLV)" e dentro dele clica no botão correto
+log('🚗 Selecionando CRLV...');
+
+// Encontra a seção correta pelo título "Veículo (CRLV)" e clica no botão "Criar registro" dentro dela
 const secaoCRLV = await page.locator('div:has-text("Veículo (CRLV)")').first();
 const botaoCRLV = await secaoCRLV.locator('text=Criar registro').first();
 await botaoCRLV.click();
+
+// Aguarda o campo de pesquisa
 await page.waitForSelector('input[placeholder*="Pesquisar"]', { timeout: 10000 });
 await page.locator('input[placeholder*="Pesquisar"]').fill('OPB3D62');
 await page.waitForTimeout(1500);
+
+// Seleciona o item da lista
 await page.getByText('OPB3D62', { exact: false }).first().click();
 log('✅ CRLV selecionado com sucesso');
-
+await page.waitForTimeout(1000);
 
       // OBSERVAÇÃO
       try {
