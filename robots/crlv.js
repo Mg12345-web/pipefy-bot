@@ -100,6 +100,8 @@ async function runCrlvRobot(req, res) {
     }
 
     log('✅ Criando registro CRLV...');
+    let registroCriado = false;
+    
     const botoes = await page.$$('button');
 for (let i = 0; i < botoes.length; i++) {
   const texto = await botoes[i].innerText();
