@@ -1,6 +1,3 @@
-from pathlib import Path
-
-codigo_corrigido = """
 const { chromium } = require('playwright');
 const path = require('path');
 const { acquireLock, releaseLock } = require('../utils/lock');
