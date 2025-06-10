@@ -59,8 +59,8 @@ await page.waitForTimeout(1500);
 await page.getByText('143.461.936-25', { exact: false }).first().click();
 log('✅ Cliente selecionado');
 await page.waitForTimeout(1000);
-      await page.getByText('*Cliente', { exact: true }).click();
-      await page.waitForTimeout(10000);
+      await page.mouse.click(50, 50);
+      await page.waitForTimeout(2000);
       await page.keyboard.press('PageDown');
       await page.waitForTimeout(1000);
 
