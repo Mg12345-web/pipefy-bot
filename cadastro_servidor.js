@@ -441,7 +441,7 @@ try {
 } catch (e) {
   log('❌ Erro ao finalizar o card ou tirar print');
 }
-
+}); // <- aqui termina o app.get('/start-rgp')
   
      // ➕ ROTA PARA CADASTRO SEM RGP (cópia do RGP com nome ajustado)
 app.get('/start-semrgp', async (req, res) => {
