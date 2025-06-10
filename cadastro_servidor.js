@@ -436,15 +436,8 @@ try {
     }
   }
 
-  await page.screenshot({ path: printFinalCRLV });
-  log('📸 Print final do CRLV salvo como print_final_crlv_semrgp.png');
-} catch (e) {
-  log('❌ Erro ao finalizar o card ou tirar print');
-  });
-});
-}
-      
-     // ➕ ROTA PARA CADASTRO SEM RGP
+
+        // ➕ ROTA PARA CADASTRO SEM RGP
 app.get('/start-semrgp', async (req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.write('<pre>⏳ Aguardando 1 minuto para iniciar o robô SEM RGP...\n');
