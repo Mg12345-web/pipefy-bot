@@ -31,7 +31,11 @@ async function runRgpRobot(req, res) {
   // Em um cenário de produção, considere se esta espera é realmente necessária ou se pode ser otimizada.
   setTimeout(async () => {
     try {
-      browser = await chromium.launch({ headless: true });
+      browser = await chromium.launch({
+  headless: true,
+  executablePath: '/usr/bin/google-chrome-stable', // Caminho explícito para o executável do Chromium
+  args: ['--no-sandbox', '--disable-setuid-sandbox'] // Argumentos recomendados para Docker
+});
       const context = await browser.newContext();
       const page = await context.newPage();
 
