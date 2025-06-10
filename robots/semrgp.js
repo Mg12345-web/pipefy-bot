@@ -30,7 +30,11 @@ async function runSemRgpRobot(req, res) {
   // O robô original tinha um setTimeout de 1 minuto. Mantendo-o aqui para a lógica.
   setTimeout(async () => {
     try {
-      browser = await chromium.launch({ headless: true });
+      browser = await chromium.launch({
+  headless: true,
+  executablePath: '/usr/bin/google-chrome-stable', // Caminho explícito para o executável do Chromium
+  args: ['--no-sandbox', '--disable-setuid-sandbox'] // Argumentos recomendados para Docker
+});
       const context = await browser.newContext();
       const page = await context.newPage();
 
