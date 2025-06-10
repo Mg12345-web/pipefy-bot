@@ -283,7 +283,7 @@ app.get('/start-rgp', async (req, res) => {
   res.write('<pre>⏳ Aguardando 1 minuto para iniciar o robô RGP...\n');
 
   function log(msg) {
-    res.write(`${msg}\n`);
+    res.write(${msg}\n);
     console.log(msg);
   }
 
@@ -422,35 +422,15 @@ try {
       await page.keyboard.press('PageDown');
       await page.waitForTimeout(1000);
 
-      try {
-  const botoes = await page.locator('button:has-text("Create new card")');
-  const total = await botoes.count();
-  for (let i = 0; i < total; i++) {
-    const botao = botoes.nth(i);
-    const box = await botao.boundingBox();
-    if (box && box.width > 200 && box.height > 30) {
-      await botao.scrollIntoViewIfNeeded();
-      await page.waitForTimeout(500);
-      await botao.click();
-      break;
-    }
-  }
-}
-
-      await browser.close();
-      fs.unlinkSync(LOCK_PATH);
-
-      res.end('<p style="color:green"><b>✅ Robô RGP finalizado com sucesso!</b></p>');
-    } catch (err) {
-      log(`❌ Erro crítico: ${err.message}`);
-      if (browser) await browser.close();
-      if (fs.existsSync(LOCK_PATH)) fs.unlinkSync(LOCK_PATH);
-      res.end('<p style="color:red"><b>❌ Erro ao executar robô RGP.</b></p>');
-    }
-  }, 60000); // fim do setTimeout
-}); // fim da rota /start-rgp
-
-// 🔒 Libera o lock ao sair do processo (opcional)
-process.on('exit', () => {
-  try { fs.unlinkSync(LOCK_PATH); } catch {}
-});
+      const botoes = await page.locator('button:has-text("Create new card")');
+      const total = await botoes.count();
+      for (let i = 0; i < total; i++) {
+        const botao = botoes.nth(i);
+        const box = await botao.boundingBox();
+        if (box && box.width > 200 && box.height > 30) {
+          await botao.scrollIntoViewIfNeeded();
+          await page.waitForTimeout(500);
+          await botao.click();
+          break;
+        }
+      }
