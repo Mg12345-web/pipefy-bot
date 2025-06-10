@@ -69,27 +69,19 @@ await page.waitForTimeout(1000);
       // CRLV
 log('🚗 Selecionando CRLV...');
 
-// 🔧 Clique em um local neutro do formulário para fechar a tela flutuante do cliente
-await page.mouse.click(100, 400); // Pode ajustar se necessário
-await page.waitForTimeout(1000);
-
-// Encontra a seção correta pelo título "Veículo (CRLV)" e clica no botão "Criar registro" dentro dela
-const secaoCRLV = await page.locator('div:has-text("Veículo (CRLV)")').first();
-const botaoCRLV = await secaoCRLV.locator('text=Criar registro').first();
+const botaoCRLV = await page.locator('text=Criar registro').nth(1);
 await botaoCRLV.scrollIntoViewIfNeeded();
-await botaoCRLV.evaluate(el => el.click()); // clique forçado via JS
+await botaoCRLV.click(); // mantenha o click simples
+
 await page.waitForTimeout(1000);
 
-// Aguarda o campo de pesquisa
-await page.waitForSelector('input[placeholder*="Pesquisar"]', { timeout: 10000 });
-await page.locator('input[placeholder*="Pesquisar"]').fill('OPB3D62');
+// Preenche o campo de busca com a placa
+await page.locator('input[placeholder*="cards pelo título"]').fill('OPB3D62');
+await page.waitForTimeout(1500);
 
-// Aguarda a lista de opções carregar visualmente
-await page.waitForSelector(`div:has-text("OPB3D62")`, { timeout: 10000 });
-const opcao = await page.getByText('OPB3D62', { exact: false }).first();
-await opcao.scrollIntoViewIfNeeded();
-await page.waitForTimeout(500); // garante estabilidade
-await opcao.click();
+// Aguarda a opção aparecer e seleciona
+await page.waitForSelector('div:has-text("OPB3D62")', { timeout: 10000 });
+await page.getByText('OPB3D62', { exact: false }).first().click();
 
 log('✅ CRLV selecionado com sucesso');
 await page.waitForTimeout(1000);
