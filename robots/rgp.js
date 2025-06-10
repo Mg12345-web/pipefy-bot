@@ -49,19 +49,16 @@ async function runRgpRobot(req, res) {
       await span.evaluate(el => el.click());
       await page.waitForTimeout(3000);
 
-      // CLIENTE
-      log('👤 Selecionando cliente...');
-      const botaoCliente = await page.locator('div:has-text("Cliente") >> text=Criar registro').first();
-      await botaoCliente.click();
-      await page.waitForTimeout(1000);
-      await page.locator('input[placeholder*="pesquisar"]').fill('143.461.936-25');
-      await page.waitForTimeout(1500);
-      await page.getByText('143.461.936-25', { exact: false }).first().click();
-      log('👤 Cliente selecionado com sucesso');
-      await page.getByText('*Cliente', { exact: true }).click();
-      await page.waitForTimeout(10000);
-      await page.keyboard.press('PageDown');
-      await page.waitForTimeout(1000);
+    // CLIENTE
+log('👤 Selecionando cliente...');
+const botaoCliente = await page.locator('div:has-text("Cliente") >> :text("Criar registro")').first();
+await botaoCliente.click();
+await page.waitForSelector('input[placeholder*="Pesquisar"]', { timeout: 10000 }); // Espera o campo aparecer
+await page.locator('input[placeholder*="Pesquisar"]').fill('143.461.936-25');
+await page.waitForTimeout(1500);
+await page.getByText('143.461.936-25', { exact: false }).first().click();
+log('✅ Cliente selecionado');
+await page.waitForTimeout(1000);
 
       // CRLV
       log('🚗 Selecionando CRLV...');
