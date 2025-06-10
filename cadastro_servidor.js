@@ -436,6 +436,30 @@ try {
   log('📸 Print final do CRLV salvo como print_final_crlv_semrgp.png');
 } catch (e) {
   log('❌ Erro ao finalizar o card ou tirar print');
-}); // <- aqui termina o app.get('/start-rgp')
-  
-     // ➕ ROTA PARA CADASTRO SEM RGP (cópia do RGP com nome ajustado)
+await page.screenshot({ path: printFinalCRLV });
+      log('📸 Print final do CRLV salvo como print_final_crlv_semrgp.png');
+
+      await browser.close();
+      fs.unlinkSync(LOCK_PATH);
+
+      res.write('</pre><h3>📸 Print Final:</h3>');
+      if (fs.existsSync(printFinalCRLV)) {
+        const base64Final = fs.readFileSync(printFinalCRLV).toString('base64');
+        res.write(`<p><img src="data:image/png;base64,${base64Final}" style="max-width:100%; border:1px solid #ccc;"></p>`);
+      }
+      res.end('<p style="color:red"><b>⚠️ Finalizado.</b></p>');
+
+    } catch (err) {
+      log(`❌ Erro crítico: ${err.message}`);
+      if (browser) await browser.close();
+      if (fs.existsSync(LOCK_PATH)) fs.unlinkSync(LOCK_PATH);
+      res.end('<p style="color:red"><b>⚠️ Erro inesperado. Finalizado com falha.</b></p>');
+    }
+
+  }, 60000); // ✅ FECHA o setTimeout
+}); // ✅ FECHA a rota app.get()
+      
+// 🔒 Liberar lock após execução (opcional)
+process.on('exit', () => {
+  try { fs.unlinkSync(LOCK_PATH); } catch {}
+});
