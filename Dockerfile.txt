@@ -14,4 +14,4 @@ RUN npm install
 EXPOSE 8080
 
 # Comando padrão ao iniciar o container (pode ser alterado no Railway se necessário)
-CMD ["node", "cadastro_servidor.js"]
+CMD ["node", "index.js"]
