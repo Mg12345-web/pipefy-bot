@@ -244,27 +244,32 @@ res.end('</pre><h3>✅ Processo RGP concluído com sucesso</h3><p><a href="/">�
 } catch (err) {
   log(`❌ Erro crítico: ${err.message}`);
 
-  // 🖼️ Gera print em JPG ao detectar erro
   const erroPath = path.resolve(__dirname, '../../prints/print_erro_debug.jpg');
   if (!fs.existsSync(path.dirname(erroPath))) {
     fs.mkdirSync(path.dirname(erroPath), { recursive: true });
   }
 
+  // Tira o print **antes de fechar o navegador**
   try {
-    if (page) {
+    if (typeof page !== 'undefined') {
       await page.screenshot({ path: erroPath, type: 'jpeg', quality: 80 });
       log(`📸 Print de erro salvo como ${path.basename(erroPath)}`);
 
       const base64Erro = fs.readFileSync(erroPath).toString('base64');
       res.write(`<h3>🖼️ Print do erro (JPG):</h3>`);
       res.write(`<img src="data:image/jpeg;base64,${base64Erro}" style="max-width:100%; border:1px solid #ccc;">`);
+    } else {
+      log('⚠️ Página não estava disponível para capturar print.');
     }
   } catch (e) {
     log('⚠️ Falha ao gerar ou exibir o print de erro.');
   }
 
+  // Fecha o navegador depois do print
   if (browser) await browser.close();
   res.end('</pre><p style="color:red"><b>❌ Erro ao executar robô RGP.</b></p>');
+}
+
 } finally {
   releaseLock();
 }
