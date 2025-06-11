@@ -41,21 +41,43 @@ app.get('/start-rgp', runRgpRobot);
 app.get('/start-semrgp', runSemRgpRobot);
 
 // ROTA NOVA: formulário de envio
-app.post('/formulario', upload.fields([
-  { name: 'cnh', maxCount: 1 },
-  { name: 'procuracao', maxCount: 1 },
-  { name: 'contrato', maxCount: 1 },
-  { name: 'crlv', maxCount: 1 },
-  { name: 'autuacoes', maxCount: 10 }
-]), (req, res) => {
-  const { email, telefone, autuacao_tipo = [] } = req.body;
-  const arquivos = req.files;
+app.post('/formulario', upload.any(), (req, res) => {
+  const { email, telefone } = req.body;
+  const arquivos = {};
+  const autuacoes = [];
+
+  // Organiza os arquivos por fieldname
+  for (const file of req.files) {
+    const field = file.fieldname;
+
+    if (field.startsWith('autuacoes[')) {
+      const match = field.match(/autuacoes\[(\d+)\]\[arquivo\]/);
+      if (match) {
+        const index = parseInt(match[1], 10);
+        if (!autuacoes[index]) autuacoes[index] = {};
+        autuacoes[index].arquivo = file.path;
+      }
+    } else {
+      if (!arquivos[field]) arquivos[field] = [];
+      arquivos[field].push(file);
+    }
+  }
+
+  // Organiza os tipos
+  Object.keys(req.body).forEach(key => {
+    const match = key.match(/autuacoes\[(\d+)\]\[tipo\]/);
+    if (match) {
+      const index = parseInt(match[1], 10);
+      if (!autuacoes[index]) autuacoes[index] = {};
+      autuacoes[index].tipo = req.body[key];
+    }
+  });
 
   const tarefa = {
     email,
     telefone,
     arquivos,
-    autuacao_tipo: Array.isArray(autuacao_tipo) ? autuacao_tipo : [autuacao_tipo],
+    autuacoes: autuacoes.filter(a => a.tipo && a.arquivo),
     timestamp: Date.now()
   };
 
