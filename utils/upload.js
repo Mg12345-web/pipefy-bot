@@ -4,12 +4,12 @@ const fs = require('fs');
 
 const pastaUploads = path.resolve(__dirname, '../uploads');
 
-// ✅ Garante que "uploads" seja uma pasta (e não um arquivo)
+// ✅ Garante que "uploads" seja uma pasta
 if (fs.existsSync(pastaUploads)) {
   const stat = fs.statSync(pastaUploads);
   if (!stat.isDirectory()) {
-    fs.unlinkSync(pastaUploads); // remove o arquivo errado
-    fs.mkdirSync(pastaUploads, { recursive: true }); // recria como pasta
+    fs.unlinkSync(pastaUploads);
+    fs.mkdirSync(pastaUploads, { recursive: true });
   }
 } else {
   fs.mkdirSync(pastaUploads, { recursive: true });
@@ -22,6 +22,8 @@ const nomesFixos = {
   crlv: 'crlv',
   autuacoes: 'autuacao'
 };
+
+const tiposPermitidos = ['.pdf', '.jpg', '.jpeg', '.png'];
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, pastaUploads),
@@ -38,5 +40,16 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ storage });
+const upload = multer({
+  storage,
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (tiposPermitidos.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error('❌ Tipo de arquivo não permitido. Apenas PDF, JPG, JPEG e PNG são aceitos.'));
+    }
+  }
+});
+
 module.exports = upload;
