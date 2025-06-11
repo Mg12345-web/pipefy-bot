@@ -86,17 +86,25 @@ async function runClientRobot(req, res) {
       }
     }
 
-    // Envio de arquivos CNH + procuração (campo agrupado)
-    if (arquivos.cnh && arquivos.procuracao) {
-      const anexos = [arquivos.cnh[0].path, arquivos.procuracao[0].path];
-      for (const caminho of anexos) {
-        const botao = await page.locator('button[data-testid="attachments-dropzone-button"]').first();
-        const [fileChooser] = await Promise.all([page.waitForEvent('filechooser'), botao.click()]);
-        await fileChooser.setFiles(caminho);
-        await page.waitForTimeout(1500);
-        log(`📎 Anexo enviado: ${path.basename(caminho)}`);
-      }
-    }
+   // Envio de arquivos CNH + Procuração + Contrato (campo agrupado)
+if (arquivos.cnh && arquivos.procuracao && arquivos.contrato) {
+  const anexos = [
+    arquivos.cnh[0].path,
+    arquivos.procuracao[0].path,
+    arquivos.contrato[0].path
+  ];
+
+  for (const caminho of anexos) {
+    const botao = await page.locator('button[data-testid="attachments-dropzone-button"]').first();
+    const [fileChooser] = await Promise.all([
+      page.waitForEvent('filechooser'),
+      botao.click()
+    ]);
+    await fileChooser.setFiles(caminho);
+    await page.waitForTimeout(1500);
+    log(`📎 Anexo enviado: ${path.basename(caminho)}`);
+  }
+}
 
     log('✅ Criando registro...');
     const botaoCriar = await page.getByText('Criar registro', { exact: true });
