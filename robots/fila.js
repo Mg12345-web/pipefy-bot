@@ -39,14 +39,18 @@ async function processarTarefa(tarefa) {
   await runCrlvRobot(req, fakeRes);
 
   // Roda autuações por tipo
-  for (let i = 0; i < tarefa.autuacao_tipo.length; i++) {
-    const tipo = tarefa.autuacao_tipo[i];
-    if (tipo === 'RGP') {
-      await runRgpRobot(req, fakeRes);
-    } else if (tipo === 'Sem RGP') {
-      await runSemRgpRobot(req, fakeRes);
-    }
+for (const autuacao of tarefa.autuacoes || []) {
+  const fakeReq = {
+    files: { autuacao: [{ path: autuacao.arquivo }] },
+    body: {}
+  };
+
+  if (autuacao.tipo === 'RGP') {
+    await runRgpRobot(fakeReq, fakeRes);
+  } else if (autuacao.tipo === 'Sem RGP') {
+    await runSemRgpRobot(fakeReq, fakeRes);
   }
+}
 
   console.log('✅ Tarefa finalizada.');
 }
