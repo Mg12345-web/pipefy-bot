@@ -85,7 +85,10 @@ async function runRgpRobot(req, res) {
       }
 
       // Extração da autuação
-      const caminhoPDF = arquivos[0].path;
+      const pasta = path.dirname(arquivos[0].path);
+      const caminhoPDF = path.join(pasta, 'autuacao.pdf');
+      fs.renameSync(arquivos[0].path, caminhoPDF);
+      
       const textoPDF = await extractText(caminhoPDF);
       log('📄 Texto da autuação capturado');
 
@@ -165,6 +168,7 @@ async function runRgpRobot(req, res) {
       if (browser) await browser.close();
       res.end('</pre><h3 style="color:red">❌ Erro no robô RGP.</h3>');
     } finally {
+    if (fs.existsSync(caminhoPDF)) fs.unlinkSync(caminhoPDF);
       releaseLock();
     }
   }, 60000);
