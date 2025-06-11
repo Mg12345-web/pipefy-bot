@@ -43,7 +43,6 @@ async function runClientRobot(req, res) {
   const emailManual = req.body?.email || '';
   const telefoneManual = req.body?.telefone || '';
 
-  // Arquivos com nomes fixos
   const caminhoProcuracao = path.resolve(__dirname, '../uploads/procuracao.pdf');
   const caminhoCnh = path.resolve(__dirname, '../uploads/cnh.pdf');
   const caminhoContrato = path.resolve(__dirname, '../uploads/contrato.pdf');
@@ -88,56 +87,69 @@ async function runClientRobot(req, res) {
         log(`⚠️ Campo não encontrado: ${campo}`);
       }
     }
-    
-   // Envio de arquivos com nomes fixos
+
+    // ✅ Upload robusto de arquivos
     const anexos = [caminhoCnh, caminhoProcuracao, caminhoContrato].filter(fs.existsSync);
     for (const caminho of anexos) {
       const botao = await page.locator('button[data-testid="attachments-dropzone-button"]').first();
+      await botao.waitFor({ state: 'visible', timeout: 5000 });
+
       const [fileChooser] = await Promise.all([
         page.waitForEvent('filechooser'),
         botao.click()
       ]);
       await fileChooser.setFiles(caminho);
-      await page.waitForTimeout(1500);
-      log(`📎 Anexo enviado: ${path.basename(caminho)}`);
+      await page.waitForTimeout(2000);
+
+      const nomeArquivo = path.basename(caminho);
+      const sucesso = await page.locator(`text="${nomeArquivo}"`).first().isVisible({ timeout: 5000 });
+
+      if (sucesso) {
+        log(`✅ Upload concluído: ${nomeArquivo}`);
+      } else {
+        log(`⚠️ Upload pode ter falhado: ${nomeArquivo}`);
+      }
     }
 
+    // ✅ Criação do card
     log('✅ Criando registro...');
+    const botoes = await page.$$('button');
+    let botaoClicado = false;
 
-// ✅ Encontra o botão correto com base no texto e tamanho
-const botoes = await page.$$('button');
-let botaoClicado = false;
+    for (let i = 0; i < botoes.length; i++) {
+      const texto = await botoes[i].innerText();
+      const box = await botoes[i].boundingBox();
 
-for (let i = 0; i < botoes.length; i++) {
-  const texto = await botoes[i].innerText();
-  const box = await botoes[i].boundingBox();
+      if (texto.trim() === 'Criar registro' && box && box.width > 200) {
+        await botoes[i].scrollIntoViewIfNeeded();
+        await botoes[i].click();
+        log('✅ Botão clicado: Criar registro');
+        botaoClicado = true;
+        break;
+      }
+    }
 
-  if (texto.trim() === 'Criar registro' && box && box.width > 200) {
-    await botoes[i].scrollIntoViewIfNeeded();
-    await botoes[i].click();
-    log('✅ Registro de cliente criado');
-    botaoClicado = true;
-    break;
-  }
-}
+    if (!botaoClicado) {
+      log('⛔ Nenhum botão visível com texto "Criar registro" foi clicado.');
+    } else {
+      try {
+        await page.waitForSelector('div[role="dialog"]', { state: 'detached', timeout: 10000 });
+        log('✅ Modal fechado. Registro presumidamente criado.');
+      } catch {
+        log('⚠️ Modal não fechou. Pode ter ocorrido falha silenciosa.');
+      }
+    }
 
-if (!botaoClicado) {
-  log('⛔ Nenhum botão visível com texto "Criar registro" foi clicado.');
-}
+    // ✅ Salvando print final
+    const printPath = path.resolve(__dirname, '../../prints/print_final_clientes.png');
+    if (!fs.existsSync(path.dirname(printPath))) {
+      fs.mkdirSync(path.dirname(printPath), { recursive: true });
+    }
+    await page.screenshot({ path: printPath });
+    log(`📸 Print salvo como ${path.basename(printPath)}`);
 
-await page.screenshot({ path: 'print_final_clientes.png' });
-await browser.close();
-res.end('</pre><h3>✅ Cadastro de cliente concluído!</h3><p><a href="/">⬅️ Voltar</a></p>');
-
-const printPath = path.resolve(__dirname, '../../prints/print_final_clientes.png');
-if (!fs.existsSync(path.dirname(printPath))) {
-  fs.mkdirSync(path.dirname(printPath), { recursive: true });
-}
-await page.screenshot({ path: printPath });
-log(`📸 Print salvo como ${path.basename(printPath)}`);
-
-await browser.close();
-res.end('</pre><h3>✅ Cadastro de cliente concluído!</h3><p><a href="/">⬅️ Voltar</a></p>');
+    await browser.close();
+    res.end('</pre><h3>✅ Cadastro de cliente concluído!</h3><p><a href="/">⬅️ Voltar</a></p>');
 
   } catch (err) {
     log(`❌ Erro crítico: ${err.message}`);
