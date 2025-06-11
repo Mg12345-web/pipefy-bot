@@ -65,10 +65,18 @@ const campoAIT = await page.locator('input[placeholder="Digite aqui ..."]').firs
 await campoAIT.scrollIntoViewIfNeeded();
 await campoAIT.click();
 await page.waitForTimeout(1000);
+const printCard = path.resolve('/mnt/data/prints/print_criando_card.jpg');
+await page.screenshot({ path: printCard, type: 'jpeg', quality: 80 });
+log('📸 Print ao criar novo card salvo como print_criando_card.jpg');
+
 
 // Garante que o CRLV fique visível
 await page.keyboard.press('PageDown');
 await page.waitForTimeout(1000);
+const printCard = path.resolve('/mnt/data/prints/print_criando_card.jpg');
+await page.screenshot({ path: printCard, type: 'jpeg', quality: 80 });
+log('📸 Print ao criar novo card salvo como print_criando_card.jpg');
+
 
       // CRLV
 log('🚗 Selecionando CRLV...');
@@ -76,6 +84,10 @@ log('🚗 Selecionando CRLV...');
 // Não clique fora — apenas aguarde o campo de pesquisa aparecer
 await page.waitForTimeout(1000); // pequena pausa
 await page.waitForSelector('input[placeholder*="Pesquisar"]', { timeout: 15000 });
+const printCard = path.resolve('/mnt/data/prints/print_criando_card.jpg');
+await page.screenshot({ path: printCard, type: 'jpeg', quality: 80 });
+log('📸 Print ao criar novo card salvo como print_criando_card.jpg');
+
 
 // Encontra todos os botões "Criar registro"
 const botoesCriar = await page.locator('text=Criar registro');
