@@ -40,19 +40,22 @@ async function runClientRobot(req, res) {
     return res.end('</pre>');
   }
 
-  const arquivos = req.files || {};
   const emailManual = req.body?.email || '';
   const telefoneManual = req.body?.telefone || '';
-  const arquivoProcuracao = arquivos?.procuracao?.[0]?.path;
+
+  // Arquivos com nomes fixos
+  const caminhoProcuracao = path.resolve(__dirname, '../uploads/procuracao.pdf');
+  const caminhoCnh = path.resolve(__dirname, '../uploads/cnh.pdf');
+  const caminhoContrato = path.resolve(__dirname, '../uploads/contrato.pdf');
 
   let browser;
 
   try {
-    if (!arquivoProcuracao || !fs.existsSync(arquivoProcuracao)) {
+    if (!fs.existsSync(caminhoProcuracao)) {
       throw new Error('❌ Arquivo de procuração não encontrado.');
     }
 
-    const dadosExtraidos = await extrairDadosDaProcuracao(arquivoProcuracao);
+    const dadosExtraidos = await extrairDadosDaProcuracao(caminhoProcuracao);
     const dados = {
       ...dadosExtraidos,
       'Email': emailManual,
@@ -85,26 +88,19 @@ async function runClientRobot(req, res) {
         log(`⚠️ Campo não encontrado: ${campo}`);
       }
     }
-
-   // Envio de arquivos CNH + Procuração + Contrato (campo agrupado)
-if (arquivos.cnh && arquivos.procuracao && arquivos.contrato) {
-  const anexos = [
-    arquivos.cnh[0].path,
-    arquivos.procuracao[0].path,
-    arquivos.contrato[0].path
-  ];
-
-  for (const caminho of anexos) {
-    const botao = await page.locator('button[data-testid="attachments-dropzone-button"]').first();
-    const [fileChooser] = await Promise.all([
-      page.waitForEvent('filechooser'),
-      botao.click()
-    ]);
-    await fileChooser.setFiles(caminho);
-    await page.waitForTimeout(1500);
-    log(`📎 Anexo enviado: ${path.basename(caminho)}`);
-  }
-}
+    
+   // Envio de arquivos com nomes fixos
+    const anexos = [caminhoCnh, caminhoProcuracao, caminhoContrato].filter(fs.existsSync);
+    for (const caminho of anexos) {
+      const botao = await page.locator('button[data-testid="attachments-dropzone-button"]').first();
+      const [fileChooser] = await Promise.all([
+        page.waitForEvent('filechooser'),
+        botao.click()
+      ]);
+      await fileChooser.setFiles(caminho);
+      await page.waitForTimeout(1500);
+      log(`📎 Anexo enviado: ${path.basename(caminho)}`);
+    }
 
     log('✅ Criando registro...');
     const botaoCriar = await page.getByText('Criar registro', { exact: true });
