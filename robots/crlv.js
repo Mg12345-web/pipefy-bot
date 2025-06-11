@@ -35,13 +35,18 @@ async function runCrlvRobot(req, res) {
   }
 
   const arquivos = req.files || {};
-  const arquivoCRLV = arquivos?.crlv?.[0]?.path;
+  const arquivoOriginal = arquivos?.crlv?.[0];
 
-  if (!arquivoCRLV || !fs.existsSync(arquivoCRLV)) {
+  if (!arquivoOriginal || !fs.existsSync(arquivoOriginal.path)) {
     log('❌ Arquivo de CRLV não recebido.');
     releaseLock();
     return res.end('</pre><p style="color:red">Arquivo de CRLV ausente.</p>');
   }
+
+ // 🔄 Renomeia o arquivo com nome fixo
+  const pasta = path.dirname(arquivoOriginal.path);
+  const arquivoCRLV = path.join(pasta, 'crlv.pdf');
+  fs.renameSync(arquivoOriginal.path, arquivoCRLV);
 
   let browser;
 
