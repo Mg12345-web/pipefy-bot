@@ -13,6 +13,9 @@ RUN npm install
 # Copia o restante do código-fonte
 COPY . .
 
+# 🔒 Garante que a pasta uploads/ exista
+RUN mkdir -p /app/uploads
+
 # Instala navegadores e dependências do Playwright
 RUN npx playwright install --with-deps
 
@@ -22,5 +25,5 @@ ENV NODE_ENV=production
 # Expõe a porta usada pelo Express
 EXPOSE 8080
 
-# Inicia o app (você pode manter index.js como entrada)
+# Inicia o app
 CMD ["node", "index.js"]
