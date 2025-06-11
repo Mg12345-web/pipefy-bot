@@ -1,26 +1,26 @@
-# Usa a imagem oficial do Playwright na versão 1.52.0 (compatível com seu package.json)
+# Usa a imagem oficial do Playwright na versão compatível com seu projeto
 FROM mcr.microsoft.com/playwright:v1.52.0-jammy
 
 # Define o diretório de trabalho dentro do container
 WORKDIR /app
 
-# Copia apenas os arquivos de dependência primeiro (melhora cache de build)
+# Copia apenas os arquivos de dependência para otimizar cache
 COPY package*.json ./
 
 # Instala as dependências do Node.js
 RUN npm install
 
-# Agora copia todos os arquivos do projeto
+# Copia o restante do código-fonte
 COPY . .
 
-# Instala os navegadores do Playwright e dependências extras do sistema
+# Instala navegadores e dependências do Playwright
 RUN npx playwright install --with-deps
 
-# Define a variável de ambiente (opcional, útil em produção)
+# Variável de ambiente para produção
 ENV NODE_ENV=production
 
-# Expõe a porta do Express (servidor local)
+# Expõe a porta usada pelo Express
 EXPOSE 8080
 
-# Comando padrão para iniciar o servidor
+# Inicia o app (você pode manter index.js como entrada)
 CMD ["node", "index.js"]
