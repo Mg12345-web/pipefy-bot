@@ -60,9 +60,13 @@ await page.getByText('143.461.936-25', { exact: false }).first().click();
 log('✅ Cliente selecionado');
 await page.waitForTimeout(1000);
      
-      // Fecha a janela flutuante clicando em um elemento visível do formulário
-await page.getByText('Cliente', { exact: false }).click();
+// Clica em um campo seguro (AIT) para remover a janela flutuante do cliente
+const campoAIT = await page.locator('input[placeholder="Digite aqui ..."]').first();
+await campoAIT.scrollIntoViewIfNeeded();
+await campoAIT.click();
 await page.waitForTimeout(1000);
+
+// Garante que o CRLV fique visível
 await page.keyboard.press('PageDown');
 await page.waitForTimeout(1000);
 
