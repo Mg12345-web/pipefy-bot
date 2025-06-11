@@ -95,11 +95,11 @@ if (total >= 2) {
 }
 
 // 📸 Salva print de debug da tela após clicar em CRLV
-const debugPath = path.resolve(__dirname, '../../prints/print_crlv_debug.png');
+const debugPath = path.resolve(__dirname, '../../prints/print_crlv_debug.jpg');
 if (!fs.existsSync(path.dirname(debugPath))) {
   fs.mkdirSync(path.dirname(debugPath), { recursive: true });
 }
-await page.screenshot({ path: debugPath });
+await page.screenshot({ path: debugPath, type: 'jpeg', quality: 80 });
 log(`📸 Print de debug salvo como ${path.basename(debugPath)}`);
 
 // Aguarda o campo de pesquisa
