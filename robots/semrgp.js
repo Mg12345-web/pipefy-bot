@@ -4,18 +4,26 @@ const fs = require('fs');
 const { acquireLock, releaseLock } = require('../utils/lock');
 const { loginPipefy } = require('../utils/auth');
 const { extractText } = require('../utils/extractText');
-const { baixarArquivo } = require('../utils/downloads');
 
 async function runSemRgpRobot(req, res) {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.write('<pre>⏳ Aguardando 1 minuto para iniciar o robô SEM RGP...\n');
 
   const log = msg => { res.write(msg + '\n'); console.log(msg); };
-  if (!acquireLock()) { log('⛔ Robô já está em execução.'); return res.end('</pre>'); }
 
-  let browser, page, debugPath;
+  if (!acquireLock()) {
+    log('⛔ Robô já está em execução.');
+    return res.end('</pre>');
+  }
+
   const arquivos = req.files?.autuacoes || [];
-  if (!arquivos.length) { log('❌ Nenhum arquivo de autuação recebido.'); return res.end('</pre>'); }
+  if (!arquivos.length) {
+    log('❌ Nenhum arquivo de autuação recebido.');
+    releaseLock();
+    return res.end('</pre>');
+  }
+
+  let browser, page;
 
   setTimeout(async () => {
     try {
@@ -48,7 +56,7 @@ async function runSemRgpRobot(req, res) {
       log('✅ Cliente selecionado');
 
       // Selecionar CRLV
-      log('🚗 Preparando CRLV...');
+      log('🚗 Selecionando CRLV...');
       const campoEstavel = page.locator('input[placeholder="Digite aqui ..."]').first();
       await campoEstavel.scrollIntoViewIfNeeded();
       await campoEstavel.click();
@@ -56,11 +64,8 @@ async function runSemRgpRobot(req, res) {
       await page.keyboard.press('PageDown');
       await page.waitForTimeout(1000);
 
-      log('🚗 Selecionando CRLV...');
       const botoesCriar = await page.locator('text=Criar registro');
-      const total = await botoesCriar.count();
-      log(`🧩 ${total} botões 'Criar registro' encontrados`);
-      if (total >= 2) {
+      if ((await botoesCriar.count()) >= 2) {
         const botaoCRLV = botoesCriar.nth(1);
         const box = await botaoCRLV.boundingBox();
         if (!box || box.width === 0) throw new Error('❌ Botão CRLV invisível!');
@@ -68,7 +73,9 @@ async function runSemRgpRobot(req, res) {
         await page.waitForTimeout(1000);
         await botaoCRLV.click();
         log('✅ Botão CRLV clicado');
-      } else throw new Error('❌ Botão CRLV não encontrado');
+      } else {
+        throw new Error('❌ Botão CRLV não encontrado');
+      }
 
       try {
         await page.waitForSelector('input[placeholder*="Pesquisar"]', { timeout: 15000 });
@@ -96,34 +103,26 @@ async function runSemRgpRobot(req, res) {
       log(`🧾 AIT=${ait} | Órgão=${orgao}`);
 
       // Preenchimento
-      try {
-        const inputs = await page.locator('input[placeholder="Digite aqui ..."]');
-        if (ait) { await inputs.nth(0).fill(ait); log('✅ AIT preenchido'); }
-        if (orgao) { await inputs.nth(1).fill(orgao); log('✅ Órgão preenchido'); }
-      } catch (e) {
-        log(`❌ Erro preenchendo AIT/Órgão: ${e.message}`);
-      }
+      const inputs = await page.locator('input[placeholder="Digite aqui ..."]');
+      if (ait) { await inputs.nth(0).fill(ait); log('✅ AIT preenchido'); }
+      if (orgao) { await inputs.nth(1).fill(orgao); log('✅ Órgão preenchido'); }
 
       // Prazo para Protocolo
       log('📆 Preenchendo campo "Prazo para Protocolo"...');
-      try {
-        const df = [
-          '[data-testid="day-input"]',
-          '[data-testid="month-input"]',
-          '[data-testid="year-input"]',
-          '[data-testid="hour-input"]',
-          '[data-testid="minute-input"]'
-        ];
-        const val = ['09','06','2025','08','00'];
-        for (let i=0; i<df.length; i++) {
-          const el = await page.locator(df[i]).first();
-          await el.click();
-          await page.keyboard.type(val[i], { delay: 100 });
-        }
-        log('✅ Prazo preenchido');
-      } catch (e) {
-        log('❌ Falha preenchimento prazo: ' + e.message);
+      const df = [
+        '[data-testid="day-input"]',
+        '[data-testid="month-input"]',
+        '[data-testid="year-input"]',
+        '[data-testid="hour-input"]',
+        '[data-testid="minute-input"]'
+      ];
+      const val = ['09','06','2025','08','00'];
+      for (let i = 0; i < df.length; i++) {
+        const el = await page.locator(df[i]).first();
+        await el.click();
+        await page.keyboard.type(val[i], { delay: 100 });
       }
+      log('✅ Prazo preenchido');
 
       // Upload da autuação
       const botaoUpload = await page.locator('button[data-testid="attachments-dropzone-button"]').last();
@@ -146,19 +145,18 @@ async function runSemRgpRobot(req, res) {
           break;
         }
       }
-      debugPath = path.resolve(__dirname, '../../prints/print_final_semrgp_debug.jpg');
-      await page.screenshot({ path: debugPath });
-      log('📸 Debug final gerado');
 
-      const finalPrint = path.resolve(__dirname, '../../prints/print_final_Semrgp.png');
-      fs.mkdirSync(path.dirname(finalPrint), { recursive: true });
-      await page.screenshot({ path: finalPrint });
-      log('📸 Print final salvo');
+      const printPath = path.resolve(__dirname, '../../prints/print_final_semrgp.png');
+      fs.mkdirSync(path.dirname(printPath), { recursive: true });
+      await page.screenshot({ path: printPath });
 
+      log(`📸 Print final salvo: ${path.basename(printPath)}`);
       await browser.close();
-      const base64dbg = fs.readFileSync(debugPath).toString('base64');
-      res.write(`<img src="data:image/jpeg;base64,${base64dbg}" style="max-width:100%">`);
-      res.end(`</pre><h3>✅ Processo Sem RGP concluído com sucesso</h3><p><a href="/">⬅️ Voltar</a></p>`);
+
+      const img = fs.readFileSync(printPath).toString('base64');
+      res.write(`<img src="data:image/png;base64,${img}" style="max-width:100%">`);
+      res.end('</pre><h3>✅ Processo Sem RGP concluído com sucesso</h3><p><a href="/">⬅️ Voltar</a></p>');
+
     } catch (err) {
       log(`❌ Erro crítico: ${err.message}`);
       if (page) {
