@@ -1,32 +1,35 @@
-# Usa a imagem oficial do Playwright na versão compatível com seu projeto
+# Usa a imagem base do Playwright com Ubuntu Jammy
 FROM mcr.microsoft.com/playwright:v1.52.0-jammy
 
-# Define o diretório de trabalho dentro do container
+# Define diretório de trabalho
 WORKDIR /app
 
-# Instala o GraphicsMagick e ImageMagick (necessários para OCR de PDFs com imagem)
-RUN apt-get update && apt-get install -y graphicsmagick imagemagick
-
-# Copia apenas os arquivos de dependência para otimizar cache
+# Copia arquivos de dependência e instala as libs do sistema
 COPY package*.json ./
 
-# Instala as dependências do Node.js
+# 🛠️ Instala dependências do sistema (incluindo GraphicsMagick e ImageMagick)
+RUN apt-get update && apt-get install -y \
+  graphicsmagick \
+  imagemagick \
+  && rm -rf /var/lib/apt/lists/*
+
+# Instala dependências Node.js
 RUN npm install
 
-# Copia o restante do código-fonte
+# Copia restante do projeto
 COPY . .
 
-# Garante que a pasta de uploads exista
+# Garante que a pasta uploads/ existe
 RUN mkdir -p /app/uploads
 
-# Instala navegadores e dependências do Playwright
+# Instala navegadores do Playwright
 RUN npx playwright install --with-deps
 
-# Variável de ambiente para produção
+# Define ambiente de produção
 ENV NODE_ENV=production
 
-# Expõe a porta usada pelo Express
+# Expõe porta usada pelo Express
 EXPOSE 8080
 
-# Inicia o app
+# Comando padrão
 CMD ["node", "index.js"]
