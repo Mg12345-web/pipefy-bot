@@ -108,22 +108,26 @@ async function runClientRobot(req, res) {
 const botoes = await page.$$('button');
 let botaoClicado = false;
 
-for (const btn of botoes) {
-  const texto = await btn.innerText();
-  const visivel = await btn.isVisible();
-  const cor = await btn.evaluate(el => getComputedStyle(el).backgroundColor);
+for (let i = 0; i < botoes.length; i++) {
+  const texto = await botoes[i].innerText();
+  const box = await botoes[i].boundingBox();
 
-  if (
-    texto.trim().toLowerCase().includes('criar registro') &&
-    visivel &&
-    (cor.includes('rgb(0, 102, 255)') || cor.includes('rgb(0, 123, 255)'))
-  ) {
-    await btn.click();
-    log('✅ Botão correto clicado');
+  if (texto.trim() === 'Criar registro' && box && box.width > 200) {
+    await botoes[i].scrollIntoViewIfNeeded();
+    await botoes[i].click();
+    log('✅ Registro de cliente criado');
     botaoClicado = true;
     break;
   }
 }
+
+if (!botaoClicado) {
+  log('⛔ Nenhum botão visível com texto "Criar registro" foi clicado.');
+}
+
+await page.screenshot({ path: 'print_final_clientes.png' });
+await browser.close();
+res.end('</pre><h3>✅ Cadastro de cliente concluído!</h3><p><a href="/">⬅️ Voltar</a></p>');
 
 if (!botaoClicado) {
   log('⛔ Nenhum botão "Criar registro" visível e azul encontrado.');
