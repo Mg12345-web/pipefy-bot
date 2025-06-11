@@ -79,9 +79,17 @@ const total = await botoesCriar.count();
 log(`🧩 Encontrados ${total} botões 'Criar registro'`);
 
 if (total >= 2) {
-  await botoesCriar.nth(1).scrollIntoViewIfNeeded();
-  await botoesCriar.nth(1).click();
-  log('✅ Botão "Criar registro" do CRLV clicado');
+  const botaoCRLV = botoesCriar.nth(1);
+  const box = await botaoCRLV.boundingBox();
+
+  if (box && box.width > 0 && box.height > 0) {
+    await botaoCRLV.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(500);
+    await botaoCRLV.click({ force: true }); // 🔧 clique forçado
+    log('✅ Botão "Criar registro" do CRLV clicado com sucesso');
+  } else {
+    throw new Error('❌ Botão do CRLV está invisível ou bloqueado!');
+  }
 } else {
   throw new Error('❌ Botão de CRLV não encontrado!');
 }
