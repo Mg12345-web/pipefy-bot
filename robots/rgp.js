@@ -4,7 +4,6 @@ const fs = require('fs');
 const { acquireLock, releaseLock } = require('../utils/lock');
 const { loginPipefy } = require('../utils/auth');
 const { extractText } = require('../utils/extractText');
-const { baixarArquivo } = require('../utils/downloads');
 
 async function runRgpRobot(req, res) {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -13,9 +12,10 @@ async function runRgpRobot(req, res) {
   const log = msg => { res.write(msg + '\n'); console.log(msg); };
   if (!acquireLock()) { log('⛔ Robô já está em execução.'); return res.end('</pre>'); }
 
-  let browser, page, debugPath;
   const arquivos = req.files?.autuacoes || [];
-  if (!arquivos.length) { log('❌ Nenhum arquivo de autuação recebido.'); return res.end('</pre>'); }
+  if (!arquivos.length) { log('❌ Nenhum arquivo de autuação recebido.'); releaseLock(); return res.end('</pre>'); }
+
+  let browser, page;
 
   setTimeout(async () => {
     try {
@@ -38,7 +38,7 @@ async function runRgpRobot(req, res) {
       await page.locator('span:text("Create new card")').first().click();
       await page.waitForTimeout(3000);
 
-      // Cliente
+      // Selecionar cliente
       log('👤 Selecionando cliente...');
       await page.locator('div:has-text("Cliente") >> :text("Criar registro")').first().click();
       await page.locator('input[placeholder*="Pesquisar"]').fill('143.461.936-25');
@@ -58,9 +58,7 @@ async function runRgpRobot(req, res) {
       // Selecionar CRLV
       log('🚗 Selecionando CRLV...');
       const botoesCriar = await page.locator('text=Criar registro');
-      const total = await botoesCriar.count();
-      log(`🧩 ${total} botões 'Criar registro' encontrados`);
-      if (total >= 2) {
+      if ((await botoesCriar.count()) >= 2) {
         const botaoCRLV = botoesCriar.nth(1);
         const box = await botaoCRLV.boundingBox();
         if (!box || box.width === 0) throw new Error('❌ Botão CRLV invisível!');
@@ -114,7 +112,7 @@ async function runRgpRobot(req, res) {
           '[data-testid="minute-input"]'
         ];
         const val = ['09','06','2025','08','00'];
-        for (let i=0; i<df.length; i++) {
+        for (let i = 0; i < df.length; i++) {
           const el = await page.locator(df[i]).first();
           await el.click();
           await page.keyboard.type(val[i], { delay: 100 });
@@ -125,6 +123,7 @@ async function runRgpRobot(req, res) {
       }
 
       // Anexar autuação
+      log('📎 Anexando arquivo...');
       const botaoUpload = await page.locator('button[data-testid="attachments-dropzone-button"]').last();
       await botaoUpload.scrollIntoViewIfNeeded();
       const [fileChooser] = await Promise.all([page.waitForEvent('filechooser'), botaoUpload.click()]);
@@ -145,9 +144,6 @@ async function runRgpRobot(req, res) {
           break;
         }
       }
-      debugPath = path.resolve(__dirname, '../../prints/print_final_rgp_debug.jpg');
-      await page.screenshot({ path: debugPath });
-      log('📸 Debug final gerado');
 
       const finalPrint = path.resolve(__dirname, '../../prints/print_final_rgp.png');
       fs.mkdirSync(path.dirname(finalPrint), { recursive: true });
@@ -155,9 +151,8 @@ async function runRgpRobot(req, res) {
       log('📸 Print final salvo');
 
       await browser.close();
-      const base64dbg = fs.readFileSync(debugPath).toString('base64');
-      res.write(`<img src="data:image/jpeg;base64,${base64dbg}" style="max-width:100%">`);
       res.end('</pre><h3>✅ Processo RGP concluído com sucesso</h3><p><a href="/">⬅️ Voltar</a></p>');
+
     } catch (err) {
       log(`❌ Erro crítico: ${err.message}`);
       if (page) {
