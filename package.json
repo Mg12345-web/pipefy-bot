@@ -13,7 +13,7 @@
   "playwright": "^1.52.0",
   "pdf-parse": "^1.1.1",
   "tesseract.js": "^4.0.2",
-  "pdf2pic": "^4.0.0" 
+  "pdf2pic": "^3.0.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
