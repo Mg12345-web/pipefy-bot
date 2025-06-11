@@ -20,6 +20,8 @@ async function runRgpRobot(req, res) {
   }
 
   let browser;
+  let page;
+  let debugPath;
 
   setTimeout(async () => {
     try {
@@ -29,7 +31,7 @@ async function runRgpRobot(req, res) {
 });
 
       const context = await browser.newContext();
-      const page = await context.newPage();
+      page = await context.newPage(); // usa a variável global
 
       await loginPipefy(page, log);
 
@@ -213,7 +215,8 @@ try {
     }
   }
 
-  await page.screenshot({ path: printFinalCRLV });
+  debugPath = path.resolve(__dirname, '../../prints/print_final_rgp_debug.jpg');
+await page.screenshot({ path: debugPath });
   log('📸 Print final do CRLV salvo como print_final_crlv_semrgp.png');
 } catch (e) {
   log('❌ Erro ao finalizar o card ou tirar print');
@@ -246,15 +249,14 @@ res.end('</pre><h3>✅ Processo RGP concluído com sucesso</h3><p><a href="/">�
 
   try {
     if (page) {
-      await page.screenshot({ path: erroPath, type: 'jpeg', quality: 80 });
-      log(`📸 Print de erro salvo como ${path.basename(erroPath)}`);
-
-      const base64Erro = fs.readFileSync(erroPath).toString('base64');
-      res.write(`<h3>🖼️ Print do erro (JPG):</h3>`);
-      res.write(`<img src="data:image/jpeg;base64,${base64Erro}" style="max-width:100%; border:1px solid #ccc;">`);
-    } else {
-      log('⚠️ Página não estava disponível para capturar print.');
-    }
+  const erroPath = path.resolve(__dirname, '../../prints/print_erro_debug.jpg');
+  await page.screenshot({ path: erroPath, type: 'jpeg', quality: 80 });
+  const base64Erro = fs.readFileSync(erroPath).toString('base64');
+  res.write(`<h3>🖼️ Print do erro (JPG):</h3>`);
+  res.write(`<img src="data:image/jpeg;base64,${base64Erro}" style="max-width:100%; border:1px solid #ccc;">`);
+} else {
+  log('⚠️ Página não estava disponível para capturar print.');
+}
   } catch (e) {
     log('⚠️ Falha ao gerar ou exibir o print de erro.');
   }
