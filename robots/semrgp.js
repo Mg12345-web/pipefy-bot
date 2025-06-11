@@ -17,11 +17,13 @@ async function runSemRgpRobot(req, res) {
   }
 
   const arquivos = req.files?.autuacoes || [];
-  if (!arquivos.length) {
-    log('❌ Nenhum arquivo de autuação recebido.');
-    releaseLock();
-    return res.end('</pre>');
-  }
+if (!arquivos.length) {
+  log('❌ Nenhum arquivo de autuação recebido.');
+  releaseLock();
+  return res.end('</pre>');
+}
+
+const caminhoPDF = arquivos[0].path;
 
   let browser, page;
 
@@ -169,8 +171,9 @@ async function runSemRgpRobot(req, res) {
       if (browser) await browser.close();
       res.end('</pre><h3 style="color:red">❌ Erro no robô Sem RGP.</h3>');
     } finally {
-      releaseLock();
-    }
+    if (fs.existsSync(caminhoPDF)) fs.unlinkSync(caminhoPDF);
+    releaseLock();
+}
   }, 60000);
 }
 
