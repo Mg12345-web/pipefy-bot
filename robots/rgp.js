@@ -69,22 +69,42 @@ await page.waitForTimeout(1000);
       // CRLV
 log('🚗 Selecionando CRLV...');
 
-const botaoCRLV = await page.locator('text=Criar registro').nth(1);
-await botaoCRLV.scrollIntoViewIfNeeded();
-await botaoCRLV.click(); // mantenha o click simples
-
+// Garante que a tela flutuante do cliente foi fechada
+await page.mouse.click(100, 400);
 await page.waitForTimeout(1000);
 
-// Preenche o campo de busca com a placa
+// Encontra todos os botões "Criar registro"
+const botoesCriar = await page.locator('text=Criar registro');
+const total = await botoesCriar.count();
+log(`🧩 Encontrados ${total} botões 'Criar registro'`);
+
+if (total >= 2) {
+  await botoesCriar.nth(1).scrollIntoViewIfNeeded();
+  await botoesCriar.nth(1).click();
+  log('✅ Botão "Criar registro" do CRLV clicado');
+} else {
+  throw new Error('❌ Botão de CRLV não encontrado!');
+}
+
+// 📸 Salva print de debug da tela após clicar em CRLV
+const debugPath = path.resolve(__dirname, '../../prints/print_crlv_debug.png');
+if (!fs.existsSync(path.dirname(debugPath))) {
+  fs.mkdirSync(path.dirname(debugPath), { recursive: true });
+}
+await page.screenshot({ path: debugPath });
+log(`📸 Print de debug salvo como ${path.basename(debugPath)}`);
+
+// Aguarda o campo de pesquisa
+await page.waitForSelector('input[placeholder*="cards pelo título"]', { timeout: 15000 });
 await page.locator('input[placeholder*="cards pelo título"]').fill('OPB3D62');
 await page.waitForTimeout(1500);
 
-// Aguarda a opção aparecer e seleciona
-await page.waitForSelector('div:has-text("OPB3D62")', { timeout: 10000 });
-await page.getByText('OPB3D62', { exact: false }).first().click();
+const opcaoCRLV = await page.getByText('OPB3D62', { exact: false }).first();
+await opcaoCRLV.scrollIntoViewIfNeeded();
+await page.waitForTimeout(500);
+await opcaoCRLV.click();
 
 log('✅ CRLV selecionado com sucesso');
-await page.waitForTimeout(1000);
 
       // OBSERVAÇÃO
       try {
@@ -187,7 +207,13 @@ try {
       log(`📸 Print salvo como ${path.basename(caminhoPrint)}`);
 
       await browser.close();
-      res.end('</pre><h3>✅ Processo RGP concluído com sucesso</h3><p><a href="/">⬅️ Voltar</a></p>');
+
+// 🖼️ Mostra print de debug no navegador
+const base64debug = fs.readFileSync(debugPath).toString('base64');
+res.write('<h3>🖼️ Tela após clicar em CRLV:</h3>');
+res.write(`<img src="data:image/png;base64,${base64debug}" style="max-width:100%; border:1px solid #ccc;">`);
+
+res.end('</pre><h3>✅ Processo RGP concluído com sucesso</h3><p><a href="/">⬅️ Voltar</a></p>');
 
     } catch (err) {
       log(`❌ Erro crítico: ${err.message}`);
