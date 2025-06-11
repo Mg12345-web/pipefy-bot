@@ -74,6 +74,7 @@ await page.waitForTimeout(1000);
 log('🚗 Selecionando CRLV...');
 
 // Não clique fora — apenas aguarde o campo de pesquisa aparecer
+await page.waitForTimeout(1000); // pequena pausa
 await page.waitForSelector('input[placeholder*="Pesquisar"]', { timeout: 15000 });
 
 // Encontra todos os botões "Criar registro"
@@ -268,8 +269,16 @@ res.end('</pre><h3>✅ Processo RGP concluído com sucesso</h3><p><a href="/">�
     log('⚠️ Falha ao gerar ou exibir o print de erro.');
   }
 
-  if (browser) await browser.close();
-  res.end('</pre><p style="color:red"><b>❌ Erro ao executar robô RGP.</b></p>');
+  if (page) {
+  const erroPath = path.resolve(__dirname, '../../prints/print_erro_debug.jpg');
+  await page.screenshot({ path: erroPath, type: 'jpeg', quality: 80 });
+  const base64Erro = fs.readFileSync(erroPath).toString('base64');
+  res.write(`<h3>🖼️ Print do erro (JPG):</h3>`);
+  res.write(`<img src="data:image/jpeg;base64,${base64Erro}" style="max-width:100%; border:1px solid #ccc;">`);
+}
+if (browser) await browser.close();
+res.end('</pre><p style="color:red"><b>❌ Erro ao executar robô RGP.</b></p>');
+
 }
 finally {
   releaseLock();
