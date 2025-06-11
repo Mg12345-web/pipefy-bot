@@ -8,6 +8,10 @@ const { runSemRgpRobot } = require('./semrgp');
 let fila = [];
 let emExecucao = false;
 
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 function addToQueue(tarefa) {
   fila.push(tarefa);
   console.log(`📥 Tarefa adicionada à fila. Total na fila: ${fila.length}`);
@@ -39,6 +43,7 @@ async function processarTarefa(tarefa) {
   try {
     console.log('\n📌 Executando robô de CLIENTES...');
     await runClientRobot(req, fakeRes);
+    await aguardarEstabilizacao('CLIENTES');
   } catch (err) {
     console.error('❌ Erro no robô de CLIENTES:', err.message);
   }
@@ -47,6 +52,7 @@ async function processarTarefa(tarefa) {
   try {
     console.log('\n📌 Executando robô de CRLV...');
     await runCrlvRobot(req, fakeRes);
+    await aguardarEstabilizacao('CRLV');
   } catch (err) {
     console.error('❌ Erro no robô de CRLV:', err.message);
   }
@@ -63,9 +69,11 @@ async function processarTarefa(tarefa) {
       if (tipo === 'RGP') {
         console.log('\n📌 Executando robô de RGP...');
         await runRgpRobot(fakeReq, fakeRes);
+        await aguardarEstabilizacao('RGP');
       } else if (tipo === 'Sem RGP') {
         console.log('\n📌 Executando robô de Sem RGP...');
         await runSemRgpRobot(fakeReq, fakeRes);
+        await aguardarEstabilizacao('Sem RGP');
       } else {
         console.warn(`⚠️ Tipo desconhecido de autuação: ${tipo}`);
       }
@@ -83,6 +91,13 @@ function criarRespostaSimples() {
     write: (msg) => console.log('[LOG]', msg),
     end: (html) => html && console.log('[FIM]', html)
   };
+}
+
+// 🧠 Aguarda tempo fixo + simulação de verificação visual
+async function aguardarEstabilizacao(contexto) {
+  console.log(`⏳ Aguardando 30 segundos após o robô de ${contexto}...`);
+  await delay(30000);
+  console.log(`✅ Tempo de estabilização concluído para ${contexto}.\n`);
 }
 
 module.exports = { addToQueue, startQueue };
