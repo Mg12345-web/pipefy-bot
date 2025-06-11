@@ -4,6 +4,7 @@ const fs = require('fs');
 const { acquireLock, releaseLock } = require('../utils/lock');
 const { loginPipefy } = require('../utils/auth');
 const { extractText } = require('../utils/extractText');
+const { baixarArquivo } = require('../utils/downloads');
 
 async function runRgpRobot(req, res) {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
