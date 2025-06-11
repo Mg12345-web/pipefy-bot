@@ -69,9 +69,8 @@ await page.waitForTimeout(1000);
       // CRLV
 log('🚗 Selecionando CRLV...');
 
-// Garante que a tela flutuante do cliente foi fechada
-await page.mouse.click(100, 400);
-await page.waitForTimeout(1000);
+// Não clique fora — apenas aguarde o campo de pesquisa aparecer
+await page.waitForSelector('input[placeholder*="Pesquisar"]', { timeout: 15000 });
 
 // Encontra todos os botões "Criar registro"
 const botoesCriar = await page.locator('text=Criar registro');
