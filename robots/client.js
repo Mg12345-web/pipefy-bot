@@ -4,6 +4,7 @@ const fs = require('fs');
 const pdfParse = require('pdf-parse');
 const { acquireLock, releaseLock } = require('../utils/lock');
 const { loginPipefy } = require('../utils/auth');
+const { baixarArquivo } = require('../utils/downloads');
 
 // 🔍 Função para extrair os dados da procuração
 const { extractText } = require('../utils/extractText');
