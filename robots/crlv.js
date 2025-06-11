@@ -4,7 +4,6 @@ const fs = require('fs');
 const { acquireLock, releaseLock } = require('../utils/lock');
 const { loginPipefy } = require('../utils/auth');
 const { extractText } = require('../utils/extractText');
-const { baixarArquivo } = require('../utils/downloads');
 
 async function extrairDadosDoCrlv(caminhoArquivo) {
   const texto = await extractText(caminhoArquivo);
@@ -17,7 +16,7 @@ async function extrairDadosDoCrlv(caminhoArquivo) {
     'Placa': placa || '',
     'CHASSI': chassi || '',
     'RENAVAM': renavam || '',
-    'Estado de emplacamento': 'MG' // padrão ou detectável futuramente
+    'Estado de emplacamento': 'MG'
   };
 }
 
@@ -35,16 +34,19 @@ async function runCrlvRobot(req, res) {
     return res.end('</pre>');
   }
 
+  const arquivos = req.files || {};
+  const arquivoCRLV = arquivos?.crlv?.[0]?.path;
+
+  if (!arquivoCRLV || !fs.existsSync(arquivoCRLV)) {
+    log('❌ Arquivo de CRLV não recebido.');
+    releaseLock();
+    return res.end('</pre><p style="color:red">Arquivo de CRLV ausente.</p>');
+  }
+
   let browser;
-  const localPath = path.resolve(__dirname, 'crlv_temp.pdf');
 
   try {
-    // ⬇️ DOWNLOAD do arquivo do formulário
-    const urlArquivo = req.body?.arquivoUrl || 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
-    await baixarArquivo(urlArquivo, localPath);
-
-    // ⬇️ EXTRAI dados do CRLV
-    const dados = await extrairDadosDoCrlv(localPath);
+    const dados = await extrairDadosDoCrlv(arquivoCRLV);
     log(`📄 Dados extraídos: ${JSON.stringify(dados, null, 2)}`);
 
     browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
@@ -72,24 +74,13 @@ async function runCrlvRobot(req, res) {
       }
     }
 
-    // 📎 Anexa o CRLV
     log('📎 Anexando arquivo CRLV...');
-    const botoesUpload = await page.locator('button[data-testid="attachments-dropzone-button"]');
-    if ((await botoesUpload.count()) > 0) {
-      const botao = botoesUpload.nth(0);
-      await botao.scrollIntoViewIfNeeded();
-      const [fileChooser] = await Promise.all([
-        page.waitForEvent('filechooser'),
-        botao.click()
-      ]);
-      await fileChooser.setFiles(localPath);
-      await page.waitForTimeout(2000);
-      log('✅ Arquivo anexado com sucesso');
-    } else {
-      log('❌ Botão de upload não encontrado');
-    }
+    const botao = await page.locator('button[data-testid="attachments-dropzone-button"]').first();
+    const [fileChooser] = await Promise.all([page.waitForEvent('filechooser'), botao.click()]);
+    await fileChooser.setFiles(arquivoCRLV);
+    await page.waitForTimeout(2000);
+    log('✅ Arquivo anexado com sucesso');
 
-    // 🟢 Criar registro
     log('✅ Criando registro CRLV...');
     const botoes = await page.$$('button');
     for (const botao of botoes) {
@@ -119,7 +110,7 @@ async function runCrlvRobot(req, res) {
     if (browser) await browser.close();
     res.end('</pre><p style="color:red">Erro crítico no robô de CRLV.</p>');
   } finally {
-    if (fs.existsSync(localPath)) fs.unlinkSync(localPath);
+    if (fs.existsSync(arquivoCRLV)) fs.unlinkSync(arquivoCRLV);
     releaseLock();
   }
 }
