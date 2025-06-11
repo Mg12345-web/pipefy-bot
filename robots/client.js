@@ -1,16 +1,36 @@
 const { chromium } = require('playwright');
 const path = require('path');
+const fs = require('fs');
+const pdfParse = require('pdf-parse');
 const { acquireLock, releaseLock } = require('../utils/lock');
 const { loginPipefy } = require('../utils/auth');
-const { baixarArquivo } = require('../utils/downloads');
-const fs = require('fs');
+
+// 🔍 Função para extrair os dados da procuração
+async function extrairDadosDaProcuracao(caminhoPDF) {
+  const dataBuffer = fs.readFileSync(caminhoPDF);
+  const texto = (await pdfParse(dataBuffer)).text;
+
+  const nome = texto.match(/(?:Nome|NOME):?\s*([A-Z\s]{5,})/)?.[1]?.trim();
+  const cpf = texto.match(/CPF[:\s]*([\d\.\-]{11,})/)?.[1]?.trim();
+  const estadoCivil = texto.match(/Estado Civil:?\s*([A-Za-zçãéíõú\s]+)/i)?.[1]?.trim();
+  const profissao = texto.match(/Profissão:?\s*([A-Za-zçãéíõú\s]+)/i)?.[1]?.trim();
+  const endereco = texto.match(/residente e domiciliado à\s*(.*?CEP.*)/i)?.[1]?.trim();
+
+  return {
+    'Nome Completo': nome || '',
+    'CPF OU CNPJ': cpf || '',
+    'Estado Civil Atual': estadoCivil || '',
+    'Profissão': profissao || '',
+    'Endereço Completo': endereco || ''
+  };
+}
 
 async function runClientRobot(req, res) {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.write('<pre>🧠 Iniciando robô de CLIENTES...\\n');
+  res.write('<pre>🤖 Iniciando robô de CLIENTES...\n');
 
   const log = (msg) => {
-    res.write(`${msg}\\n`);
+    res.write(`${msg}\n`);
     console.log(msg);
   };
 
@@ -19,9 +39,25 @@ async function runClientRobot(req, res) {
     return res.end('</pre>');
   }
 
+  const arquivos = req.files || {};
+  const emailManual = req.body?.email || '';
+  const telefoneManual = req.body?.telefone || '';
+  const arquivoProcuracao = arquivos?.procuracao?.[0]?.path;
+
   let browser;
 
   try {
+    if (!arquivoProcuracao || !fs.existsSync(arquivoProcuracao)) {
+      throw new Error('❌ Arquivo de procuração não encontrado.');
+    }
+
+    const dadosExtraidos = await extrairDadosDaProcuracao(arquivoProcuracao);
+    const dados = {
+      ...dadosExtraidos,
+      'Email': emailManual,
+      'Número de telefone': telefoneManual
+    };
+
     browser = await chromium.launch({
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox']
@@ -38,16 +74,6 @@ async function runClientRobot(req, res) {
     await page.click('button:has-text("Criar registro")');
     await page.waitForTimeout(2000);
 
-    const dados = {
-      'Nome Completo': 'ADRIANO ANTONIO DE SOUZA',
-      'CPF OU CNPJ': '414.746.148-41',
-      'Estado Civil Atual': 'Solteiro',
-      'Profissão': 'Vigilante',
-      'Email': 'jonas1gui@gmail.com',
-      'Número de telefone': '31988429016',
-      'Endereço Completo': 'Rua Luzia de Jesus, 135, Jardim dos Comerciários, Ribeirão das Neves - MG'
-    };
-
     for (const [campo, valor] of Object.entries(dados)) {
       try {
         const labelLocator = page.getByLabel(campo);
@@ -55,77 +81,31 @@ async function runClientRobot(req, res) {
         await labelLocator.fill(valor);
         log(`✅ ${campo} preenchido`);
       } catch {
-        try {
-          const inputPlaceholder = page.locator(`input[placeholder="${campo}"]`);
-          await inputPlaceholder.scrollIntoViewIfNeeded();
-          await inputPlaceholder.fill(valor);
-          log(`✅ ${campo} (placeholder) preenchido`);
-        } catch (erro) {
-          log(`❌ Não foi possível preencher o campo "${campo}": ${erro.message}`);
-        }
+        log(`⚠️ Campo não encontrado: ${campo}`);
       }
     }
 
-    log('📎 Anexando arquivos...');
-    const arquivos = [
-      { url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', nome: 'cnh_teste.pdf' },
-      { url: 'https://www.africau.edu/images/default/sample.pdf', nome: 'proc_teste.pdf' }
-    ];
-
-    for (let i = 0; i < arquivos.length; i++) {
-      const destino = path.resolve(__dirname, arquivos[i].nome);
-      try {
-        await baixarArquivo(arquivos[i].url, destino);
-        const nomeArquivo = path.basename(destino);
-
-        const botoesUpload = await page.locator('button[data-testid="attachments-dropzone-button"]');
-        if (i >= await botoesUpload.count()) {
-          log(`❌ Botão de upload não encontrado para o arquivo ${i + 1}`);
-          continue;
-        }
-
-        const botao = botoesUpload.nth(i);
-        await botao.scrollIntoViewIfNeeded();
-        const [fileChooser] = await Promise.all([
-          page.waitForEvent('filechooser'),
-          botao.click()
-        ]);
-        await fileChooser.setFiles(destino);
-        await page.waitForTimeout(3000);
-
-        const sucesso = await page.locator(`text="${nomeArquivo}"`).first().isVisible({ timeout: 7000 });
-        if (sucesso) {
-          log(`✅ Arquivo ${nomeArquivo} enviado com sucesso`);
-        } else {
-          log(`❌ Falha no upload do arquivo ${nomeArquivo}`);
-        }
-      } catch (err) {
-        log(`❌ Erro ao processar ${arquivos[i].nome}: ${err.message}`);
-      } finally {
-        if (fs.existsSync(destino)) fs.unlinkSync(destino);
+    // Envio de arquivos CNH + procuração (campo agrupado)
+    if (arquivos.cnh && arquivos.procuracao) {
+      const anexos = [arquivos.cnh[0].path, arquivos.procuracao[0].path];
+      for (const caminho of anexos) {
+        const botao = await page.locator('button[data-testid="attachments-dropzone-button"]').first();
+        const [fileChooser] = await Promise.all([page.waitForEvent('filechooser'), botao.click()]);
+        await fileChooser.setFiles(caminho);
+        await page.waitForTimeout(1500);
+        log(`📎 Anexo enviado: ${path.basename(caminho)}`);
       }
     }
 
     log('✅ Criando registro...');
-    const botoes = await page.$$('button');
-    for (let i = 0; i < botoes.length; i++) {
-      const texto = await botoes[i].innerText();
-      const box = await botoes[i].boundingBox();
-      if (texto.trim() === 'Criar registro' && box && box.width > 200) {
-        await botoes[i].scrollIntoViewIfNeeded();
-        await botoes[i].click();
-        log('✅ Registro de cliente criado');
-        break;
-      }
-    }
+    const botaoCriar = await page.getByText('Criar registro', { exact: true });
+    await botaoCriar.scrollIntoViewIfNeeded();
+    await botaoCriar.click();
 
-    log('📸 Salvando print...');
     const printPath = path.resolve(__dirname, '../../prints/print_final_clientes.png');
-    if (!fs.existsSync(path.dirname(printPath))) {
-      fs.mkdirSync(path.dirname(printPath), { recursive: true });
-    }
+    if (!fs.existsSync(path.dirname(printPath))) fs.mkdirSync(path.dirname(printPath), { recursive: true });
     await page.screenshot({ path: printPath });
-    log(`✅ Print salvo como ${path.basename(printPath)}`);
+    log(`📸 Print salvo como ${path.basename(printPath)}`);
 
     await browser.close();
     res.end('</pre><h3>✅ Cadastro de cliente concluído!</h3><p><a href="/">⬅️ Voltar</a></p>');
