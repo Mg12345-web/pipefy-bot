@@ -60,64 +60,41 @@ await page.getByText('143.461.936-25', { exact: false }).first().click();
 log('✅ Cliente selecionado');
 await page.waitForTimeout(1000);
      
-// Clica em um campo seguro (AIT) para remover a janela flutuante do cliente
-const campoAIT = await page.locator('input[placeholder="Digite aqui ..."]').first();
-await campoAIT.scrollIntoViewIfNeeded();
-await campoAIT.click();
+// ✅ Etapa: Fechar janela flutuante e posicionar a tela
+log('🚗 Preparando para selecionar CRLV...');
+
+const campoEstavel = await page.locator('input[placeholder="Digite aqui ..."]').first();
+await campoEstavel.scrollIntoViewIfNeeded();
+await campoEstavel.click();
 await page.waitForTimeout(1000);
-const printCard = path.resolve('/mnt/data/prints/print_criando_card.jpg');
-await page.screenshot({ path: printCard, type: 'jpeg', quality: 80 });
-log('📸 Print ao criar novo card salvo como print_criando_card.jpg');
 
-
-// Garante que o CRLV fique visível
+// Scroll para garantir que a seção CRLV esteja visível
 await page.keyboard.press('PageDown');
 await page.waitForTimeout(1000);
-const printCard = path.resolve('/mnt/data/prints/print_criando_card.jpg');
-await page.screenshot({ path: printCard, type: 'jpeg', quality: 80 });
-log('📸 Print ao criar novo card salvo como print_criando_card.jpg');
 
-
-      // CRLV
+// ✅ Etapa: Selecionar botão "Criar registro" do CRLV
 log('🚗 Selecionando CRLV...');
-
-// Não clique fora — apenas aguarde o campo de pesquisa aparecer
-await page.waitForTimeout(1000); // pequena pausa
-await page.waitForSelector('input[placeholder*="Pesquisar"]', { timeout: 15000 });
-const printCard = path.resolve('/mnt/data/prints/print_criando_card.jpg');
-await page.screenshot({ path: printCard, type: 'jpeg', quality: 80 });
-log('📸 Print ao criar novo card salvo como print_criando_card.jpg');
-
-
-// Encontra todos os botões "Criar registro"
 const botoesCriar = await page.locator('text=Criar registro');
 const total = await botoesCriar.count();
 log(`🧩 Encontrados ${total} botões 'Criar registro'`);
 
 if (total >= 2) {
-  const botaoCRLV = botoesCriar.nth(1);
+  const botaoCRLV = botoesCriar.nth(1); // segundo botão geralmente é o do CRLV
   const box = await botaoCRLV.boundingBox();
 
   if (box && box.width > 0 && box.height > 0) {
     await botaoCRLV.scrollIntoViewIfNeeded();
-    await page.waitForTimeout(500);
-    await botaoCRLV.click({ force: true }); // 🔧 clique forçado
+    await page.waitForTimeout(1000);
+    await botaoCRLV.click();
     log('✅ Botão "Criar registro" do CRLV clicado com sucesso');
   } else {
-    throw new Error('❌ Botão do CRLV está invisível ou bloqueado!');
+    throw new Error('❌ Botão do CRLV invisível ou mal renderizado!');
   }
 } else {
   throw new Error('❌ Botão de CRLV não encontrado!');
 }
 
-// 📸 Salva print de debug da tela após clicar em CRLV
-const debugPath = path.resolve(__dirname, '../../prints/print_crlv_debug.jpg');
-if (!fs.existsSync(path.dirname(debugPath))) {
-  fs.mkdirSync(path.dirname(debugPath), { recursive: true });
-}
-await page.screenshot({ path: debugPath, type: 'jpeg', quality: 80 });
-log(`📸 Print de debug salvo como ${path.basename(debugPath)}`);
-
+// ✅ Etapa: Preencher campo de busca do CRLV
 try {
   await page.waitForSelector('input[placeholder*="Pesquisar"]', { timeout: 15000 });
   await page.locator('input[placeholder*="Pesquisar"]').fill('OPB3D62');
@@ -131,6 +108,7 @@ try {
   log('✅ CRLV selecionado com sucesso');
 } catch (e) {
   log('❌ Campo de pesquisa do CRLV não apareceu ou falhou');
+
   const erroPath = path.resolve(__dirname, '../../prints/print_crlv_erro.jpg');
   if (!fs.existsSync(path.dirname(erroPath))) {
     fs.mkdirSync(path.dirname(erroPath), { recursive: true });
