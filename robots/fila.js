@@ -1,4 +1,3 @@
-// robots/fila.js
 const path = require('path');
 const fs = require('fs');
 const { runClientRobot } = require('./client');
@@ -20,39 +19,62 @@ function startQueue() {
     const tarefa = fila.shift();
     emExecucao = true;
     console.log('🚀 Iniciando tarefa da fila...');
-    processarTarefa(tarefa).then(() => {
-      emExecucao = false;
-    });
-  }, 3000); // verifica a cada 3s
+    processarTarefa(tarefa)
+      .catch(err => console.error('❌ Erro ao processar tarefa:', err))
+      .finally(() => {
+        emExecucao = false;
+      });
+  }, 3000);
 }
 
 async function processarTarefa(tarefa) {
   const fakeRes = criarRespostaSimples();
-  const req = { query: { observacao: 'Cadastro via site' } };
-
-  // Roda robô de cliente
-  req.body = tarefa;
-  req.files = tarefa.arquivos;
-  await runClientRobot(req, fakeRes);
-
-  // Roda robô de CRLV
-  await runCrlvRobot(req, fakeRes);
-
-  // Roda autuações por tipo
-for (const autuacao of tarefa.autuacoes || []) {
-  const fakeReq = {
-    files: { autuacao: [{ path: autuacao.arquivo }] },
-    body: {}
+  const req = {
+    query: { observacao: 'Cadastro via site' },
+    body: tarefa,
+    files: tarefa.arquivos
   };
 
-  if (autuacao.tipo === 'RGP') {
-    await runRgpRobot(fakeReq, fakeRes);
-  } else if (autuacao.tipo === 'Sem RGP') {
-    await runSemRgpRobot(fakeReq, fakeRes);
+  // ✅ CLIENTE
+  try {
+    console.log('\n📌 Executando robô de CLIENTES...');
+    await runClientRobot(req, fakeRes);
+  } catch (err) {
+    console.error('❌ Erro no robô de CLIENTES:', err.message);
   }
-}
 
-  console.log('✅ Tarefa finalizada.');
+  // ✅ CRLV
+  try {
+    console.log('\n📌 Executando robô de CRLV...');
+    await runCrlvRobot(req, fakeRes);
+  } catch (err) {
+    console.error('❌ Erro no robô de CRLV:', err.message);
+  }
+
+  // ✅ AUTUAÇÕES
+  for (const autuacao of tarefa.autuacoes || []) {
+    const tipo = autuacao.tipo;
+    const fakeReq = {
+      files: { autuacao: [{ path: autuacao.arquivo }] },
+      body: {}
+    };
+
+    try {
+      if (tipo === 'RGP') {
+        console.log('\n📌 Executando robô de RGP...');
+        await runRgpRobot(fakeReq, fakeRes);
+      } else if (tipo === 'Sem RGP') {
+        console.log('\n📌 Executando robô de Sem RGP...');
+        await runSemRgpRobot(fakeReq, fakeRes);
+      } else {
+        console.warn(`⚠️ Tipo desconhecido de autuação: ${tipo}`);
+      }
+    } catch (err) {
+      console.error(`❌ Erro no robô de ${tipo}:`, err.message);
+    }
+  }
+
+  console.log('\n✅ Tarefa finalizada.');
 }
 
 function criarRespostaSimples() {
