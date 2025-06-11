@@ -6,10 +6,9 @@ const { acquireLock, releaseLock } = require('../utils/lock');
 const { loginPipefy } = require('../utils/auth');
 
 // 🔍 Função para extrair os dados da procuração
-async function extrairDadosDaProcuracao(caminhoPDF) {
-  const dataBuffer = fs.readFileSync(caminhoPDF);
-  const texto = (await pdfParse(dataBuffer)).text;
-
+const { extractText } = require('../utils/extractText');
+async function extrairDadosDaProcuracao(caminhoArquivo) {
+  const texto = await extractText(caminhoArquivo);
   const nome = texto.match(/(?:Nome|NOME):?\s*([A-Z\s]{5,})/)?.[1]?.trim();
   const cpf = texto.match(/CPF[:\s]*([\d\.\-]{11,})/)?.[1]?.trim();
   const estadoCivil = texto.match(/Estado Civil:?\s*([A-Za-zçãéíõú\s]+)/i)?.[1]?.trim();
@@ -24,6 +23,7 @@ async function extrairDadosDaProcuracao(caminhoPDF) {
     'Endereço Completo': endereco || ''
   };
 }
+
 
 async function runClientRobot(req, res) {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
