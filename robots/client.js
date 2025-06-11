@@ -103,17 +103,30 @@ async function runClientRobot(req, res) {
     }
 
     log('✅ Criando registro...');
-    const botaoCriar = await page.getByText('Criar registro', { exact: true });
-    await botaoCriar.scrollIntoViewIfNeeded();
-    await botaoCriar.click();
 
-    const printPath = path.resolve(__dirname, '../../prints/print_final_clientes.png');
-    if (!fs.existsSync(path.dirname(printPath))) fs.mkdirSync(path.dirname(printPath), { recursive: true });
-    await page.screenshot({ path: printPath });
-    log(`📸 Print salvo como ${path.basename(printPath)}`);
+// ✅ Encontra o botão correto com base no texto e tamanho
+const botoes = await page.$$('button');
+for (const botao of botoes) {
+  const texto = await botao.innerText();
+  const box = await botao.boundingBox();
+  if (texto.trim() === 'Criar registro' && box?.width > 200) {
+    await botao.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(500);
+    await botao.click();
+    log('✅ Registro de cliente criado');
+    break;
+  }
+}
 
-    await browser.close();
-    res.end('</pre><h3>✅ Cadastro de cliente concluído!</h3><p><a href="/">⬅️ Voltar</a></p>');
+const printPath = path.resolve(__dirname, '../../prints/print_final_clientes.png');
+if (!fs.existsSync(path.dirname(printPath))) {
+  fs.mkdirSync(path.dirname(printPath), { recursive: true });
+}
+await page.screenshot({ path: printPath });
+log(`📸 Print salvo como ${path.basename(printPath)}`);
+
+await browser.close();
+res.end('</pre><h3>✅ Cadastro de cliente concluído!</h3><p><a href="/">⬅️ Voltar</a></p>');
 
   } catch (err) {
     log(`❌ Erro crítico: ${err.message}`);
