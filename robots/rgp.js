@@ -157,7 +157,7 @@ async function runRgpRobot(req, res) {
       await browser.close();
       const base64dbg = fs.readFileSync(debugPath).toString('base64');
       res.write(`<img src="data:image/jpeg;base64,${base64dbg}" style="max-width:100%">`);
-      res.end('</pre><h3>✅ Processo RGP concluído com sucesso</h3><p><a href="/">⬅️ Voltar</a></p>`);
+      res.end('</pre><h3>✅ Processo RGP concluído com sucesso</h3><p><a href="/">⬅️ Voltar</a></p>');
     } catch (err) {
       log(`❌ Erro crítico: ${err.message}`);
       if (page) {
