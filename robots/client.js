@@ -25,7 +25,6 @@ async function extrairDadosDaProcuracao(caminhoArquivo) {
   };
 }
 
-
 async function runClientRobot(req, res) {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.write('<pre>🤖 Iniciando robô de CLIENTES...\n');
@@ -61,11 +60,7 @@ async function runClientRobot(req, res) {
       'Número de telefone': telefoneManual
     };
 
-    browser = await chromium.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
-    });
-
+    browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
     const context = await browser.newContext();
     const page = await context.newPage();
 
@@ -88,7 +83,6 @@ async function runClientRobot(req, res) {
       }
     }
 
-    // ✅ Upload robusto de arquivos
     const anexos = [caminhoCnh, caminhoProcuracao, caminhoContrato].filter(fs.existsSync);
     for (const caminho of anexos) {
       const botao = await page.locator('button[data-testid="attachments-dropzone-button"]').first();
@@ -111,7 +105,6 @@ async function runClientRobot(req, res) {
       }
     }
 
-    // ✅ Criação do card
     log('✅ Criando registro...');
     const botoes = await page.$$('button');
     let botaoClicado = false;
@@ -140,7 +133,6 @@ async function runClientRobot(req, res) {
       }
     }
 
-    // ✅ Salvando print final
     const printPath = path.resolve(__dirname, '../../prints/print_final_clientes.png');
     if (!fs.existsSync(path.dirname(printPath))) {
       fs.mkdirSync(path.dirname(printPath), { recursive: true });
