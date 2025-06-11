@@ -81,8 +81,42 @@ app.post('/formulario', upload.any(), (req, res) => {
     timestamp: Date.now()
   };
 
-  addToQueue(tarefa);
-  res.send('✅ Formulário recebido. O robô vai processar em breve.');
+  const { extractText } = require('./utils/extractText');
+
+addToQueue(tarefa);
+
+// Tentativa de extração de dados da procuração
+const procuracaoPath = arquivos?.procuracao?.[0]?.path;
+let nome = '', cpf = '';
+
+if (procuracaoPath && fs.existsSync(procuracaoPath)) {
+  extractText(procuracaoPath).then(texto => {
+    nome = texto.match(/(?:Nome|NOME):?\s*([A-Z\s]{5,})/)?.[1]?.trim() || '';
+    cpf = texto.match(/CPF[:\s]*([\d\.\-]{11,})/)?.[1]?.trim() || '';
+
+    res.send(`
+      <p style="color:green">✅ Formulário recebido. O robô vai processar em breve.</p>
+      <div style="margin-top:20px; padding:15px; border:1px solid #ccc; background:#f9f9f9; border-radius:8px">
+        <strong>Nome do cliente:</strong> ${nome || '<em>(não encontrado)</em>'}<br>
+        <strong>CPF:</strong> ${cpf || '<em>(não encontrado)</em>'}
+      </div>
+      <p style="margin-top:20px"><a href="/">⬅️ Voltar</a></p>
+    `);
+  }).catch(err => {
+    res.send(`
+      <p style="color:green">✅ Formulário recebido. O robô vai processar em breve.</p>
+      <p><strong>⚠️ Erro ao extrair dados da procuração:</strong> ${err.message}</p>
+      <p><a href="/">⬅️ Voltar</a></p>
+    `);
+  });
+} else {
+  res.send(`
+    <p style="color:green">✅ Formulário recebido. O robô vai processar em breve.</p>
+    <p><strong>⚠️ Arquivo de procuração não encontrado.</strong></p>
+    <p><a href="/">⬅️ Voltar</a></p>
+  `);
+}
+
 });
 
 // ROTAS DE PRINTS
