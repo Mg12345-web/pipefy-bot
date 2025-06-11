@@ -269,8 +269,7 @@ res.end('</pre><h3>✅ Processo RGP concluído com sucesso</h3><p><a href="/">�
   if (browser) await browser.close();
   res.end('</pre><p style="color:red"><b>❌ Erro ao executar robô RGP.</b></p>');
 }
-
-} finally {
+finally {
   releaseLock();
 }
   }, 60000);
