@@ -187,7 +187,7 @@ try {
       await page.waitForTimeout(1000);
 
       log('🚀 Finalizando card...');
-       try {
+try {
   const botoes = await page.locator('button:has-text("Create new card")');
   const total = await botoes.count();
   for (let i = 0; i < total; i++) {
@@ -200,36 +200,57 @@ try {
       break;
     }
   }
-      await page.screenshot({ path: printFinalCRLV });
+
+  await page.screenshot({ path: printFinalCRLV });
   log('📸 Print final do CRLV salvo como print_final_crlv_semrgp.png');
 } catch (e) {
   log('❌ Erro ao finalizar o card ou tirar print');
 }
 
-      // PRINT
-      const caminhoPrint = path.resolve(__dirname, '../../prints/print_final_rgp.png');
-      if (!fs.existsSync(path.dirname(caminhoPrint))) {
-        fs.mkdirSync(path.dirname(caminhoPrint), { recursive: true });
-      }
-      await page.screenshot({ path: caminhoPrint });
-      log(`📸 Print salvo como ${path.basename(caminhoPrint)}`);
+// PRINT final
+const caminhoPrint = path.resolve(__dirname, '../../prints/print_final_rgp.png');
+if (!fs.existsSync(path.dirname(caminhoPrint))) {
+  fs.mkdirSync(path.dirname(caminhoPrint), { recursive: true });
+}
+await page.screenshot({ path: caminhoPrint });
+log(`📸 Print salvo como ${path.basename(caminhoPrint)}`);
 
-      await browser.close();
+await browser.close();
 
 // 🖼️ Mostra print de debug no navegador
 const base64debug = fs.readFileSync(debugPath).toString('base64');
 res.write('<h3>🖼️ Tela após clicar em CRLV:</h3>');
-res.write(`<img src="data:image/png;base64,${base64debug}" style="max-width:100%; border:1px solid #ccc;">`);
+res.write(`<img src="data:image/jpeg;base64,${base64debug}" style="max-width:100%; border:1px solid #ccc;">`);
 
 res.end('</pre><h3>✅ Processo RGP concluído com sucesso</h3><p><a href="/">⬅️ Voltar</a></p>');
 
-    } catch (err) {
-      log(`❌ Erro crítico: ${err.message}`);
-      if (browser) await browser.close();
-      res.end('</pre><p style="color:red"><b>❌ Erro ao executar robô RGP.</b></p>');
-    } finally {
-      releaseLock();
+} catch (err) {
+  log(`❌ Erro crítico: ${err.message}`);
+
+  // 🖼️ Gera print em JPG ao detectar erro
+  const erroPath = path.resolve(__dirname, '../../prints/print_erro_debug.jpg');
+  if (!fs.existsSync(path.dirname(erroPath))) {
+    fs.mkdirSync(path.dirname(erroPath), { recursive: true });
+  }
+
+  try {
+    if (page) {
+      await page.screenshot({ path: erroPath, type: 'jpeg', quality: 80 });
+      log(`📸 Print de erro salvo como ${path.basename(erroPath)}`);
+
+      const base64Erro = fs.readFileSync(erroPath).toString('base64');
+      res.write(`<h3>🖼️ Print do erro (JPG):</h3>`);
+      res.write(`<img src="data:image/jpeg;base64,${base64Erro}" style="max-width:100%; border:1px solid #ccc;">`);
     }
+  } catch (e) {
+    log('⚠️ Falha ao gerar ou exibir o print de erro.');
+  }
+
+  if (browser) await browser.close();
+  res.end('</pre><p style="color:red"><b>❌ Erro ao executar robô RGP.</b></p>');
+} finally {
+  releaseLock();
+}
   }, 60000);
 }
 
