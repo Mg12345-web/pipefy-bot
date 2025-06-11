@@ -41,6 +41,7 @@ app.post('/formulario', upload.any(), async (req, res) => {
   const arquivos = {};
   const autuacoes = [];
 
+  // Organiza arquivos recebidos por nome
   for (const file of req.files) {
     const field = file.fieldname;
 
@@ -57,6 +58,7 @@ app.post('/formulario', upload.any(), async (req, res) => {
     }
   }
 
+  // Organiza tipos das autuações
   Object.keys(req.body).forEach(key => {
     const match = key.match(/autuacoes\[(\d+)\]\[tipo\]/);
     if (match) {
@@ -74,17 +76,20 @@ app.post('/formulario', upload.any(), async (req, res) => {
     timestamp: Date.now()
   };
 
-  // ⏳ Salva na fila
   addToQueue(tarefa);
 
-  // Extração de dados
-  const procuracaoPath = arquivos?.procuracao?.[0]?.path;
-  const caminhosAutuacoes = autuacoes.map(a => a.arquivo).filter(fs.existsSync);
+  // 🔍 NOVO: lê diretamente os arquivos com fieldname "autuacoes[...]"
+  const caminhosAutuacoes = req.files
+    .filter(file => file.fieldname.startsWith('autuacoes['))
+    .map(file => file.path)
+    .filter(fs.existsSync);
 
+  const procuracaoPath = arquivos?.procuracao?.[0]?.path;
   let nome = '', cpf = '', aits = [];
 
   try {
     if (caminhosAutuacoes.length > 0) {
+      console.log('📂 Arquivos para leitura de AIT:', caminhosAutuacoes);
       aits = await extrairAitsDosArquivos(caminhosAutuacoes);
     }
 
@@ -105,6 +110,7 @@ app.post('/formulario', upload.any(), async (req, res) => {
     `);
 
   } catch (err) {
+    console.error('❌ Erro ao processar formulário:', err.message);
     res.send(`
       <p style="color:green">✅ Formulário recebido. O robô vai processar em breve.</p>
       <p><strong>⚠️ Erro ao extrair dados:</strong> ${err.message}</p>
