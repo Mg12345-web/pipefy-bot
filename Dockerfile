@@ -4,6 +4,9 @@ FROM mcr.microsoft.com/playwright:v1.52.0-jammy
 # Define o diretório de trabalho dentro do container
 WORKDIR /app
 
+# Instala o GraphicsMagick e ImageMagick (necessários para OCR de PDFs com imagem)
+RUN apt-get update && apt-get install -y graphicsmagick imagemagick
+
 # Copia apenas os arquivos de dependência para otimizar cache
 COPY package*.json ./
 
@@ -13,7 +16,7 @@ RUN npm install
 # Copia o restante do código-fonte
 COPY . .
 
-# 🔒 Garante que a pasta uploads/ exista
+# Garante que a pasta de uploads exista
 RUN mkdir -p /app/uploads
 
 # Instala navegadores e dependências do Playwright
