@@ -19,10 +19,13 @@ async function extractTextFromPDF(pdfPath) {
   const data = await pdf(buffer);
   if (data.text.trim().length > 20) return data.text;
 
+  const tempDir = path.resolve('./temp_images');
+  if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
+
   const converter = fromPath(pdfPath, {
     density: 150,
     saveFilename: 'ocr_page',
-    savePath: './temp_images',
+    savePath: tempDir,
     format: 'png',
     width: 1200,
     height: 1600
@@ -35,6 +38,17 @@ async function extractTextFromPDF(pdfPath) {
     const page = await converter(i);
     const ocrText = await extractTextFromImage(page.path);
     fullText += '\n' + ocrText;
+  }
+
+  // 🧹 Limpeza dos arquivos temporários
+  try {
+    const tempFiles = fs.readdirSync(tempDir);
+    for (const file of tempFiles) {
+      const filePath = path.join(tempDir, file);
+      fs.unlinkSync(filePath);
+    }
+  } catch (err) {
+    console.warn('⚠️ Falha ao limpar temp_images:', err.message);
   }
 
   return fullText;
