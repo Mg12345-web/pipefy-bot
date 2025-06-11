@@ -129,10 +129,6 @@ await page.screenshot({ path: 'print_final_clientes.png' });
 await browser.close();
 res.end('</pre><h3>✅ Cadastro de cliente concluído!</h3><p><a href="/">⬅️ Voltar</a></p>');
 
-if (!botaoClicado) {
-  log('⛔ Nenhum botão "Criar registro" visível e azul encontrado.');
-}
-
 const printPath = path.resolve(__dirname, '../../prints/print_final_clientes.png');
 if (!fs.existsSync(path.dirname(printPath))) {
   fs.mkdirSync(path.dirname(printPath), { recursive: true });
