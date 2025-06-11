@@ -3,8 +3,8 @@ const path = require('path');
 const fs = require('fs');
 const { acquireLock, releaseLock } = require('../utils/lock');
 const { loginPipefy } = require('../utils/auth');
+const { extractText } = require('../utils/extractText');
 const { baixarArquivo } = require('../utils/downloads');
-const { extractText } = require('../utils/extractText'); // <- NOVO
 
 async function extrairDadosDoCrlv(caminhoArquivo) {
   const texto = await extractText(caminhoArquivo);
