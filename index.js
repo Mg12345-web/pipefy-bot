@@ -1,13 +1,26 @@
+// index.js
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const multer = require('multer');
 const { runClientRobot } = require('./robots/client');
 const { runCrlvRobot } = require('./robots/crlv');
 const { runRgpRobot } = require('./robots/rgp');
-const { runSemRgpRobot } = require('./robots/semrgp'); // Importa o robô de SEM RGP
+const { runSemRgpRobot } = require('./robots/semrgp');
+const { addToQueue, startQueue } = require('./robots/fila');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
+
+// Configuração de uploads com multer
+const uploadPath = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadPath)) fs.mkdirSync(uploadPath);
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadPath),
+  filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
+});
+const upload = multer({ storage });
 
 // Rota Raiz
 app.get('/', (req, res) => {
@@ -21,23 +34,46 @@ app.get('/', (req, res) => {
     <p><a href="/view-crlv-print">Ver último print de CRLV</a></p>
     <p><a href="/view-rgp-print">Ver último print de RGP</a></p>
     <p><a href="/view-semrgp-print">Ver último print de SEM RGP</a></p>
+    <p><b>Nova rota:</b> POST /formulario para envio via site</p>
   `);
 });
 
-// 📋 ROTA CLIENTES
+// ROTA CLIENTES
 app.get('/start-clientes', runClientRobot);
 
-// 🚗 ROTA CRLV
+// ROTA CRLV
 app.get('/start-crlv', runCrlvRobot);
 
-// ➕ ROTA PARA CADASTRO RGP
+// ROTA RGP
 app.get('/start-rgp', runRgpRobot);
 
-// ➖ ROTA PARA CADASTRO SEM RGP
-app.get('/start-semrgp', runSemRgpRobot); // Conecta a rota com a função do robô SEM RGP
+// ROTA SEM RGP
+app.get('/start-semrgp', runSemRgpRobot);
 
+// ROTA NOVA: formulário de envio
+app.post('/formulario', upload.fields([
+  { name: 'cnh', maxCount: 1 },
+  { name: 'procuracao', maxCount: 1 },
+  { name: 'contrato', maxCount: 1 },
+  { name: 'crlv', maxCount: 1 },
+  { name: 'autuacoes', maxCount: 10 }
+]), (req, res) => {
+  const { email, telefone, autuacao_tipo = [] } = req.body;
+  const arquivos = req.files;
 
-// 🔎 VISUALIZAR PRINTS
+  const tarefa = {
+    email,
+    telefone,
+    arquivos,
+    autuacao_tipo: Array.isArray(autuacao_tipo) ? autuacao_tipo : [autuacao_tipo],
+    timestamp: Date.now()
+  };
+
+  addToQueue(tarefa);
+  res.send('✅ Formulário recebido. O robô vai processar em breve.');
+});
+
+// ROTAS DE PRINTS
 app.get('/view-client-print', (req, res) => {
   const screenshotPath = path.resolve(__dirname, 'prints/print_final_clientes.png');
   if (fs.existsSync(screenshotPath)) {
@@ -80,7 +116,6 @@ app.get('/view-rgp-print', (req, res) => {
   }
 });
 
-// 🔎 VISUALIZAR PRINT DE SEM RGP (Nova rota para o print de SEM RGP)
 app.get('/view-semrgp-print', (req, res) => {
   const screenshotPath = path.resolve(__dirname, 'prints/print_final_semrgp.png');
   if (fs.existsSync(screenshotPath)) {
@@ -95,6 +130,7 @@ app.get('/view-semrgp-print', (req, res) => {
   }
 });
 
+startQueue();
 
 app.listen(PORT, () => {
   console.log(`🖥️ Servidor escutando em http://localhost:${PORT}`);
