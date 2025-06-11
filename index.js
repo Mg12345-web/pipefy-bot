@@ -1,4 +1,3 @@
-// index.js
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
@@ -8,6 +7,8 @@ const { runCrlvRobot } = require('./robots/crlv');
 const { runRgpRobot } = require('./robots/rgp');
 const { runSemRgpRobot } = require('./robots/semrgp');
 const { addToQueue, startQueue } = require('./robots/fila');
+const { extractText } = require('./utils/extractText');
+const { extrairAitsDosArquivos } = require('./utils/extrairAitsDosArquivos');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -28,25 +29,18 @@ app.get('/', (req, res) => {
   `);
 });
 
-// ROTA CLIENTES
+// ROTAS DE AÇÃO
 app.get('/start-clientes', runClientRobot);
-
-// ROTA CRLV
 app.get('/start-crlv', runCrlvRobot);
-
-// ROTA RGP
 app.get('/start-rgp', runRgpRobot);
-
-// ROTA SEM RGP
 app.get('/start-semrgp', runSemRgpRobot);
 
-// ROTA NOVA: formulário de envio
-app.post('/formulario', upload.any(), (req, res) => {
+// ROTA DE FORMULÁRIO
+app.post('/formulario', upload.any(), async (req, res) => {
   const { email, telefone } = req.body;
   const arquivos = {};
   const autuacoes = [];
 
-  // Organiza os arquivos por fieldname
   for (const file of req.files) {
     const field = file.fieldname;
 
@@ -63,7 +57,6 @@ app.post('/formulario', upload.any(), (req, res) => {
     }
   }
 
-  // Organiza os tipos
   Object.keys(req.body).forEach(key => {
     const match = key.match(/autuacoes\[(\d+)\]\[tipo\]/);
     if (match) {
@@ -81,42 +74,43 @@ app.post('/formulario', upload.any(), (req, res) => {
     timestamp: Date.now()
   };
 
-  const { extractText } = require('./utils/extractText');
+  // ⏳ Salva na fila
+  addToQueue(tarefa);
 
-addToQueue(tarefa);
+  // Extração de dados
+  const procuracaoPath = arquivos?.procuracao?.[0]?.path;
+  const caminhosAutuacoes = autuacoes.map(a => a.arquivo).filter(fs.existsSync);
 
-// Tentativa de extração de dados da procuração
-const procuracaoPath = arquivos?.procuracao?.[0]?.path;
-let nome = '', cpf = '';
+  let nome = '', cpf = '', aits = [];
 
-if (procuracaoPath && fs.existsSync(procuracaoPath)) {
-  extractText(procuracaoPath).then(texto => {
-    nome = texto.match(/(?:Nome|NOME):?\s*([A-Z\s]{5,})/)?.[1]?.trim() || '';
-    cpf = texto.match(/CPF[:\s]*([\d\.\-]{11,})/)?.[1]?.trim() || '';
+  try {
+    if (caminhosAutuacoes.length > 0) {
+      aits = await extrairAitsDosArquivos(caminhosAutuacoes);
+    }
+
+    if (procuracaoPath && fs.existsSync(procuracaoPath)) {
+      const texto = await extractText(procuracaoPath);
+      nome = texto.match(/(?:Nome|NOME):?\s*([A-Z\s]{5,})/)?.[1]?.trim() || '';
+      cpf = texto.match(/CPF[:\s]*([\d\.\-]{11,})/)?.[1]?.trim() || '';
+    }
 
     res.send(`
       <p style="color:green">✅ Formulário recebido. O robô vai processar em breve.</p>
       <div style="margin-top:20px; padding:15px; border:1px solid #ccc; background:#f9f9f9; border-radius:8px">
         <strong>Nome do cliente:</strong> ${nome || '<em>(não encontrado)</em>'}<br>
-        <strong>CPF:</strong> ${cpf || '<em>(não encontrado)</em>'}
+        <strong>CPF:</strong> ${cpf || '<em>(não encontrado)</em>'}<br>
+        <strong>AIT(s) encontrado(s):</strong> ${aits.length > 0 ? aits.join(', ') : '<em>(nenhum localizado)</em>'}
       </div>
       <p style="margin-top:20px"><a href="/">⬅️ Voltar</a></p>
     `);
-  }).catch(err => {
+
+  } catch (err) {
     res.send(`
       <p style="color:green">✅ Formulário recebido. O robô vai processar em breve.</p>
-      <p><strong>⚠️ Erro ao extrair dados da procuração:</strong> ${err.message}</p>
+      <p><strong>⚠️ Erro ao extrair dados:</strong> ${err.message}</p>
       <p><a href="/">⬅️ Voltar</a></p>
     `);
-  });
-} else {
-  res.send(`
-    <p style="color:green">✅ Formulário recebido. O robô vai processar em breve.</p>
-    <p><strong>⚠️ Arquivo de procuração não encontrado.</strong></p>
-    <p><a href="/">⬅️ Voltar</a></p>
-  `);
-}
-
+  }
 });
 
 // ROTAS DE PRINTS
@@ -177,7 +171,6 @@ app.get('/view-semrgp-print', (req, res) => {
 });
 
 startQueue();
-
 app.listen(PORT, () => {
   console.log(`🖥️ Servidor escutando em http://localhost:${PORT}`);
 });
