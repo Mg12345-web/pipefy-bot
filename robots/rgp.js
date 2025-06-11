@@ -249,9 +249,8 @@ res.end('</pre><h3>✅ Processo RGP concluído com sucesso</h3><p><a href="/">�
     fs.mkdirSync(path.dirname(erroPath), { recursive: true });
   }
 
-  // Tira o print **antes de fechar o navegador**
   try {
-    if (typeof page !== 'undefined') {
+    if (page) {
       await page.screenshot({ path: erroPath, type: 'jpeg', quality: 80 });
       log(`📸 Print de erro salvo como ${path.basename(erroPath)}`);
 
@@ -265,7 +264,6 @@ res.end('</pre><h3>✅ Processo RGP concluído com sucesso</h3><p><a href="/">�
     log('⚠️ Falha ao gerar ou exibir o print de erro.');
   }
 
-  // Fecha o navegador depois do print
   if (browser) await browser.close();
   res.end('</pre><p style="color:red"><b>❌ Erro ao executar robô RGP.</b></p>');
 }
