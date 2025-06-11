@@ -102,17 +102,35 @@ if (!fs.existsSync(path.dirname(debugPath))) {
 await page.screenshot({ path: debugPath, type: 'jpeg', quality: 80 });
 log(`📸 Print de debug salvo como ${path.basename(debugPath)}`);
 
-// Aguarda o campo de pesquisa
-await page.waitForSelector('input[placeholder*="Pesquisar"]', { timeout: 15000 });
-await page.locator('input[placeholder*="Pesquisar"]').fill('OPB3D62');
-await page.waitForTimeout(1500);
+try {
+  await page.waitForSelector('input[placeholder*="Pesquisar"]', { timeout: 15000 });
+  await page.locator('input[placeholder*="Pesquisar"]').fill('OPB3D62');
+  await page.waitForTimeout(1500);
 
-const opcaoCRLV = await page.getByText('OPB3D62', { exact: false }).first();
-await opcaoCRLV.scrollIntoViewIfNeeded();
-await page.waitForTimeout(500);
-await opcaoCRLV.click();
+  const opcaoCRLV = await page.getByText('OPB3D62', { exact: false }).first();
+  await opcaoCRLV.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(500);
+  await opcaoCRLV.click();
 
-log('✅ CRLV selecionado com sucesso');
+  log('✅ CRLV selecionado com sucesso');
+} catch (e) {
+  log('❌ Campo de pesquisa do CRLV não apareceu ou falhou');
+  const erroPath = path.resolve(__dirname, '../../prints/print_crlv_erro.jpg');
+  if (!fs.existsSync(path.dirname(erroPath))) {
+    fs.mkdirSync(path.dirname(erroPath), { recursive: true });
+  }
+
+  try {
+    await page.screenshot({ path: erroPath, type: 'jpeg', quality: 80 });
+    const base64Erro = fs.readFileSync(erroPath).toString('base64');
+    res.write(`<h3>🖼️ Print de erro CRLV (JPG):</h3>`);
+    res.write(`<img src="data:image/jpeg;base64,${base64Erro}" style="max-width:100%; border:1px solid #ccc;">`);
+  } catch {
+    log('⚠️ Falha ao salvar print de erro do CRLV');
+  }
+
+  throw new Error('❌ Falha ao selecionar CRLV');
+}
 
       // OBSERVAÇÃO
       try {
