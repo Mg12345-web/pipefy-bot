@@ -104,7 +104,7 @@ log(`📸 Print de debug salvo como ${path.basename(debugPath)}`);
 
 // Aguarda o campo de pesquisa
 await page.waitForSelector('input[placeholder*="cards pelo título"]', { timeout: 15000 });
-await page.locator('input[placeholder*="cards pelo título"]').fill('OPB3D62');
+await page.locator('input[placeholder*="Pesquisar"]').fill('OPB3D62');
 await page.waitForTimeout(1500);
 
 const opcaoCRLV = await page.getByText('OPB3D62', { exact: false }).first();
