@@ -61,7 +61,7 @@ async function extractTextFromPDF(pdfPath) {
 // Atualizado para a nova API do OpenAI
 async function interpretarTextoComGPT(textoOriginal) {
   const resposta = await openai.chat.completions.create({
-    model: 'gpt-4-turbo',
+    model: 'gpt-4',
     messages: [
       {
         role: 'system',
