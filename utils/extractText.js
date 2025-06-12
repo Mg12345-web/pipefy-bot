@@ -3,12 +3,12 @@ const path = require('path');
 const pdf = require('pdf-parse');
 const Tesseract = require('tesseract.js');
 const { fromPath } = require('pdf2pic');
-const { Configuration, OpenAIApi } = require('openai');
+const OpenAI = require('openai');
 
-const configuration = new Configuration({
+// Inicializa o cliente OpenAI com a nova sintaxe
+const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
-const openai = new OpenAIApi(configuration);
 
 function isImage(filePath) {
   return ['.jpg', '.jpeg', '.png'].includes(path.extname(filePath).toLowerCase());
@@ -24,9 +24,8 @@ async function extractTextFromPDF(pdfPath) {
   const data = await pdf(buffer);
   const text = data.text.trim();
 
-  if (text.length > 50) return text; // 👍 texto extraído com sucesso
+  if (text.length > 50) return text;
 
-  // 👇 Falhou? Vamos usar OCR com tesseract + pdf2pic
   const tempDir = path.resolve('./temp_images');
   if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
 
@@ -48,7 +47,6 @@ async function extractTextFromPDF(pdfPath) {
     fullText += '\n' + ocrText;
   }
 
-  // Limpa imagens temporárias
   try {
     fs.readdirSync(tempDir).forEach(file => {
       fs.unlinkSync(path.join(tempDir, file));
@@ -60,18 +58,24 @@ async function extractTextFromPDF(pdfPath) {
   return fullText.length > 50 ? fullText : '[ERRO: OCR falhou]';
 }
 
-// 🔍 GPT como fallback inteligente (pode ser chamado à parte)
+// Atualizado para a nova API do OpenAI
 async function interpretarTextoComGPT(textoOriginal) {
-  const completion = await openai.createChatCompletion({
+  const resposta = await openai.chat.completions.create({
     model: 'gpt-4-turbo',
     messages: [
-      { role: 'system', content: 'Você é um assistente que extrai dados de documentos de veículos e procurações. Responda com um objeto JSON contendo: nome, cpf, placa, chassi, renavam, estadoCivil, profissao, endereco e órgão autuador se houver.' },
-      { role: 'user', content: textoOriginal }
+      {
+        role: 'system',
+        content: 'Você é um assistente que extrai dados de documentos de veículos e procurações. Responda com um objeto JSON contendo: nome, cpf, placa, chassi, renavam, estadoCivil, profissao, endereco e órgão autuador se houver.'
+      },
+      {
+        role: 'user',
+        content: textoOriginal
+      }
     ],
     temperature: 0.2
   });
 
-  return completion.data.choices[0].message.content;
+  return resposta.choices[0].message.content;
 }
 
 async function extractText(filePath) {
