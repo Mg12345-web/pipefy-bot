@@ -67,29 +67,34 @@ async function processarTarefa(tarefa) {
   // ⚖️ AUTUAÇÕES
   for (const autuacao of tarefa.autuacoes || []) {
     const tipo = autuacao.tipo;
-    const fakeReq = {
-      files: { autuacao: [{ path: autuacao.arquivo }] },
-      body: {}
-    };
-
-    try {
-      if (tipo === 'RGP') {
-        console.log('\n📌 Executando robô de RGP...');
-        await runRgpRobot(fakeReq, fakeRes);
-        await aguardarEstabilizacao('RGP');
-      } else if (tipo === 'Sem RGP') {
-        console.log('\n📌 Executando robô de Sem RGP...');
-        await runSemRgpRobot(fakeReq, fakeRes);
-        await aguardarEstabilizacao('Sem RGP');
-      } else {
-        console.warn(`⚠️ Tipo desconhecido de autuação: ${tipo}`);
-      }
-    } catch (err) {
-      console.error(`❌ Erro no robô de ${tipo}: ${err.message}`);
+    for (const autuacao of tarefa.autuacoes || []) {
+  const tipo = autuacao.tipo;
+  const fakeReq = {
+    files: { autuacoes: [{ path: autuacao.arquivo }] },
+    body: {
+      ait: autuacao.ait || '',
+      orgao: autuacao.orgao || ''
     }
-  }
+  };
 
-  console.log('\n✅ Tarefa finalizada.');
+  try {
+    if (tipo === 'RGP') {
+      console.log('\n📌 Executando robô de RGP...');
+      await runRgpRobot(fakeReq, fakeRes);
+      await aguardarEstabilizacao('RGP');
+    } else if (tipo === 'Sem RGP') {
+      console.log('\n📌 Executando robô de Sem RGP...');
+      await runSemRgpRobot(fakeReq, fakeRes);
+      await aguardarEstabilizacao('Sem RGP');
+    } else {
+      console.warn(`⚠️ Tipo desconhecido de autuação: ${tipo}`);
+    }
+  } catch (err) {
+    console.error(`❌ Erro no robô de ${tipo}: ${err.message}`);
+  }
+}
+
+    console.log('\n✅ Tarefa finalizada.');
 }
 
 // Simula a resposta padrão do Express para logs
