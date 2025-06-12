@@ -65,15 +65,16 @@ async function handleFormulario(req, res) {
     }
 
     const tarefa = {
-      email,
-      telefone,
-      arquivos,
-      autuacoes: autuacoes.filter(a => a.tipo && a.arquivo),
-      dados: {
-          'Placa': 'ABC1D23',
-          'CHASSI': '123456789XYZ12345',
-          'RENAVAM': '98765432109',
-          'Estado de emplacamento': 'MG'
+  email,
+  telefone,
+  arquivos,
+  autuacoes: autuacoes.filter(a => a.tipo && a.arquivo),
+  dados: {
+    ...dados, // inclui os dados da procuração + e-mail e telefone
+    'Placa': 'ABC1D23',
+    'CHASSI': '123456789XYZ12345',
+    'RENAVAM': '98765432109',
+    'Estado de emplacamento': 'MG'
   },
   timestamp: Date.now()
 };
