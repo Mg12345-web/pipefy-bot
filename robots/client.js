@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const { acquireLock, releaseLock } = require('../utils/lock');
 const { loginPipefy } = require('../utils/auth');
+const { normalizarArquivo } = require('../utils/arquivos'); 
 
 async function runClientRobot(req, res) {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -31,11 +32,19 @@ async function runClientRobot(req, res) {
       'Número de telefone': req.body.dados?.['Número de telefone'] || ''
     };
 
-    const anexos = [
-      req.files?.cnh?.[0]?.path,
-      req.files?.procuracao?.[0]?.path,
-      req.files?.contrato?.[0]?.path
-    ].filter(fs.existsSync);
+    const caminhoCnh = req.files?.cnh?.[0]?.path
+  ? normalizarArquivo('cnh', req.files.cnh[0].path)
+  : null;
+
+const caminhoProcuracao = req.files?.procuracao?.[0]?.path
+  ? normalizarArquivo('procuracao', req.files.procuracao[0].path)
+  : null;
+
+const caminhoContrato = req.files?.contrato?.[0]?.path
+  ? normalizarArquivo('contrato', req.files.contrato[0].path)
+  : null;
+
+const anexos = [caminhoCnh, caminhoProcuracao, caminhoContrato].filter(fs.existsSync);
 
     browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
     const context = await browser.newContext();
