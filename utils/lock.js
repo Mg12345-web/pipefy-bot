@@ -32,6 +32,10 @@ function releaseLock() {
     console.error("❌ Erro ao tentar liberar o lock:", e.message);
   }
 }
+} catch (e) {
+  console.warn("🔒 Lock já em uso. Processo impedido.");
+  return false;
+}
 
 // Garante liberação do lock ao sair do processo (natural ou forçado)
 process.on('exit', releaseLock);
