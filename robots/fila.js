@@ -73,6 +73,10 @@ async function processarTarefa(tarefa) {
       ait: autuacao.ait || '',
       orgao: autuacao.orgao || ''
     }
+      if (!autuacao.ait || !autuacao.orgao) {
+  console.warn(`⚠️ Dados incompletos para autuação ${tipo}. Pulando execução.`);
+  continue;
+}
   };
 
   try {
@@ -113,6 +117,7 @@ async function aguardarEstabilizacao(contexto) {
 
 function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
+  fs.writeFileSync(`./logs/tarefa_${Date.now()}.json`, JSON.stringify(tarefa, null, 2));
 }
 
 module.exports = { addToQueue, startQueue };
