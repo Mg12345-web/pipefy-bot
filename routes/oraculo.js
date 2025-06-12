@@ -68,7 +68,13 @@ if (crlv) {
       timestamp: Date.now()
     };
 
-    addToQueue(tarefa);
+    // Validação mínima antes de adicionar à fila
+if (!dados['Nome Completo'] || !dados['Estado do Serviço'] || !dados['Placa']) {
+  throw new Error('Dados incompletos: verifique Nome, Estado do Serviço ou Placa.');
+}
+
+// Tudo certo, agora adiciona à fila
+addToQueue(tarefa);
 
     res.send({
       status: 'ok',
