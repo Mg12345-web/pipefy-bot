@@ -8,13 +8,13 @@ const { runSemRgpRobot } = require('./semrgp');
 let fila = [];
 let emExecucao = false;
 
-// Função para adicionar uma tarefa na fila
+// Adiciona uma tarefa na fila
 function addToQueue(tarefa) {
   fila.push(tarefa);
   console.log(`📥 Tarefa adicionada à fila. Total na fila: ${fila.length}`);
 }
 
-// Função para iniciar o loop da fila
+// Inicia o loop que processa tarefas da fila
 function startQueue() {
   setInterval(() => {
     if (emExecucao || fila.length === 0) return;
@@ -29,20 +29,24 @@ function startQueue() {
         emExecucao = false;
       });
 
-  }, 3000); // Executa a cada 3 segundos
+  }, 3000);
 }
 
-// Função para processar cada tarefa
+// Processa uma tarefa (executa os robôs)
 async function processarTarefa(tarefa) {
   const fakeRes = criarRespostaSimples();
 
+  // Dados formatados para todos os robôs
   const req = {
     query: { observacao: 'Cadastro via site' },
-    body: tarefa,
+    body: {
+      ...tarefa,
+      dados: tarefa.dados || {}  // <- Aqui ficam os campos extraídos pelo oráculo
+    },
     files: tarefa.arquivos
   };
 
-  // Robô CLIENTES
+  // 🧠 CLIENTES
   try {
     console.log('\n📌 Executando robô de CLIENTES...');
     await runClientRobot(req, fakeRes);
@@ -51,7 +55,7 @@ async function processarTarefa(tarefa) {
     console.error('❌ Erro no robô de CLIENTES:', err.message);
   }
 
-  // Robô CRLV
+  // 🚗 CRLV
   try {
     console.log('\n📌 Executando robô de CRLV...');
     await runCrlvRobot(req, fakeRes);
@@ -60,7 +64,7 @@ async function processarTarefa(tarefa) {
     console.error('❌ Erro no robô de CRLV:', err.message);
   }
 
-  // Robôs de Autuação (RGP ou Sem RGP)
+  // ⚖️ AUTUAÇÕES
   for (const autuacao of tarefa.autuacoes || []) {
     const tipo = autuacao.tipo;
     const fakeReq = {
@@ -81,14 +85,14 @@ async function processarTarefa(tarefa) {
         console.warn(`⚠️ Tipo desconhecido de autuação: ${tipo}`);
       }
     } catch (err) {
-      console.error(`❌ Erro no robô de ${tipo}:`, err.message);
+      console.error(`❌ Erro no robô de ${tipo}: ${err.message}`);
     }
   }
 
   console.log('\n✅ Tarefa finalizada.');
 }
 
-// Resposta simulada para logs internos
+// Simula a resposta padrão do Express para logs
 function criarRespostaSimples() {
   return {
     setHeader: () => {},
@@ -97,7 +101,7 @@ function criarRespostaSimples() {
   };
 }
 
-// Delay para simular tempo de espera entre tarefas
+// Delay entre execuções
 async function aguardarEstabilizacao(contexto) {
   console.log(`⏳ Aguardando 30 segundos após o robô de ${contexto}...`);
   await delay(30000);
