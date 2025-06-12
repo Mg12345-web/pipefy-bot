@@ -36,9 +36,35 @@ app.get('/start-crlv', runCrlvRobot);
 app.get('/start-rgp', runRgpRobot);
 app.get('/start-semrgp', runSemRgpRobot);
 
+// ROTAS DE STATUS
+app.get('/status', (req, res) => {
+  res.json({ status: 'ok', filaAtiva: true, timestamp: Date.now() });
+});
+
 // ROTA DE FORMULÁRIO
 const { handleFormulario } = require('./routes/formulario');
 app.post('/formulario', upload.any(), handleFormulario);
+app.post('/oraculo', upload.any(), handleOraculo);
+
+try {
+  const { handleFormulario } = require('./routes/formulario');
+  app.post('/formulario', upload.any(), handleFormulario);
+} catch (e) {
+  console.warn('⚠️ Rota /formulario desativada (formulario.js não encontrado ou com erro)');
+}
+
+// === ROTAS HTML DE TESTE ===
+app.get('/', ...);
+app.get('/view-client-print', ...);
+app.get('/view-crlv-print', ...);
+...
+
+// === ROTAS DE EXECUÇÃO MANUAL ===
+app.get('/start-clientes', runClientRobot);
+app.get('/start-crlv', runCrlvRobot);
+...
+
+// === ROTAS DE INTEGRAÇÃO ===
 app.post('/oraculo', upload.any(), handleOraculo);
   
 // ROTAS DE PRINTS
