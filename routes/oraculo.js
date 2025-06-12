@@ -85,6 +85,7 @@ addToQueue(tarefa);
   } catch (err) {
     console.error('❌ Oráculo erro:', err);
     res.status(500).send({ status: 'erro', mensagem: err.message });
+    fs.writeFileSync(`./logs/oraculo_${Date.now()}.json`, JSON.stringify(tarefa, null, 2));
   }
 }
 
