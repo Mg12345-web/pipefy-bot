@@ -41,6 +41,7 @@ async function handleOraculo(req, res) {
   dados = JSON.parse(await interpretarTextoComGPT(texto, 'procuracao'));
 }
 
+// adicione dados extraídos por OCR ou GPT ao objeto
 dados.Email = email;
 dados['Número de telefone'] = telefone;
 
