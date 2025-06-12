@@ -3,22 +3,6 @@ const path = require('path');
 const fs = require('fs');
 const { acquireLock, releaseLock } = require('../utils/lock');
 const { loginPipefy } = require('../utils/auth');
-const { extractText } = require('../utils/extractText');
-
-async function extrairDadosDoCrlv(caminhoArquivo) {
-  const texto = await extractText(caminhoArquivo);
-
-  const placa = texto.match(/Placa[:\s]*([A-Z]{3}[0-9A-Z][0-9]{2})/)?.[1]?.trim();
-  const renavam = texto.match(/Renavam[:\s]*([\d]{9,})/)?.[1]?.trim();
-  const chassi = texto.match(/Chassi[:\s]*([\w\d]{10,})/)?.[1]?.trim();
-
-  return {
-    'Placa': placa || '',
-    'CHASSI': chassi || '',
-    'RENAVAM': renavam || '',
-    'Estado de emplacamento': 'MG'
-  };
-}
 
 async function runCrlvRobot(req, res) {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -30,10 +14,11 @@ async function runCrlvRobot(req, res) {
   };
 
   if (!acquireLock()) {
-    log('⛔ Robô já em execução.');
+    log('⛔ Robô já está em execução.');
     return res.end('</pre>');
   }
 
+  const dados = req.body?.dados || {};
   const arquivos = req.files || {};
   const arquivoOriginal = arquivos?.crlv?.[0];
 
@@ -43,7 +28,6 @@ async function runCrlvRobot(req, res) {
     return res.end('</pre><p style="color:red">Arquivo de CRLV ausente.</p>');
   }
 
- // 🔄 Renomeia o arquivo com nome fixo
   const pasta = path.dirname(arquivoOriginal.path);
   const arquivoCRLV = path.join(pasta, 'crlv.pdf');
   fs.renameSync(arquivoOriginal.path, arquivoCRLV);
@@ -51,8 +35,7 @@ async function runCrlvRobot(req, res) {
   let browser;
 
   try {
-    const dados = await extrairDadosDoCrlv(arquivoCRLV);
-    log(`📄 Dados extraídos: ${JSON.stringify(dados, null, 2)}`);
+    log(`📄 Dados recebidos para preenchimento:\n${JSON.stringify(dados, null, 2)}`);
 
     browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
     const context = await browser.newContext();
