@@ -1,4 +1,3 @@
-// routes/formulario.js
 const fs = require('fs');
 const { extractText } = require('../utils/extractText');
 const { extrairAitsDosArquivos } = require('../utils/extrairAitsDosArquivos');
@@ -33,35 +32,48 @@ async function handleFormulario(req, res) {
     }
   });
 
-  const tarefa = {
-    email,
-    telefone,
-    arquivos,
-    autuacoes: autuacoes.filter(a => a.tipo && a.arquivo),
-    timestamp: Date.now()
-  };
-
-  addToQueue(tarefa);
-
-  const caminhosAutuacoes = req.files
-    .filter(file => file.fieldname.startsWith('autuacoes['))
-    .map(file => file.path)
-    .filter(fs.existsSync);
-
   const procuracaoPath = arquivos?.procuracao?.[0]?.path;
-  let nome = '', cpf = '', aits = [];
+  let nome = '', cpf = '', estadoCivil = '', profissao = '', endereco = '', aits = [];
 
   try {
-    if (caminhosAutuacoes.length > 0) {
-      console.log('📂 Arquivos para leitura de AIT:', caminhosAutuacoes);
-      aits = await extrairAitsDosArquivos(caminhosAutuacoes);
-    }
-
     if (procuracaoPath && fs.existsSync(procuracaoPath)) {
       const texto = await extractText(procuracaoPath);
       nome = texto.match(/(?:Nome|NOME):?\s*([A-Z\s]{5,})/)?.[1]?.trim() || '';
       cpf = texto.match(/CPF[:\s]*([\d\.\-]{11,})/)?.[1]?.trim() || '';
+      estadoCivil = texto.match(/Estado Civil:?\s*([A-Za-zçãéíõú\s]+)/i)?.[1]?.trim() || '';
+      profissao = texto.match(/Profissão:?\s*([A-Za-zçãéíõú\s]+)/i)?.[1]?.trim() || '';
+      endereco = texto.match(/residente e domiciliado à\s*(.*?CEP.*)/i)?.[1]?.trim() || '';
     }
+
+    const dados = {
+      'Nome Completo': nome,
+      'CPF OU CNPJ': cpf,
+      'Estado Civil Atual': estadoCivil,
+      'Profissão': profissao,
+      'Endereço Completo': endereco,
+      'Email': email,
+      'Número de telefone': telefone
+    };
+
+    const caminhosAutuacoes = req.files
+      .filter(file => file.fieldname.startsWith('autuacoes['))
+      .map(file => file.path)
+      .filter(fs.existsSync);
+
+    if (caminhosAutuacoes.length > 0) {
+      aits = await extrairAitsDosArquivos(caminhosAutuacoes);
+    }
+
+    const tarefa = {
+      email,
+      telefone,
+      arquivos,
+      autuacoes: autuacoes.filter(a => a.tipo && a.arquivo),
+      dados, // ✅ Aqui está o segredo
+      timestamp: Date.now()
+    };
+
+    addToQueue(tarefa);
 
     res.send(`
       <p style="color:green">✅ Formulário recebido. O robô vai processar em breve.</p>
@@ -72,6 +84,7 @@ async function handleFormulario(req, res) {
       </div>
       <p style="margin-top:20px"><a href="/">⬅️ Voltar</a></p>
     `);
+
   } catch (err) {
     console.error('❌ Erro ao processar formulário:', err.message);
     res.send(`
