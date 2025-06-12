@@ -4,10 +4,10 @@ FROM mcr.microsoft.com/playwright:v1.52.0-jammy
 # Define diretório de trabalho
 WORKDIR /app
 
-# Copia arquivos de dependência e instala as libs do sistema
+# Copia arquivos de dependência e instala libs de imagem
 COPY package*.json ./
 
-# 🛠️ Instala dependências do sistema (incluindo GraphicsMagick e ImageMagick)
+# Instala libs do sistema necessárias para OCR
 RUN apt-get update && apt-get install -y \
   graphicsmagick \
   imagemagick \
@@ -16,11 +16,8 @@ RUN apt-get update && apt-get install -y \
 # Instala dependências Node.js
 RUN npm install
 
-# Copia restante do projeto
+# Copia restante do código
 COPY . .
-
-COPY package*.json ./
-RUN npm install
 
 # Garante que a pasta uploads/ existe
 RUN mkdir -p /app/uploads
@@ -31,8 +28,8 @@ RUN npx playwright install --with-deps
 # Define ambiente de produção
 ENV NODE_ENV=production
 
-# Expõe porta usada pelo Express
+# Expõe a porta do Express
 EXPOSE 8080
 
-# Comando padrão
+# Comando padrão de inicialização
 CMD ["node", "index.js"]
