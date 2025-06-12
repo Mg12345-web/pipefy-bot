@@ -4,6 +4,7 @@ const fs = require('fs');
 const { acquireLock, releaseLock } = require('../utils/lock');
 const { loginPipefy } = require('../utils/auth');
 const { normalizarArquivo } = require('../utils/arquivos');
+const { normalizarArquivo } = require('../utils/normalizarArquivo');
 
 async function runSemRgpRobot(req, res) {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
