@@ -4,9 +4,6 @@ const fs = require('fs');
 const { acquireLock, releaseLock } = require('../utils/lock');
 const { loginPipefy } = require('../utils/auth');
 
-// 🔍 Se ainda quiser a opção de extrair dos PDFs:
-const { extractText } = require('../utils/extractText');
-
 async function runClientRobot(req, res) {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.write('<pre>🤖 Iniciando robô de CLIENTES...\n');
@@ -24,19 +21,21 @@ async function runClientRobot(req, res) {
   let browser;
 
   try {
-    const caminhoProcuracao = req.files?.procuracao?.[0]?.path || '';
-    const caminhoCnh = req.files?.cnh?.[0]?.path || '';
-    const caminhoContrato = req.files?.contrato?.[0]?.path || '';
-
     const dados = {
-      'Nome Completo': req.body.nome || '',
-      'CPF OU CNPJ': req.body.cpf || '',
-      'Estado Civil Atual': req.body.estadoCivil || '',
-      'Profissão': req.body.profissao || '',
-      'Endereço Completo': req.body.endereco || '',
-      'Email': req.body.email || '',
-      'Número de telefone': req.body.telefone || ''
+      'Nome Completo': req.body.dados?.['Nome Completo'] || '',
+      'CPF OU CNPJ': req.body.dados?.['CPF OU CNPJ'] || '',
+      'Estado Civil Atual': req.body.dados?.['Estado Civil'] || '',
+      'Profissão': req.body.dados?.['Profissão'] || '',
+      'Endereço Completo': req.body.dados?.['Endereço'] || '',
+      'Email': req.body.dados?.['Email'] || '',
+      'Número de telefone': req.body.dados?.['Número de telefone'] || ''
     };
+
+    const anexos = [
+      req.files?.cnh?.[0]?.path,
+      req.files?.procuracao?.[0]?.path,
+      req.files?.contrato?.[0]?.path
+    ].filter(fs.existsSync);
 
     browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
     const context = await browser.newContext();
@@ -57,11 +56,10 @@ async function runClientRobot(req, res) {
         await labelLocator.fill(valor);
         log(`✅ ${campo} preenchido`);
       } catch {
-        log(`⚠️ Campo não encontrado: ${campo}`);
+        log(`⚠️ Campo não encontrado ou erro ao preencher: ${campo}`);
       }
     }
 
-    const anexos = [caminhoCnh, caminhoProcuracao, caminhoContrato].filter(fs.existsSync);
     for (const caminho of anexos) {
       const botao = await page.locator('button[data-testid="attachments-dropzone-button"]').first();
       await botao.waitFor({ state: 'visible', timeout: 5000 });
