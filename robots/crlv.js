@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const { acquireLock, releaseLock } = require('../utils/lock');
 const { loginPipefy } = require('../utils/auth');
+const { normalizarArquivo } = require('../utils/arquivos');
 
 async function runCrlvRobot(req, res) {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -31,11 +32,15 @@ async function runCrlvRobot(req, res) {
     return res.end('</pre><p style="color:red">Arquivo de CRLV ausente.</p>');
   }
 
-  const pasta = path.dirname(arquivoOriginal.path);
-  const arquivoCRLV = path.join(pasta, 'crlv.pdf');
-  fs.renameSync(arquivoOriginal.path, arquivoCRLV);
-  if (path.basename(arquivoOriginal.path) !== 'crlv.pdf') {
-  fs.renameSync(arquivoOriginal.path, arquivoCRLV);
+  const arquivoOriginal = req.files?.crlv?.[0];
+if (!arquivoOriginal || !fs.existsSync(arquivoOriginal.path)) {
+  log('❌ Arquivo de CRLV não recebido.');
+  releaseLock();
+  return res.end('</pre><p style="color:red">Arquivo de CRLV ausente.</p>');
+}
+
+const arquivoCRLV = normalizarArquivo('crlv', arquivoOriginal.path);
+
 }
 
   let browser;
@@ -104,9 +109,6 @@ async function runCrlvRobot(req, res) {
     if (browser) await browser.close();
     res.end('</pre><p style="color:red">Erro crítico no robô de CRLV.</p>');
   } finally {
-    if (fs.existsSync(arquivoCRLV)) fs.unlinkSync(arquivoCRLV);
-    releaseLock();
-  }
 }
 
 module.exports = { runCrlvRobot };
