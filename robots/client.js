@@ -1,29 +1,11 @@
 const { chromium } = require('playwright');
 const path = require('path');
 const fs = require('fs');
-const pdfParse = require('pdf-parse');
 const { acquireLock, releaseLock } = require('../utils/lock');
 const { loginPipefy } = require('../utils/auth');
-const { baixarArquivo } = require('../utils/downloads');
 
-// 🔍 Função para extrair os dados da procuração
+// 🔍 Se ainda quiser a opção de extrair dos PDFs:
 const { extractText } = require('../utils/extractText');
-async function extrairDadosDaProcuracao(caminhoArquivo) {
-  const texto = await extractText(caminhoArquivo);
-  const nome = texto.match(/(?:Nome|NOME):?\s*([A-Z\s]{5,})/)?.[1]?.trim();
-  const cpf = texto.match(/CPF[:\s]*([\d\.\-]{11,})/)?.[1]?.trim();
-  const estadoCivil = texto.match(/Estado Civil:?\s*([A-Za-zçãéíõú\s]+)/i)?.[1]?.trim();
-  const profissao = texto.match(/Profissão:?\s*([A-Za-zçãéíõú\s]+)/i)?.[1]?.trim();
-  const endereco = texto.match(/residente e domiciliado à\s*(.*?CEP.*)/i)?.[1]?.trim();
-
-  return {
-    'Nome Completo': nome || '',
-    'CPF OU CNPJ': cpf || '',
-    'Estado Civil Atual': estadoCivil || '',
-    'Profissão': profissao || '',
-    'Endereço Completo': endereco || ''
-  };
-}
 
 async function runClientRobot(req, res) {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -39,18 +21,23 @@ async function runClientRobot(req, res) {
     return res.end('</pre>');
   }
 
-  const emailManual = req.body?.email || '';
-  const telefoneManual = req.body?.telefone || '';
+  let browser;
 
-  const dados = tarefa.dados;
-  'Nome Completo': req.body.nome || '',
-  'CPF OU CNPJ': req.body.cpf || '',
-  'Estado Civil Atual': req.body.estadoCivil || '',
-  'Profissão': req.body.profissao || '',
-  'Endereço Completo': req.body.endereco || '',
-  'Email': req.body.email || '',
-  'Número de telefone': req.body.telefone || ''
-};
+  try {
+    const caminhoProcuracao = req.files?.procuracao?.[0]?.path || '';
+    const caminhoCnh = req.files?.cnh?.[0]?.path || '';
+    const caminhoContrato = req.files?.contrato?.[0]?.path || '';
+
+    const dados = {
+      'Nome Completo': req.body.nome || '',
+      'CPF OU CNPJ': req.body.cpf || '',
+      'Estado Civil Atual': req.body.estadoCivil || '',
+      'Profissão': req.body.profissao || '',
+      'Endereço Completo': req.body.endereco || '',
+      'Email': req.body.email || '',
+      'Número de telefone': req.body.telefone || ''
+    };
+
     browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
     const context = await browser.newContext();
     const page = await context.newPage();
@@ -100,13 +87,13 @@ async function runClientRobot(req, res) {
     const botoes = await page.$$('button');
     let botaoClicado = false;
 
-    for (let i = 0; i < botoes.length; i++) {
-      const texto = await botoes[i].innerText();
-      const box = await botoes[i].boundingBox();
+    for (const botao of botoes) {
+      const texto = await botao.innerText();
+      const box = await botao.boundingBox();
 
       if (texto.trim() === 'Criar registro' && box && box.width > 200) {
-        await botoes[i].scrollIntoViewIfNeeded();
-        await botoes[i].click();
+        await botao.scrollIntoViewIfNeeded();
+        await botao.click();
         log('✅ Botão clicado: Criar registro');
         botaoClicado = true;
         break;
