@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const { acquireLock, releaseLock } = require('../utils/lock');
 const { loginPipefy } = require('../utils/auth');
+const { normalizarArquivo } = require('../utils/arquivos');
 
 async function runSemRgpRobot(req, res) {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -23,7 +24,7 @@ async function runSemRgpRobot(req, res) {
     return res.end('</pre>');
   }
 
-  const caminhoPDF = arquivos[0].path;
+  const caminhoPDF = normalizarArquivo('autuacao', arquivos[0].path);
   let browser, page;
 
   try {
