@@ -9,6 +9,7 @@ const { runSemRgpRobot } = require('./robots/semrgp');
 const { addToQueue, startQueue } = require('./robots/fila');
 const { extractText } = require('./utils/extractText');
 const { extrairAitsDosArquivos } = require('./utils/extrairAitsDosArquivos');
+const { handleOraculo } = require('./routes/oraculo');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -38,6 +39,7 @@ app.get('/start-semrgp', runSemRgpRobot);
 // ROTA DE FORMULÁRIO
 const { handleFormulario } = require('./routes/formulario');
 app.post('/formulario', upload.any(), handleFormulario);
+app.post('/oraculo', upload.any(), handleOraculo);
   
 // ROTAS DE PRINTS
 app.get('/view-client-print', (req, res) => {
