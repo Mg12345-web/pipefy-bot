@@ -42,24 +42,15 @@ async function runClientRobot(req, res) {
   const emailManual = req.body?.email || '';
   const telefoneManual = req.body?.telefone || '';
 
-  const caminhoProcuracao = path.resolve(__dirname, '../uploads/procuracao.pdf');
-  const caminhoCnh = path.resolve(__dirname, '../uploads/cnh.pdf');
-  const caminhoContrato = path.resolve(__dirname, '../uploads/contrato.pdf');
-
-  let browser;
-
-  try {
-    if (!fs.existsSync(caminhoProcuracao)) {
-      throw new Error('❌ Arquivo de procuração não encontrado.');
-    }
-
-    const dadosExtraidos = await extrairDadosDaProcuracao(caminhoProcuracao);
-    const dados = {
-      ...dadosExtraidos,
-      'Email': emailManual,
-      'Número de telefone': telefoneManual
-    };
-
+  const dados = tarefa.dados;
+  'Nome Completo': req.body.nome || '',
+  'CPF OU CNPJ': req.body.cpf || '',
+  'Estado Civil Atual': req.body.estadoCivil || '',
+  'Profissão': req.body.profissao || '',
+  'Endereço Completo': req.body.endereco || '',
+  'Email': req.body.email || '',
+  'Número de telefone': req.body.telefone || ''
+};
     browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
     const context = await browser.newContext();
     const page = await context.newPage();
