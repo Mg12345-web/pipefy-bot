@@ -4,6 +4,7 @@ const fs = require('fs');
 const { acquireLock, releaseLock } = require('../utils/lock');
 const { loginPipefy } = require('../utils/auth');
 const { normalizarArquivo } = require('../utils/arquivos');
+const { normalizarArquivo } = require('../utils/normalizarArquivo');
 
 async function runCrlvRobot(req, res) {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -32,7 +33,7 @@ async function runCrlvRobot(req, res) {
     return res.end('</pre><p style="color:red">Arquivo de CRLV ausente.</p>');
   }
 
-  const arquivoOriginal = req.files?.crlv?.[0];
+  const arquivoOriginal = arquivos?.crlv?.[0];
 if (!arquivoOriginal || !fs.existsSync(arquivoOriginal.path)) {
   log('❌ Arquivo de CRLV não recebido.');
   releaseLock();
