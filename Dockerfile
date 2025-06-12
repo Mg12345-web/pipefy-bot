@@ -14,7 +14,8 @@ RUN apt-get update && apt-get install -y \
   && rm -rf /var/lib/apt/lists/*
 
 # Instala dependências Node.js
-RUN npm install
+COPY package*.json ./
+RUN npm ci --omit=dev
 
 # Copia restante do código
 COPY . .
