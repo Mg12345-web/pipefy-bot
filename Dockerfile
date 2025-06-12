@@ -19,6 +19,9 @@ RUN npm install
 # Copia restante do projeto
 COPY . .
 
+COPY package*.json ./
+RUN npm install
+
 # Garante que a pasta uploads/ existe
 RUN mkdir -p /app/uploads
 
