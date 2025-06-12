@@ -18,9 +18,12 @@ async function runCrlvRobot(req, res) {
     return res.end('</pre>');
   }
 
-  const dados = req.body?.dados || {};
-  const arquivos = req.files || {};
-  const arquivoOriginal = arquivos?.crlv?.[0];
+  const dados = {
+  'Placa': req.body.dados?.['Placa'] || '',
+  'Chassi': req.body.dados?.['Chassi'] || '',
+  'Renavam': req.body.dados?.['Renavam'] || '',
+  'Estado de Emplacamento': req.body.dados?.['Estado de Emplacamento'] || ''
+};
 
   if (!arquivoOriginal || !fs.existsSync(arquivoOriginal.path)) {
     log('❌ Arquivo de CRLV não recebido.');
@@ -31,6 +34,9 @@ async function runCrlvRobot(req, res) {
   const pasta = path.dirname(arquivoOriginal.path);
   const arquivoCRLV = path.join(pasta, 'crlv.pdf');
   fs.renameSync(arquivoOriginal.path, arquivoCRLV);
+  if (path.basename(arquivoOriginal.path) !== 'crlv.pdf') {
+  fs.renameSync(arquivoOriginal.path, arquivoCRLV);
+}
 
   let browser;
 
