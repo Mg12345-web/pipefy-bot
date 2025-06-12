@@ -69,9 +69,14 @@ async function handleFormulario(req, res) {
       telefone,
       arquivos,
       autuacoes: autuacoes.filter(a => a.tipo && a.arquivo),
-      dados, // ✅ Aqui está o segredo
-      timestamp: Date.now()
-    };
+      dados: {
+          'Placa': 'ABC1D23',
+          'CHASSI': '123456789XYZ12345',
+          'RENAVAM': '98765432109',
+          'Estado de emplacamento': 'MG'
+  },
+  timestamp: Date.now()
+};
 
     addToQueue(tarefa);
 
