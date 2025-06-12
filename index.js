@@ -36,7 +36,8 @@ app.get('/start-rgp', runRgpRobot);
 app.get('/start-semrgp', runSemRgpRobot);
 
 // ROTA DE FORMULÁRIO
-app.post('/formulario', upload.any(), async (req, res) => {
+const { handleFormulario } = require('./routes/formulario');
+app.post('/formulario', upload.any(), handleFormulario);
   const { email, telefone } = req.body;
   const arquivos = {};
   const autuacoes = [];
