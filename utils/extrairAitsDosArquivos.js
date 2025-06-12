@@ -20,6 +20,7 @@ async function extrairAitsDosArquivos(caminhosArquivos) {
       }
     } catch (err) {
       console.warn(`⚠️ Falha ao extrair texto de ${path.basename(caminho)}: ${err.message}`);
+      aits.push({ arquivo: path.basename(caminho), numero: ait });
     }
   }
 
