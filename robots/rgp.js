@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const { acquireLock, releaseLock } = require('../utils/lock');
 const { loginPipefy } = require('../utils/auth');
+const { normalizarArquivo } = require('../utils/arquivos');
 
 async function runRgpRobot(req, res) {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -26,9 +27,7 @@ async function runRgpRobot(req, res) {
 
   let browser, page;
   setTimeout(async () => {
-    const pasta = path.dirname(arquivos[0].path);
-    const caminhoPDF = path.join(pasta, 'autuacao.pdf');
-    fs.renameSync(arquivos[0].path, caminhoPDF);
+    const caminhoPDF = normalizarArquivo('autuacao', arquivos[0].path);
 
     try {
       browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
