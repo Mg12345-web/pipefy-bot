@@ -36,20 +36,19 @@ async function handleOraculo(req, res) {
   let dados = {}, aits = [];
 
   try {
-    if (procurar) {
-      const texto = await extractText(procurar);
-      dados = JSON.parse(await interpretarTextoComGPT(texto));
-    }
+   if (procurar) {
+  const texto = await extractText(procurar);
+  dados = JSON.parse(await interpretarTextoComGPT(texto, 'procuracao'));
+}
 
-    // adicione dados extraídos por OCR ou GPT ao objeto
-    dados.Email = email;
-    dados['Número de telefone'] = telefone;
+dados.Email = email;
+dados['Número de telefone'] = telefone;
 
-    if (crlv) {
-      const textoCR = await extractText(crlv);
-      const jsonCR = await interpretarTextoComGPT(textoCR);
-      Object.assign(dados, JSON.parse(jsonCR));
-    }
+if (crlv) {
+  const textoCR = await extractText(crlv);
+  const jsonCR = await interpretarTextoComGPT(textoCR, 'crlv');
+  Object.assign(dados, JSON.parse(jsonCR));
+}
 
     const caminhosAut = autuacoes
       .filter(a => a.tipo && a.arquivo)
