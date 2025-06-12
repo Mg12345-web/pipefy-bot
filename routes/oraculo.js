@@ -1,5 +1,5 @@
 const fs = require('fs');
-const { extractText } = require('../utils/extractText');
+const { extractText, interpretarTextoComGPT } = require('../utils/extractText');
 const { extrairAitsDosArquivos } = require('../utils/extrairAitsDosArquivos');
 const { addToQueue } = require('../robots/fila');
 
@@ -8,50 +8,55 @@ async function handleOraculo(req, res) {
   const arquivos = {};
   const autuacoes = [];
 
+  // organiza os arquivos
   for (const file of req.files) {
     const field = file.fieldname;
     if (field.startsWith('autuacoes[')) {
-      const match = field.match(/autuacoes\[(\d+)\]\[arquivo\]/);
-      if (match) {
-        const index = parseInt(match[1], 10);
-        if (!autuacoes[index]) autuacoes[index] = {};
-        autuacoes[index].arquivo = file.path;
-      }
+      const idx = +field.match(/autuacoes\[(\d+)\]/)[1];
+      autuacoes[idx] = autuacoes[idx] || {};
+      autuacoes[idx].arquivo = file.path;
     } else {
-      if (!arquivos[field]) arquivos[field] = [];
+      arquivos[field] = arquivos[field] || [];
       arquivos[field].push(file);
     }
   }
 
+  // le os tipos de autuação
   Object.keys(req.body).forEach(key => {
-    const match = key.match(/autuacoes\[(\d+)\]\[tipo\]/);
-    if (match) {
-      const index = parseInt(match[1], 10);
-      if (!autuacoes[index]) autuacoes[index] = {};
-      autuacoes[index].tipo = req.body[key];
+    const m = key.match(/autuacoes\[(\d+)\]\[tipo\]/);
+    if (m) {
+      const idx = +m[1];
+      autuacoes[idx] = autuacoes[idx] || {};
+      autuacoes[idx].tipo = req.body[key];
     }
   });
 
-  const procuracaoPath = arquivos?.procuracao?.[0]?.path;
-  let nome = '', cpf = '', estadoCivil = '', profissao = '', endereco = '', aits = [];
+  const procurar = arquivos.procuracao?.[0]?.path;
+  const crlv = arquivos.crlv?.[0]?.path;
+  let dados = {}, aits = [];
 
   try {
-    if (procuracaoPath && fs.existsSync(procuracaoPath)) {
-      const texto = await extractText(procuracaoPath);
-      nome = texto.match(/(?:Nome|NOME):?\s*([A-Z\s]{5,})/)?.[1]?.trim() || '';
-      cpf = texto.match(/CPF[:\s]*([\d\.\-]{11,})/)?.[1]?.trim() || '';
-      estadoCivil = texto.match(/Estado Civil:?\s*([A-Za-zçãéíõú\s]+)/i)?.[1]?.trim() || '';
-      profissao = texto.match(/Profissão:?\s*([A-Za-zçãéíõú\s]+)/i)?.[1]?.trim() || '';
-      endereco = texto.match(/residente e domiciliado à\s*(.*?CEP.*)/i)?.[1]?.trim() || '';
+    if (procurar) {
+      const texto = await extractText(procurar);
+      dados = JSON.parse(await interpretarTextoComGPT(texto));
     }
 
-    const caminhosAutuacoes = req.files
-      .filter(file => file.fieldname.startsWith('autuacoes['))
-      .map(file => file.path)
-      .filter(fs.existsSync);
+    // adicione dados extraídos por OCR ou GPT ao objeto
+    dados.Email = email;
+    dados['Número de telefone'] = telefone;
 
-    if (caminhosAutuacoes.length > 0) {
-      aits = await extrairAitsDosArquivos(caminhosAutuacoes);
+    if (crlv) {
+      const textoCR = await extractText(crlv);
+      const jsonCR = await interpretarTextoComGPT(textoCR);
+      Object.assign(dados, JSON.parse(jsonCR));
+    }
+
+    const caminhosAut = autuacoes
+      .filter(a => a.tipo && a.arquivo)
+      .map(a => a.arquivo);
+
+    if (caminhosAut.length > 0) {
+      aits = await extrairAitsDosArquivos(caminhosAut);
     }
 
     const tarefa = {
@@ -59,19 +64,7 @@ async function handleOraculo(req, res) {
       telefone,
       arquivos,
       autuacoes: autuacoes.filter(a => a.tipo && a.arquivo),
-      dados: {
-        'Nome Completo': nome,
-        'CPF OU CNPJ': cpf,
-        'Estado Civil Atual': estadoCivil,
-        'Profissão': profissao,
-        'Endereço Completo': endereco,
-        'Email': email,
-        'Número de telefone': telefone,
-        'Placa': 'ABC1D23',
-        'CHASSI': '123456789XYZ12345',
-        'RENAVAM': '98765432109',
-        'Estado de emplacamento': 'MG'
-      },
+      dados,
       timestamp: Date.now()
     };
 
@@ -79,12 +72,12 @@ async function handleOraculo(req, res) {
 
     res.send({
       status: 'ok',
-      mensagem: 'Formulário processado com sucesso',
-      dadosExtraidos: { nome, cpf, estadoCivil, profissao, endereco, aits }
+      mensagem: 'Oráculo processado com sucesso',
+      dadosExtraidos: { ...dados, aits }
     });
 
   } catch (err) {
-    console.error('❌ Erro no oráculo:', err.message);
+    console.error('❌ Oráculo erro:', err);
     res.status(500).send({ status: 'erro', mensagem: err.message });
   }
 }
