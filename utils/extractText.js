@@ -8,16 +8,16 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-// 🧠 Interpreta texto com GPT, com fallback seguro
+// 🧠 Interpreta texto com GPT com validação de JSON
 async function interpretarTextoComGPT(textoOriginal, tipoDocumento = 'geral') {
   let systemPrompt = '';
 
   switch (tipoDocumento) {
     case 'procuracao':
-  systemPrompt = `
+      systemPrompt = `
 Você é um assistente que extrai apenas os dados do OUTORGANTE de uma procuração.
 
-Extraia **somente os seguintes campos**, em formato JSON:
+Retorne apenas os seguintes campos, em formato JSON:
 {
   "nome": "",
   "data_nascimento": "",
@@ -36,15 +36,16 @@ Extraia **somente os seguintes campos**, em formato JSON:
   "estado": ""
 }
 
-Ignore completamente os dados do advogado ou outorgado. Não inclua explicações, apenas o JSON.
+⚠️ Ignore completamente os dados do advogado ou outorgado.
+⚠️ Não inclua explicações ou formatações, apenas o JSON puro.
 `.trim();
-  break;
+      break;
+
     case 'crlv':
-  systemPrompt = `
+      systemPrompt = `
 Você é um assistente que extrai dados de um CRLV (Certificado de Registro e Licenciamento de Veículo).
 
-Retorne apenas os seguintes dados, em formato JSON:
-
+Responda somente com este JSON:
 {
   "placa": "",
   "chassi": "",
@@ -52,14 +53,25 @@ Retorne apenas os seguintes dados, em formato JSON:
   "estadoEmplacamento": ""
 }
 
-⚠️ Apenas valores reais do documento. Não invente dados. Se não encontrar, deixe como string vazia.
+⚠️ Use apenas os valores reais encontrados no documento. Se não houver, deixe como string vazia.
 `.trim();
-  break;
-    case 'autuacao':
-      systemPrompt = 'Você é um assistente que extrai dados de uma notificação de autuação. JSON: orgaoAutuador, numeroAIT, dataDefesaRecurso.';
       break;
+
+    case 'autuacao':
+      systemPrompt = `
+Você é um assistente que extrai dados de uma notificação de autuação.
+
+Retorne somente este JSON:
+{
+  "orgaoAutuador": "",
+  "numeroAIT": "",
+  "dataDefesaRecurso": ""
+}
+`.trim();
+      break;
+
     default:
-      systemPrompt = 'Você é um assistente que extrai dados de documentos de veículos e procurações. Responda apenas com um JSON.';
+      systemPrompt = 'Você é um assistente que extrai dados de documentos diversos. Responda somente com um JSON.';
   }
 
   try {
@@ -73,22 +85,19 @@ Retorne apenas os seguintes dados, em formato JSON:
     });
 
     const content = resposta.choices[0].message.content;
-
     console.log('📤 Resposta bruta do GPT:', content);
 
     const matchJson = content.match(/\{[\s\S]+?\}/);
-    
-if (matchJson) {
-  try {
-    JSON.parse(matchJson[0]); // Valida sintaxe
-    return matchJson[0];
-  } catch {
-    console.warn('⚠️ JSON malformado retornado pelo GPT.');
-    return '{}';
-  }
-}
+    if (matchJson) {
+      try {
+        JSON.parse(matchJson[0]); // valida sintaxe
+        return matchJson[0];
+      } catch (err) {
+        console.warn('⚠️ JSON malformado retornado pelo GPT.');
+      }
+    }
 
-return '{}';
+    return '{}';
 
   } catch (err) {
     console.error(`❌ Erro ao interpretar texto com GPT: ${err.message}`);
