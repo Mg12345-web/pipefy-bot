@@ -53,21 +53,27 @@ async function handleOraculo(req, res) {
       }
     }
 
-    // Dados manuais do formulário
+    // 🧠 Dados manuais do formulário
     dados.Email = email;
     dados['Número de telefone'] = telefone;
 
     // 🚗 Leitura do CRLV
     if (crlv) {
       const ext = path.extname(crlv).toLowerCase();
+      let crlvDados = {};
+
       if (['.jpg', '.jpeg', '.png'].includes(ext)) {
-        const crlvDados = await interpretarImagemComGptVision(crlv, 'crlv');
-        Object.assign(dados, crlvDados);
+        crlvDados = await interpretarImagemComGptVision(crlv, 'crlv');
       } else {
         const textoCR = await extractText(crlv);
-        const jsonCR = await interpretarTextoComGPT(textoCR, 'crlv');
-        Object.assign(dados, JSON.parse(jsonCR));
+        crlvDados = JSON.parse(await interpretarTextoComGPT(textoCR, 'crlv'));
       }
+
+      // 🔧 Normaliza os campos para o robô de CRLV
+      dados['Placa'] = crlvDados.placa || crlvDados['Placa'] || '';
+      dados['Chassi'] = crlvDados.chassi || crlvDados['Chassi'] || '';
+      dados['Renavam'] = crlvDados.renavam || crlvDados['Renavam'] || '';
+      dados['Estado de Emplacamento'] = crlvDados.estadoEmplacamento || crlvDados['Estado de Emplacamento'] || '';
     }
 
     // ⚠️ Autuações
@@ -79,6 +85,26 @@ async function handleOraculo(req, res) {
       aits = await extrairAitsDosArquivos(caminhosAut);
     }
 
+    // 🔧 Compatibiliza com robô de CLIENTES
+    dados['Nome Completo'] = dados.nome || dados['Nome Completo'] || '';
+    dados['CPF OU CNPJ'] = dados.cpf || '';
+    dados['Estado Civil'] = dados.estado_civil || '';
+    dados['Profissão'] = dados.profissao || '';
+
+    // 🧾 Monta o endereço completo
+    if (dados.logradouro && dados.numero && dados.bairro && dados.cidade) {
+      dados['Endereço'] = `${dados.logradouro}, ${dados.numero} - ${dados.bairro} - ${dados.cidade}/${dados.estado || ''}`;
+    }
+
+    // ✅ Verificação obrigatória dos dados
+    const nomeCompleto = dados['Nome Completo'];
+    const placa = dados['Placa'];
+
+    if (!nomeCompleto || !placa) {
+      throw new Error('Dados incompletos: Nome Completo ou Placa ausentes.');
+    }
+
+    // ✔️ Tudo certo, adiciona na fila
     tarefa = {
       email,
       telefone,
@@ -88,15 +114,6 @@ async function handleOraculo(req, res) {
       timestamp: Date.now()
     };
 
-    // ✅ Verificação obrigatória dos dados
-    const nomeCompleto = dados.nome || dados['Nome Completo'];
-    const placa = dados.placa || dados['Placa'];
-
-    if (!nomeCompleto || !placa) {
-      throw new Error('Dados incompletos: Nome Completo ou Placa ausentes.');
-    }
-
-    // ✔️ Tudo certo, adiciona na fila
     addToQueue(tarefa);
 
     res.send({
