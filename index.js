@@ -7,14 +7,13 @@ const { runCrlvRobot } = require('./robots/crlv');
 const { runRgpRobot } = require('./robots/rgp');
 const { runSemRgpRobot } = require('./robots/semrgp');
 const { addToQueue, startQueue } = require('./robots/fila');
-const { extractText } = require('./utils/extractText');
-const { extrairAitsDosArquivos } = require('./utils/extrairAitsDosArquivos');
 const { handleOraculo } = require('./routes/oraculo');
+const { handleFormulario } = require('./routes/formulario');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// Rota Raiz
+// Página inicial
 app.get('/', (req, res) => {
   res.send(`
     <h2>🚀 <b>Robô Pipefy</b></h2>
@@ -36,90 +35,37 @@ app.get('/start-crlv', runCrlvRobot);
 app.get('/start-rgp', runRgpRobot);
 app.get('/start-semrgp', runSemRgpRobot);
 
-// ROTAS DE STATUS
+// FORMULÁRIOS E INTEGRAÇÃO
+app.post('/formulario', upload.any(), handleFormulario);
+app.post('/oraculo', upload.any(), handleOraculo);
+
+// STATUS DA FILA
 app.get('/status', (req, res) => {
   res.json({ status: 'ok', filaAtiva: true, timestamp: Date.now() });
 });
 
-// ROTA DE FORMULÁRIO
-const { handleFormulario } = require('./routes/formulario');
-app.post('/formulario', upload.any(), handleFormulario);
-app.post('/oraculo', upload.any(), handleOraculo);
+// VISUALIZAÇÃO DE PRINTS
+const prints = [
+  { route: 'client', file: 'print_final_clientes.png' },
+  { route: 'crlv', file: 'registro_crlv.png' },
+  { route: 'rgp', file: 'print_final_rgp.png' },
+  { route: 'semrgp', file: 'print_final_semrgp.png' },
+];
 
-try {
-  const { handleFormulario } = require('./routes/formulario');
-  app.post('/formulario', upload.any(), handleFormulario);
-} catch (e) {
-  console.warn('⚠️ Rota /formulario desativada (formulario.js não encontrado ou com erro)');
-}
-
-// === ROTAS HTML DE TESTE ===
-app.get('/', (req, res) => {
-  res.send('✅ API MG Multas está online.');
-});
-
-// === ROTAS DE EXECUÇÃO MANUAL ===
-app.get('/start-clientes', runClientRobot);
-app.get('/start-crlv', runCrlvRobot);
-
-// === ROTAS DE INTEGRAÇÃO ===
-app.post('/oraculo', upload.any(), handleOraculo);
-  
-// ROTAS DE PRINTS
-app.get('/view-client-print', (req, res) => {
-  const screenshotPath = path.resolve(__dirname, 'prints/print_final_clientes.png');
-  if (fs.existsSync(screenshotPath)) {
-    const base64 = fs.readFileSync(screenshotPath).toString('base64');
-    res.send(`
-      <h3>📷 Último print da tela de Clientes:</h3>
-      <img src="data:image/png;base64,${base64}" style="max-width:100%; border:1px solid #ccc;">
-      <p><a href="/">⬅️ Voltar</a></p>
-    `);
-  } else {
-    res.send('<p>❌ Nenhum print de cliente encontrado ainda.</p><p><a href="/">⬅️ Voltar</a></p>');
-  }
-});
-
-app.get('/view-crlv-print', (req, res) => {
-  const screenshotPath = path.resolve(__dirname, 'prints/registro_crlv.png');
-  if (fs.existsSync(screenshotPath)) {
-    const base64 = fs.readFileSync(screenshotPath).toString('base64');
-    res.send(`
-      <h3>📷 Último print da tela do CRLV:</h3>
-      <img src="data:image/png;base64,${base64}" style="max-width:100%; border:1px solid #ccc;">
-      <p><a href="/">⬅️ Voltar</a></p>
-    `);
-  } else {
-    res.send('<p>❌ Nenhum print de CRLV encontrado ainda.</p><p><a href="/">⬅️ Voltar</a></p>');
-  }
-});
-
-app.get('/view-rgp-print', (req, res) => {
-  const screenshotPath = path.resolve(__dirname, 'prints/print_final_rgp.png');
-  if (fs.existsSync(screenshotPath)) {
-    const base64 = fs.readFileSync(screenshotPath).toString('base64');
-    res.send(`
-      <h3>📷 Último print da tela de RGP:</h3>
-      <img src="data:image/png;base64,${base64}" style="max-width:100%; border:1px solid #ccc;">
-      <p><a href="/">⬅️ Voltar</a></p>
-    `);
-  } else {
-    res.send('<p>❌ Nenhum print de RGP encontrado ainda.</p><p><a href="/">⬅️ Voltar</a></p>');
-  }
-});
-
-app.get('/view-semrgp-print', (req, res) => {
-  const screenshotPath = path.resolve(__dirname, 'prints/print_final_semrgp.png');
-  if (fs.existsSync(screenshotPath)) {
-    const base64 = fs.readFileSync(screenshotPath).toString('base64');
-    res.send(`
-      <h3>📷 Último print da tela de SEM RGP:</h3>
-      <img src="data:image/png;base64,${base64}" style="max-width:100%; border:1px solid #ccc;">
-      <p><a href="/">⬅️ Voltar</a></p>
-    `);
-  } else {
-    res.send('<p>❌ Nenhum print de SEM RGP encontrado ainda.</p><p><a href="/">⬅️ Voltar</a></p>');
-  }
+prints.forEach(({ route, file }) => {
+  app.get(`/view-${route}-print`, (req, res) => {
+    const screenshotPath = path.resolve(__dirname, `prints/${file}`);
+    if (fs.existsSync(screenshotPath)) {
+      const base64 = fs.readFileSync(screenshotPath).toString('base64');
+      res.send(`
+        <h3>📷 Último print da tela de ${route.toUpperCase()}:</h3>
+        <img src="data:image/png;base64,${base64}" style="max-width:100%; border:1px solid #ccc;">
+        <p><a href="/">⬅️ Voltar</a></p>
+      `);
+    } else {
+      res.send(`<p>❌ Nenhum print de ${route.toUpperCase()} encontrado ainda.</p><p><a href="/">⬅️ Voltar</a></p>`);
+    }
+  });
 });
 
 startQueue();
