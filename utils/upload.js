@@ -1,13 +1,8 @@
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const arquivo = req.files?.procuracao?.[0];
-const ext = path.extname(arquivo?.originalname || '').toLowerCase();
-const nomePadrao = `procuracao${ext}`;
-const caminhoDestino = path.join(path.dirname(arquivo.path), nomePadrao);
-fs.renameSync(arquivo.path, caminhoDestino);
-
 const pastaUploads = path.resolve(__dirname, '../uploads');
+await normalizarArquivo('procuracao', req.files?.procuracao?.[0]?.path);
 
 // ✅ Garante que "uploads" seja uma pasta
 if (fs.existsSync(pastaUploads)) {
