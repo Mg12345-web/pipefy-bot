@@ -52,6 +52,15 @@ const prints = [
   { route: 'semrgp', file: 'print_final_semrgp.png' },
 ];
 
+app.get('/ultimo-oraculo.json', (req, res) => {
+  const filePath = path.resolve(__dirname, 'logs/ultimo-oraculo.json');
+  if (fs.existsSync(filePath)) {
+    res.sendFile(filePath);
+  } else {
+    res.status(404).json({ erro: 'Nenhum dado disponível ainda.' });
+  }
+});
+
 prints.forEach(({ route, file }) => {
   app.get(`/view-${route}-print`, (req, res) => {
     const screenshotPath = path.resolve(__dirname, `prints/${file}`);
