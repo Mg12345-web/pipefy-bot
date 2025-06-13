@@ -15,14 +15,22 @@ async function runSemRgpRobot(req, res) {
     return res.end('</pre>');
   }
 
-  const arquivos = req.files?.autuacoes || [];
-  const { ait = '', orgao = '' } = req.body;
+  const autuacoes = req.body?.autuacoes || [];
+  const arquivos = autuacoes.map(a => a.arquivo).filter(Boolean);
+  const { dados = {} } = req.body;
+  const ait = dados.numeroAIT || '';
+  const orgao = dados.orgaoAutuador || '';
+  const cpf = dados['CPF OU CNPJ'] || '';
+  const placa = dados['Placa'] || '';
 
   if (!arquivos.length) {
     log('❌ Nenhum arquivo de autuação recebido.');
     releaseLock();
     return res.end('</pre>');
   }
+
+  log(`🔍 Buscando cliente com CPF: ${cpf}`);
+  log(`🔍 Buscando CRLV com Placa: ${placa}`);
 
   const caminhoPDF = normalizarArquivo('autuacao', arquivos[0].path);
   let browser, page;
@@ -51,9 +59,9 @@ async function runSemRgpRobot(req, res) {
     // Cliente
     log('👤 Selecionando cliente...');
     await page.locator('div:has-text("Cliente") >> :text("Criar registro")').first().click();
-    await page.locator('input[placeholder*="Pesquisar"]').fill('143.461.936-25');
+    await page.locator('input[placeholder*="Pesquisar"]').fill(cpf);
     await page.waitForTimeout(1500);
-    await page.getByText('143.461.936-25', { exact: false }).first().click();
+    await page.getByText(cpf, { exact: false }).first().click();
     log('✅ Cliente selecionado');
 
     // CRLV
@@ -80,12 +88,11 @@ async function runSemRgpRobot(req, res) {
 
     try {
       await page.waitForSelector('input[placeholder*="Pesquisar"]', { timeout: 15000 });
-      await page.locator('input[placeholder*="Pesquisar"]').fill('OPB3D62');
+      await page.locator('input[placeholder*="Pesquisar"]').fill(placa);
       await page.waitForTimeout(1500);
-      await page.getByText('OPB3D62', { exact: false }).first().click();
+      await page.getByText(placa, { exact: false }).first().click();
       log('✅ CRLV selecionado');
     } catch (e) {
-      log('❌ Falha ao selecionar CRLV');
       const erroPath = path.resolve(__dirname, '../../prints/print_crlv_erro.jpg');
       fs.mkdirSync(path.dirname(erroPath), { recursive: true });
       await page.screenshot({ path: erroPath });
@@ -99,7 +106,7 @@ async function runSemRgpRobot(req, res) {
     if (ait) { await inputs.nth(0).fill(ait); log('✅ AIT preenchido'); }
     if (orgao) { await inputs.nth(1).fill(orgao); log('✅ Órgão preenchido'); }
 
-    // Prazo para Protocolo
+    // Prazo
     log('📆 Preenchendo campo "Prazo para Protocolo"...');
     const df = [
       '[data-testid="day-input"]',
@@ -116,7 +123,7 @@ async function runSemRgpRobot(req, res) {
     }
     log('✅ Prazo preenchido');
 
-    // Upload da autuação
+    // Upload
     log('📎 Anexando arquivo...');
     const botaoUpload = await page.locator('button[data-testid="attachments-dropzone-button"]').last();
     await botaoUpload.scrollIntoViewIfNeeded();
@@ -125,7 +132,7 @@ async function runSemRgpRobot(req, res) {
     await page.waitForTimeout(3000);
     log('📎 Autuação anexada');
 
-    // Finalizar card
+    // Finalizar
     log('🚀 Finalizando card...');
     const botoesFinal = await page.locator('button:has-text("Create new card")');
     for (let i = 0; i < await botoesFinal.count(); i++) {
