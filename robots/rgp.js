@@ -3,7 +3,6 @@ const path = require('path');
 const fs = require('fs');
 const { acquireLock, releaseLock } = require('../utils/lock');
 const { loginPipefy } = require('../utils/auth');
-const { normalizarArquivo } = require('../utils/arquivos');
 const { normalizarArquivo } = require('../utils/normalizarArquivo');
 
 async function runRgpRobot(req, res) {
