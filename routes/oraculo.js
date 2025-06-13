@@ -1,5 +1,7 @@
 const fs = require('fs');
+const path = require('path');
 const { extractText, interpretarTextoComGPT } = require('../utils/extractText');
+const { interpretarImagemComGptVision } = require('../utils/gptVision');
 const { extrairAitsDosArquivos } = require('../utils/extrairAitsDosArquivos');
 const { addToQueue } = require('../robots/fila');
 
@@ -7,7 +9,7 @@ async function handleOraculo(req, res) {
   const { email, telefone } = req.body;
   const arquivos = {};
   const autuacoes = [];
-  let tarefa = {}; // 🔧 Definido fora do try
+  let tarefa = {};
 
   console.log('📥 req.body:', JSON.stringify(req.body, null, 2));
   console.log('📎 req.files:', req.files?.map(f => f.originalname));
@@ -25,7 +27,7 @@ async function handleOraculo(req, res) {
     }
   }
 
-  // Tipos das autuações
+  // Lê os tipos de autuação
   Object.keys(req.body).forEach(key => {
     const m = key.match(/autuacoes\[(\d+)\]\[tipo\]/);
     if (m) {
@@ -40,21 +42,34 @@ async function handleOraculo(req, res) {
   let dados = {}, aits = [];
 
   try {
+    // 🧠 Procuração
     if (procurar) {
-      const texto = await extractText(procurar);
-      dados = JSON.parse(await interpretarTextoComGPT(texto, 'procuracao'));
+      const ext = path.extname(procurar).toLowerCase();
+      if (ext === '.jpg' || ext === '.jpeg' || ext === '.png') {
+        dados = await interpretarImagemComGptVision(procurar, 'procuracao');
+      } else {
+        const texto = await extractText(procurar);
+        dados = JSON.parse(await interpretarTextoComGPT(texto, 'procuracao'));
+      }
     }
 
-    // E-mail e telefone são manuais
     dados.Email = email;
     dados['Número de telefone'] = telefone;
 
+    // 🚗 CRLV
     if (crlv) {
-      const textoCR = await extractText(crlv);
-      const jsonCR = await interpretarTextoComGPT(textoCR, 'crlv');
-      Object.assign(dados, JSON.parse(jsonCR));
+      const ext = path.extname(crlv).toLowerCase();
+      if (ext === '.jpg' || ext === '.jpeg' || ext === '.png') {
+        const crlvDados = await interpretarImagemComGptVision(crlv, 'crlv');
+        Object.assign(dados, crlvDados);
+      } else {
+        const textoCR = await extractText(crlv);
+        const jsonCR = await interpretarTextoComGPT(textoCR, 'crlv');
+        Object.assign(dados, JSON.parse(jsonCR));
+      }
     }
 
+    // ⚠️ Autuações
     const caminhosAut = autuacoes
       .filter(a => a.tipo && a.arquivo)
       .map(a => a.arquivo);
@@ -72,12 +87,10 @@ async function handleOraculo(req, res) {
       timestamp: Date.now()
     };
 
-    // Validação mínima
     if (!dados['Nome Completo'] || !dados['Placa']) {
       throw new Error('Dados incompletos: Nome Completo ou Placa ausentes.');
     }
 
-    // Tudo certo
     addToQueue(tarefa);
 
     res.send({
