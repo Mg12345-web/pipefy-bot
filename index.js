@@ -77,6 +77,12 @@ prints.forEach(({ route, file }) => {
   });
 });
 
+// Garante que a pasta de logs existe
+const logsPath = path.resolve(__dirname, 'logs');
+if (!fs.existsSync(logsPath)) {
+  fs.mkdirSync(logsPath, { recursive: true });
+}
+
 startQueue();
 app.listen(PORT, () => {
   console.log(`🖥️ Servidor escutando em http://localhost:${PORT}`);
