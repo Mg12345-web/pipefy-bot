@@ -96,13 +96,14 @@ async function runCrlvRobot(req, res) {
     log(`📸 Print salvo como ${path.basename(screenshotPath)}`);
 
     await browser.close();
-    res.end('</pre><h3>✅ Cadastro de CRLV concluído!</h3><p><a href="/">⬅️ Voltar</a></p>');
-
+    res.end('</pre><h3>✅ CRLV criado com sucesso!</h3><p><a href="/">⬅️ Voltar</a></p>');
   } catch (err) {
     log(`❌ Erro: ${err.message}`);
     if (browser) await browser.close();
-    res.end('</pre><p style="color:red">Erro crítico no robô de CRLV.</p>');
+    res.end('</pre><h3 style="color:red">❌ Erro ao criar CRLV.</h3>');
   } finally {
+    releaseLock();
+  }
 }
 
 module.exports = { runCrlvRobot };
