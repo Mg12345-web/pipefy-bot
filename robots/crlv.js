@@ -19,12 +19,8 @@ async function runCrlvRobot(req, res) {
     return res.end('</pre>');
   }
 
-  const dados = {
-  'Placa': req.body.dados?.['Placa'] || '',
-  'Chassi': req.body.dados?.['Chassi'] || '',
-  'Renavam': req.body.dados?.['Renavam'] || '',
-  'Estado de Emplacamento': req.body.dados?.['Estado de Emplacamento'] || ''
-};
+ const arquivos = req.files || {};
+  const arquivoOriginal = arquivos?.crlv?.[0];
 
   if (!arquivoOriginal || !fs.existsSync(arquivoOriginal.path)) {
     log('❌ Arquivo de CRLV não recebido.');
@@ -32,20 +28,18 @@ async function runCrlvRobot(req, res) {
     return res.end('</pre><p style="color:red">Arquivo de CRLV ausente.</p>');
   }
 
-  const arquivoOriginal = arquivos?.crlv?.[0];
-if (!arquivoOriginal || !fs.existsSync(arquivoOriginal.path)) {
-  log('❌ Arquivo de CRLV não recebido.');
-  releaseLock();
-  return res.end('</pre><p style="color:red">Arquivo de CRLV ausente.</p>');
-}
-
-const arquivoCRLV = normalizarArquivo('crlv', arquivoOriginal.path);
-
-}
-
   let browser;
 
   try {
+    const arquivoCRLV = await normalizarArquivo('crlv', arquivoOriginal.path);
+
+    const dados = {
+      'Placa': req.body.dados?.['Placa'] || '',
+      'Chassi': req.body.dados?.['Chassi'] || '',
+      'Renavam': req.body.dados?.['Renavam'] || '',
+      'Estado de Emplacamento': req.body.dados?.['Estado de Emplacamento'] || ''
+    };
+
     log(`📄 Dados recebidos para preenchimento:\n${JSON.stringify(dados, null, 2)}`);
 
     browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
