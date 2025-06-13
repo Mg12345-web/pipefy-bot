@@ -38,9 +38,21 @@ async function interpretarTextoComGPT(textoOriginal, tipoDocumento = 'geral') {
 
     const content = resposta.choices[0].message.content;
 
-    // Garante que só retorna o JSON, mesmo que o GPT fale algo antes
-    const matchJson = content.match(/\{[\s\S]*?\}/);
-    return matchJson ? matchJson[0] : '{}';
+    console.log('📤 Resposta bruta do GPT:', content);
+
+    const matchJson = content.match(/\{[\s\S]+?\}/);
+    
+if (matchJson) {
+  try {
+    JSON.parse(matchJson[0]); // Valida sintaxe
+    return matchJson[0];
+  } catch {
+    console.warn('⚠️ JSON malformado retornado pelo GPT.');
+    return '{}';
+  }
+}
+
+return '{}';
 
   } catch (err) {
     console.error(`❌ Erro ao interpretar texto com GPT: ${err.message}`);
