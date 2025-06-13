@@ -7,18 +7,25 @@ WORKDIR /app
 # Copia arquivos de dependência e instala libs de imagem
 COPY package*.json ./
 
-# Instala libs do sistema necessárias para OCR
+# Instala dependências do sistema (OCR e segurança)
 RUN apt-get update && apt-get install -y \
   graphicsmagick \
   imagemagick \
+  tesseract-ocr \
+  tesseract-ocr-por \
   && rm -rf /var/lib/apt/lists/*
 
 # Instala dependências Node.js
 COPY package*.json ./
+
+# Instala dependências Node.js
 RUN npm install --omit=dev
 
 # Copia restante do código
 COPY . .
+
+# Cria pastas necessárias
+RUN mkdir -p /app/uploads /app/logs /app/prints
 
 # Garante que a pasta uploads/ existe
 RUN mkdir -p /app/uploads
