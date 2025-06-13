@@ -1,20 +1,20 @@
 const fs = require('fs');
 const path = require('path');
 const Tesseract = require('tesseract.js');
-const { fromPath } = require('pdf2pic');
+const pdfParse = require('pdf-parse');
 const { OpenAI } = require('openai');
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-// 🧠 GPT: interpreta um texto OCR com base no tipo de documento
+// 🧠 Interpreta texto com GPT, com fallback seguro
 async function interpretarTextoComGPT(textoOriginal, tipoDocumento = 'geral') {
   let systemPrompt = '';
 
   switch (tipoDocumento) {
     case 'procuracao':
-      systemPrompt = 'Você é um assistente que extrai dados de uma procuração.';
+      systemPrompt = 'Você é um assistente que extrai dados de uma procuração. Responda somente com um JSON.';
       break;
     case 'crlv':
       systemPrompt = 'Você é um assistente que extrai dados de um CRLV. Responda com JSON: placa, chassi, renavam, estadoEmplacamento.';
@@ -23,7 +23,7 @@ async function interpretarTextoComGPT(textoOriginal, tipoDocumento = 'geral') {
       systemPrompt = 'Você é um assistente que extrai dados de uma notificação de autuação. JSON: orgaoAutuador, numeroAIT, dataDefesaRecurso.';
       break;
     default:
-      systemPrompt = 'Você é um assistente que extrai dados de documentos de veículos e procurações.';
+      systemPrompt = 'Você é um assistente que extrai dados de documentos de veículos e procurações. Responda apenas com um JSON.';
   }
 
   try {
@@ -37,41 +37,32 @@ async function interpretarTextoComGPT(textoOriginal, tipoDocumento = 'geral') {
     });
 
     const content = resposta.choices[0].message.content;
-    JSON.parse(content); // Valida o JSON
-    return content;
+
+    // Garante que só retorna o JSON, mesmo que o GPT fale algo antes
+    const matchJson = content.match(/\{[\s\S]*?\}/);
+    return matchJson ? matchJson[0] : '{}';
+
   } catch (err) {
     console.error(`❌ Erro ao interpretar texto com GPT: ${err.message}`);
     return '{}';
   }
 }
 
-// 🧾 OCR de imagem ou PDF (convertendo primeira página em imagem)
+// 📄 Extrai texto de imagem ou PDF
 async function extractText(caminhoArquivo) {
   try {
     const extensao = path.extname(caminhoArquivo).toLowerCase();
 
     if (extensao === '.pdf') {
-      const outputBase = path.join('/tmp', `ocr_${Date.now()}`);
-      const converter = fromPath(caminhoArquivo, {
-        density: 200,
-        saveFilename: outputBase,
-        savePath: '/tmp',
-        format: 'png',
-        width: 1200,
-        height: 1600
-      });
-
-      const resultadoConversao = await converter(1); // página 1
-      caminhoImagem = resultadoConversao.path;
+      const buffer = fs.readFileSync(caminhoArquivo);
+      const data = await pdfParse(buffer);
+      return data.text;
     } else {
-      caminhoImagem = caminhoArquivo; // já é imagem
+      const resultado = await Tesseract.recognize(caminhoArquivo, 'por', {
+        logger: m => console.log(`[OCR] ${m.status}`)
+      });
+      return resultado.data.text;
     }
-
-    const resultado = await Tesseract.recognize(caminhoImagem, 'por', {
-      logger: m => console.log(`[OCR] ${m.status}`)
-    });
-
-    return resultado.data.text;
 
   } catch (err) {
     console.error('❌ Erro no OCR:', err.message);
