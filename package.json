@@ -20,7 +20,6 @@
     "playwright": "^1.52.0",
     "pdf-parse": "^1.1.1",
     "tesseract.js": "^4.0.2",
-    "pdf2pic": "^3.0.0",
     "openai": "^4.0.0",
     "mime-types": "^2.1.35"
   },
