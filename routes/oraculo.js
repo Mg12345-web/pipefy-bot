@@ -14,8 +14,8 @@ async function handleOraculo(req, res) {
   console.log('📥 req.body:', JSON.stringify(req.body, null, 2));
   console.log('📎 req.files:', req.files?.map(f => f.originalname));
 
-  // Organiza os arquivos
-  for (const file of req.files) {
+  // 📂 Organização dos arquivos recebidos
+  for (const file of req.files || []) {
     const field = file.fieldname;
     if (field.startsWith('autuacoes[')) {
       const idx = +field.match(/autuacoes\[(\d+)\]/)[1];
@@ -27,7 +27,7 @@ async function handleOraculo(req, res) {
     }
   }
 
-  // Lê os tipos de autuação
+  // 🏷️ Tipos de autuações
   Object.keys(req.body).forEach(key => {
     const m = key.match(/autuacoes\[(\d+)\]\[tipo\]/);
     if (m) {
@@ -37,29 +37,30 @@ async function handleOraculo(req, res) {
     }
   });
 
-  const procurar = arquivos.procuracao?.[0]?.path;
+  const procuracao = arquivos.procuracao?.[0]?.path;
   const crlv = arquivos.crlv?.[0]?.path;
   let dados = {}, aits = [];
 
   try {
-    // 🧠 Procuração
-    if (procurar) {
-      const ext = path.extname(procurar).toLowerCase();
-      if (ext === '.jpg' || ext === '.jpeg' || ext === '.png') {
-        dados = await interpretarImagemComGptVision(procurar, 'procuracao');
+    // 📄 Leitura da procuração
+    if (procuracao) {
+      const ext = path.extname(procuracao).toLowerCase();
+      if (['.jpg', '.jpeg', '.png'].includes(ext)) {
+        dados = await interpretarImagemComGptVision(procuracao, 'procuracao');
       } else {
-        const texto = await extractText(procurar);
+        const texto = await extractText(procuracao);
         dados = JSON.parse(await interpretarTextoComGPT(texto, 'procuracao'));
       }
     }
 
+    // Dados manuais do formulário
     dados.Email = email;
     dados['Número de telefone'] = telefone;
 
-    // 🚗 CRLV
+    // 🚗 Leitura do CRLV
     if (crlv) {
       const ext = path.extname(crlv).toLowerCase();
-      if (ext === '.jpg' || ext === '.jpeg' || ext === '.png') {
+      if (['.jpg', '.jpeg', '.png'].includes(ext)) {
         const crlvDados = await interpretarImagemComGptVision(crlv, 'crlv');
         Object.assign(dados, crlvDados);
       } else {
@@ -87,10 +88,15 @@ async function handleOraculo(req, res) {
       timestamp: Date.now()
     };
 
-    if (!dados['Nome Completo'] || !dados['Placa']) {
+    // ✅ Verificação obrigatória dos dados
+    const nomeCompleto = dados.nome || dados['Nome Completo'];
+    const placa = dados.placa || dados['Placa'];
+
+    if (!nomeCompleto || !placa) {
       throw new Error('Dados incompletos: Nome Completo ou Placa ausentes.');
     }
 
+    // ✔️ Tudo certo, adiciona na fila
     addToQueue(tarefa);
 
     res.send({
