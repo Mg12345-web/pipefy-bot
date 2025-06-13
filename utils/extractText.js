@@ -1,26 +1,14 @@
 const fs = require('fs');
+const path = require('path');
 const Tesseract = require('tesseract.js');
+const { fromPath } = require('pdf2pic');
 const { OpenAI } = require('openai');
 
-// Configure sua chave da OpenAI aqui ou via variável de ambiente
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY // use .env com dotenv se preferir
+  apiKey: process.env.OPENAI_API_KEY
 });
 
-// 📄 Função de OCR para extrair texto de imagens e PDFs
-async function extractText(caminhoArquivo) {
-  try {
-    const resultado = await Tesseract.recognize(caminhoArquivo, 'por', {
-      logger: m => console.log(`[OCR] ${m.status}`)
-    });
-    return resultado.data.text;
-  } catch (err) {
-    console.error('❌ Erro no OCR:', err.message);
-    return '';
-  }
-}
-
-// 🧠 Função para interpretar o texto usando o GPT
+// 🧠 GPT: interpreta um texto OCR com base no tipo de documento
 async function interpretarTextoComGPT(textoOriginal, tipoDocumento = 'geral') {
   let systemPrompt = '';
 
@@ -49,11 +37,45 @@ async function interpretarTextoComGPT(textoOriginal, tipoDocumento = 'geral') {
     });
 
     const content = resposta.choices[0].message.content;
-    JSON.parse(content); // valida se é JSON
+    JSON.parse(content); // Valida o JSON
     return content;
   } catch (err) {
     console.error(`❌ Erro ao interpretar texto com GPT: ${err.message}`);
     return '{}';
+  }
+}
+
+// 🧾 OCR de imagem ou PDF (convertendo primeira página em imagem)
+async function extractText(caminhoArquivo) {
+  try {
+    const extensao = path.extname(caminhoArquivo).toLowerCase();
+
+    if (extensao === '.pdf') {
+      const outputBase = path.join('/tmp', `ocr_${Date.now()}`);
+      const converter = fromPath(caminhoArquivo, {
+        density: 200,
+        saveFilename: outputBase,
+        savePath: '/tmp',
+        format: 'png',
+        width: 1200,
+        height: 1600
+      });
+
+      const resultadoConversao = await converter(1); // página 1
+      caminhoImagem = resultadoConversao.path;
+    } else {
+      caminhoImagem = caminhoArquivo; // já é imagem
+    }
+
+    const resultado = await Tesseract.recognize(caminhoImagem, 'por', {
+      logger: m => console.log(`[OCR] ${m.status}`)
+    });
+
+    return resultado.data.text;
+
+  } catch (err) {
+    console.error('❌ Erro no OCR:', err.message);
+    return '';
   }
 }
 
