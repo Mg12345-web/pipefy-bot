@@ -16,8 +16,11 @@ async function runRgpRobot(req, res) {
     return res.end('</pre>');
   }
 
-  const arquivos = req.files?.autuacoes || [];
-  const { ait = '', orgao = '' } = req.body;
+  const autuacoes = req.body?.autuacoes || [];
+  const arquivos = autuacoes.map(a => a.arquivo).filter(Boolean);
+  const { dados = {} } = req.body;
+  const ait = dados.numeroAIT || '';
+  const orgao = dados.orgaoAutuador || '';
 
   if (!arquivos.length) {
     log('❌ Nenhum arquivo de autuação recebido.');
@@ -27,7 +30,7 @@ async function runRgpRobot(req, res) {
 
   let browser, page;
   setTimeout(async () => {
-    const caminhoPDF = normalizarArquivo('autuacao', arquivos[0].path);
+    const caminhoPDF = normalizarArquivo('autuacao', arquivos[0]);
 
     try {
       browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
@@ -50,36 +53,45 @@ async function runRgpRobot(req, res) {
       await page.waitForTimeout(3000);
 
       log('👤 Selecionando cliente...');
-      await page.locator('div:has-text("Cliente") >> :text("Criar registro")').first().click();
-      await page.locator('input[placeholder*="Pesquisar"]').fill('143.461.936-25');
-      await page.waitForTimeout(1500);
-      await page.getByText('143.461.936-25', { exact: false }).first().click();
-      log('✅ Cliente selecionado');
+await page.locator('div:has-text("Cliente") >> :text("Criar registro")').first().click();
+
+log(`🔍 Buscando cliente com CPF: ${dados['CPF OU CNPJ']}`);
+await page.locator('input[placeholder*="Pesquisar"]').fill(dados['CPF OU CNPJ'] || '');
+await page.waitForTimeout(1500);
+await page.getByText(dados['CPF OU CNPJ'] || '', { exact: false }).first().click();
+log('✅ Cliente selecionado');
 
       log('🚗 Selecionando CRLV...');
-      const campoEstavel = page.locator('input[placeholder="Digite aqui ..."]').first();
-      await campoEstavel.scrollIntoViewIfNeeded();
-      await campoEstavel.click();
-      await page.waitForTimeout(1000);
-      await page.keyboard.press('PageDown');
-      await page.waitForTimeout(1000);
+const campoEstavel = page.locator('input[placeholder="Digite aqui ..."]').first();
+await campoEstavel.scrollIntoViewIfNeeded();
+await campoEstavel.click();
+await page.waitForTimeout(1000);
+await page.keyboard.press('PageDown');
+await page.waitForTimeout(1000);
 
       const botoesCriar = await page.locator('text=Criar registro');
-      if ((await botoesCriar.count()) >= 2) {
-        const botaoCRLV = botoesCriar.nth(1);
-        const box = await botaoCRLV.boundingBox();
-        if (!box || box.width === 0) throw new Error('❌ Botão CRLV invisível!');
-        await botaoCRLV.scrollIntoViewIfNeeded();
-        await page.waitForTimeout(1000);
-        await botaoCRLV.click();
-        log('✅ CRLV selecionado');
-      } else throw new Error('❌ Botão CRLV não encontrado');
+if ((await botoesCriar.count()) >= 2) {
+  const botaoCRLV = botoesCriar.nth(1);
+  const box = await botaoCRLV.boundingBox();
+  if (!box || box.width === 0) throw new Error('❌ Botão CRLV invisível!');
+  await botaoCRLV.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(1000);
+  await botaoCRLV.click();
+  log('✅ CRLV selecionado');
+} else throw new Error('❌ Botão CRLV não encontrado');
+
+      log(`🔍 Buscando CRLV com Placa: ${dados['Placa']}`);
+await page.waitForSelector('input[placeholder*="Pesquisar"]', { timeout: 15000 });
+await page.locator('input[placeholder*="Pesquisar"]').fill(dados['Placa'] || '');
+await page.waitForTimeout(1500);
+await page.getByText(dados['Placa'] || '', { exact: false }).first().click();
+log('✅ CRLV encontrado');
 
       try {
         await page.waitForSelector('input[placeholder*="Pesquisar"]', { timeout: 15000 });
-        await page.locator('input[placeholder*="Pesquisar"]').fill('OPB3D62');
+        await page.locator('input[placeholder*="Pesquisar"]').fill(dados['Placa'] || '');
         await page.waitForTimeout(1500);
-        await page.getByText('OPB3D62', { exact: false }).first().click();
+        await page.getByText(dados['Placa'] || '', { exact: false }).first().click();
         log('✅ CRLV encontrado');
       } catch (e) {
         const erroPath = path.resolve(__dirname, '../../prints/print_crlv_erro.jpg');
