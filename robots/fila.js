@@ -67,17 +67,18 @@ async function processarTarefa(tarefa) {
   // ⚖️ AUTUAÇÕES
   for (const autuacao of tarefa.autuacoes || []) {
     const tipo = autuacao.tipo;
-    const fakeReq = {
-    files: { autuacoes: [{ path: autuacao.arquivo }] },
-    body: {
-      ait: autuacao.ait || '',
-      orgao: autuacao.orgao || ''
-    }
-      if (!autuacao.ait || !autuacao.orgao) {
+    if (!autuacao.ait || !autuacao.orgao) {
   console.warn(`⚠️ Dados incompletos para autuação ${tipo}. Pulando execução.`);
   continue;
 }
-  };
+
+const fakeReq = {
+  files: { autuacoes: [{ path: autuacao.arquivo }] },
+  body: {
+    ait: autuacao.ait,
+    orgao: autuacao.orgao
+  }
+};
 
   try {
       if (tipo === 'RGP') {
