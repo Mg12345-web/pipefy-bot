@@ -1,3 +1,18 @@
+# Ignora dependências
 node_modules/
+
+# Ignora sessões e arquivos temporários
 session/
+uploads/
+logs/
+
+# Prints são gerados em runtime
 prints/
+
+# Arquivos do sistema
+.DS_Store
+Thumbs.db
+
+# Outros arquivos desnecessários
+*.log
+*.tmp
