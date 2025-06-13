@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y \
 
 # Instala dependências Node.js
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm install --omit=dev
 
 # Copia restante do código
 COPY . .
