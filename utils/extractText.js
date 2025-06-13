@@ -14,11 +14,47 @@ async function interpretarTextoComGPT(textoOriginal, tipoDocumento = 'geral') {
 
   switch (tipoDocumento) {
     case 'procuracao':
-      systemPrompt = 'Você é um assistente que extrai dados de uma procuração. Responda somente com um JSON.';
-      break;
+  systemPrompt = `
+Você é um assistente que extrai apenas os dados do OUTORGANTE de uma procuração.
+
+Extraia **somente os seguintes campos**, em formato JSON:
+{
+  "nome": "",
+  "data_nascimento": "",
+  "nacionalidade": "",
+  "estado_civil": "",
+  "profissao": "",
+  "cpf": "",
+  "identidade": "",
+  "cnh": "",
+  "logradouro": "",
+  "numero": "",
+  "bairro": "",
+  "cidade": "",
+  "complemento": "",
+  "cep": "",
+  "estado": ""
+}
+
+Ignore completamente os dados do advogado ou outorgado. Não inclua explicações, apenas o JSON.
+`.trim();
+  break;
     case 'crlv':
-      systemPrompt = 'Você é um assistente que extrai dados de um CRLV. Responda com JSON: placa, chassi, renavam, estadoEmplacamento.';
-      break;
+  systemPrompt = `
+Você é um assistente que extrai dados de um CRLV (Certificado de Registro e Licenciamento de Veículo).
+
+Retorne apenas os seguintes dados, em formato JSON:
+
+{
+  "placa": "",
+  "chassi": "",
+  "renavam": "",
+  "estadoEmplacamento": ""
+}
+
+⚠️ Apenas valores reais do documento. Não invente dados. Se não encontrar, deixe como string vazia.
+`.trim();
+  break;
     case 'autuacao':
       systemPrompt = 'Você é um assistente que extrai dados de uma notificação de autuação. JSON: orgaoAutuador, numeroAIT, dataDefesaRecurso.';
       break;
