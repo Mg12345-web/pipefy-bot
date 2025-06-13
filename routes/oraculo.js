@@ -86,6 +86,8 @@ async function handleOraculo(req, res) {
       dadosExtraidos: { ...dados, aits }
     });
 
+    fs.writeFileSync('./logs/ultimo-oraculo.json', JSON.stringify({ dadosExtraidos: { ...dados, aits } }, null, 2));
+
   } catch (err) {
     console.error('❌ Oráculo erro:', err.message);
     res.status(500).send({ status: 'erro', mensagem: err.message });
