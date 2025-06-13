@@ -7,8 +7,12 @@ async function handleOraculo(req, res) {
   const { email, telefone } = req.body;
   const arquivos = {};
   const autuacoes = [];
+  let tarefa = {}; // 🔧 Definido fora do try
 
-  // organiza os arquivos
+  console.log('📥 req.body:', JSON.stringify(req.body, null, 2));
+  console.log('📎 req.files:', req.files?.map(f => f.originalname));
+
+  // Organiza os arquivos
   for (const file of req.files) {
     const field = file.fieldname;
     if (field.startsWith('autuacoes[')) {
@@ -21,7 +25,7 @@ async function handleOraculo(req, res) {
     }
   }
 
-  // le os tipos de autuação
+  // Tipos das autuações
   Object.keys(req.body).forEach(key => {
     const m = key.match(/autuacoes\[(\d+)\]\[tipo\]/);
     if (m) {
@@ -36,20 +40,20 @@ async function handleOraculo(req, res) {
   let dados = {}, aits = [];
 
   try {
-   if (procurar) {
-  const texto = await extractText(procurar);
-  dados = JSON.parse(await interpretarTextoComGPT(texto, 'procuracao'));
-}
+    if (procurar) {
+      const texto = await extractText(procurar);
+      dados = JSON.parse(await interpretarTextoComGPT(texto, 'procuracao'));
+    }
 
-// adicione dados extraídos por OCR ou GPT ao objeto
-dados.Email = email;
-dados['Número de telefone'] = telefone;
+    // E-mail e telefone são manuais
+    dados.Email = email;
+    dados['Número de telefone'] = telefone;
 
-if (crlv) {
-  const textoCR = await extractText(crlv);
-  const jsonCR = await interpretarTextoComGPT(textoCR, 'crlv');
-  Object.assign(dados, JSON.parse(jsonCR));
-}
+    if (crlv) {
+      const textoCR = await extractText(crlv);
+      const jsonCR = await interpretarTextoComGPT(textoCR, 'crlv');
+      Object.assign(dados, JSON.parse(jsonCR));
+    }
 
     const caminhosAut = autuacoes
       .filter(a => a.tipo && a.arquivo)
@@ -59,7 +63,7 @@ if (crlv) {
       aits = await extrairAitsDosArquivos(caminhosAut);
     }
 
-    const tarefa = {
+    tarefa = {
       email,
       telefone,
       arquivos,
@@ -68,13 +72,13 @@ if (crlv) {
       timestamp: Date.now()
     };
 
-    // Validação mínima antes de adicionar à fila
-if (!dados['Nome Completo'] || !dados['Estado do Serviço'] || !dados['Placa']) {
-  throw new Error('Dados incompletos: verifique Nome, Estado do Serviço ou Placa.');
-}
+    // Validação mínima
+    if (!dados['Nome Completo'] || !dados['Placa']) {
+      throw new Error('Dados incompletos: Nome Completo ou Placa ausentes.');
+    }
 
-// Tudo certo, agora adiciona à fila
-addToQueue(tarefa);
+    // Tudo certo
+    addToQueue(tarefa);
 
     res.send({
       status: 'ok',
@@ -83,9 +87,14 @@ addToQueue(tarefa);
     });
 
   } catch (err) {
-    console.error('❌ Oráculo erro:', err);
+    console.error('❌ Oráculo erro:', err.message);
     res.status(500).send({ status: 'erro', mensagem: err.message });
-    fs.writeFileSync(`./logs/oraculo_${Date.now()}.json`, JSON.stringify(tarefa, null, 2));
+
+    try {
+      fs.writeFileSync(`./logs/oraculo_${Date.now()}.json`, JSON.stringify(tarefa, null, 2));
+    } catch (logErr) {
+      console.error('⚠️ Falha ao salvar log do oráculo:', logErr.message);
+    }
   }
 }
 
