@@ -54,15 +54,13 @@ try {
 }
 
 // === ROTAS HTML DE TESTE ===
-app.get('/', ...);
-app.get('/view-client-print', ...);
-app.get('/view-crlv-print', ...);
-...
+app.get('/', (req, res) => {
+  res.send('✅ API MG Multas está online.');
+});
 
 // === ROTAS DE EXECUÇÃO MANUAL ===
 app.get('/start-clientes', runClientRobot);
 app.get('/start-crlv', runCrlvRobot);
-...
 
 // === ROTAS DE INTEGRAÇÃO ===
 app.post('/oraculo', upload.any(), handleOraculo);
