@@ -57,11 +57,16 @@ async function interpretarImagemComGptVision(caminhoImagem, tipoDocumento = 'ger
 
   const conteudo = response.choices[0].message.content;
   try {
-    return JSON.parse(conteudo);
-  } catch (e) {
-    console.error('❌ Retorno não é um JSON válido:', conteudo);
-    return {};
-  }
+  return JSON.parse(conteudo);
+} catch (e) {
+  console.error('❌ Retorno não é um JSON válido:', conteudo);
+
+    // Tenta extrair manualmente os campos mais comuns como fallback (mínimo)
+    const matchPlaca = conteudo.match(/placa\s*[:=]\s*([A-Z0-9\-]+)/i);
+    return {
+    placa: matchPlaca?.[1] || '',
+    // mais campos podem ser extraídos aqui se quiser melhorar ainda mais
+  };
 }
 
 module.exports = { interpretarImagemComGptVision };
