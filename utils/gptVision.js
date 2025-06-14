@@ -2,17 +2,10 @@ const fs = require('fs');
 const path = require('path');
 const { OpenAI } = require('openai');
 
-// Usa a API do GPT-4 Vision para analisar imagens
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-/**
- * Extrai informações de uma imagem (JPG/PNG) usando GPT-4 Vision
- * @param {string} caminhoImagem - Caminho para a imagem no disco
- * @param {string} tipoDocumento - Tipo do documento (procuracao, crlv, autuacao, etc.)
- * @returns {object} Dados extraídos (como JSON)
- */
 async function interpretarImagemComGptVision(caminhoImagem, tipoDocumento = 'geral') {
   let prompt = '';
 
@@ -56,17 +49,25 @@ async function interpretarImagemComGptVision(caminhoImagem, tipoDocumento = 'ger
   });
 
   const conteudo = response.choices[0].message.content;
-
   try {
     return JSON.parse(conteudo);
   } catch (e) {
     console.error('❌ Retorno não é um JSON válido:', conteudo);
 
-    const matchPlaca = conteudo.match(/placa\s*[:=]\s*([A-Z0-9\-]+)/i);
-    return {
-      placa: matchPlaca?.[1] || ''
-    };
+    // 🛠️ Fallback: tentar extrair campos básicos com regex
+    const fallback = {};
+    const matchPlaca = conteudo.match(/placa\s*[:=]?\s*["']?([A-Z0-9\-]{5,8})["']?/i);
+    const matchChassi = conteudo.match(/chassi\s*[:=]?\s*["']?([\w\d]{8,})["']?/i);
+    const matchRenavam = conteudo.match(/renavam\s*[:=]?\s*["']?([\d]{8,})["']?/i);
+    const matchEstado = conteudo.match(/estado\s*[:=]?\s*["']?([A-Z]{2})["']?/i);
+
+    if (matchPlaca) fallback.placa = matchPlaca[1];
+    if (matchChassi) fallback.chassi = matchChassi[1];
+    if (matchRenavam) fallback.renavam = matchRenavam[1];
+    if (matchEstado) fallback.estadoEmplacamento = matchEstado[1];
+
+    return fallback;
   }
-} // 👈 Aqui fecha a função corretamente
+}
 
 module.exports = { interpretarImagemComGptVision };
