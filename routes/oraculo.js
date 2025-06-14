@@ -98,14 +98,15 @@ async function handleOraculo(req, res) {
     }
 
     tarefa = {
-      email,
-      telefone,
-      tipoServico,
-      arquivos,
-      autuacoes: autuacoes.filter(a => a.tipo && a.arquivo),
-      dados,
-      timestamp: Date.now()
-    };
+  email,
+  telefone,
+  arquivos,
+  autuacoes: autuacoes.filter(a => a.tipo && a.arquivo),
+  dados,
+  tipoServico, // <- aqui
+  timestamp: Date.now()
+};
+
 
     addToQueue(tarefa);
 
