@@ -41,6 +41,8 @@ async function processarTarefa(tarefa) {
     files: tarefa.arquivos
   };
 
+  console.log('📤 Dados do cliente recebidos:', req.body.dados);
+
   // 🧠 CLIENTES
   try {
     console.log('\n📌 Executando robô de CLIENTES...');
@@ -62,32 +64,31 @@ async function processarTarefa(tarefa) {
   // 🔄 Normaliza autuações
   const autuacoesValidas = (tarefa.autuacoes || []).filter(a => a.arquivo && a.tipo);
 
-  // ✅ Se não houver autuações válidas, mas tiver tipoServico, roda o tipo global
-  if (autuacoesValidas.length === 0 && tarefa.tipoServico) {
+   // ✅ Verifica tipoServico global mesmo sem autuações
+  if (tarefa.tipoServico) {
     const tipo = tarefa.tipoServico;
-    const ait = tarefa.dados.numeroAIT || 'AIT-NAO-INFORMADA';
-    const orgao = tarefa.dados.orgaoAutuador || 'ORGAO-NAO-INFORMADO';
-    const autuacaoPath = tarefa.arquivos?.autuacao?.[0]?.path;
+    const ait = tarefa.dados.numeroAIT || '0000000';
+    const orgao = tarefa.dados.orgaoAutuador || 'SPTRANS';
 
-    if (autuacaoPath) {
-      const fakeReq = {
-        files: { autuacoes: [{ path: autuacaoPath }] },
-        body: { ait, orgao, dados: tarefa.dados }
-      };
+    const fakeReq = {
+      files: { autuacoes: [{ path: tarefa.arquivos?.autuacao?.[0]?.path || '' }] },
+      body: { ait, orgao, dados: tarefa.dados }
+    };
 
-      try {
-        if (tipo === 'RGP') {
-          console.log('\n📌 Executando robô de RGP...');
-          await runRgpRobot(fakeReq, fakeRes);
-          await aguardarEstabilizacao('RGP');
-        } else if (tipo === 'Sem RGP') {
-          console.log('\n📌 Executando robô de Sem RGP...');
-          await runSemRgpRobot(fakeReq, fakeRes);
-          await aguardarEstabilizacao('Sem RGP');
-        }
-      } catch (err) {
-        console.error(`❌ Erro no robô de ${tipo}: ${err.message}`);
+    try {
+      if (tipo === 'RGP') {
+        console.log('\n📌 Executando robô de RGP (tipo global)...');
+        await runRgpRobot(fakeReq, fakeRes);
+        await aguardarEstabilizacao('RGP');
+      } else if (tipo === 'Sem RGP') {
+        console.log('\n📌 Executando robô de Sem RGP (tipo global)...');
+        await runSemRgpRobot(fakeReq, fakeRes);
+        await aguardarEstabilizacao('Sem RGP');
       }
+    } catch (err) {
+      console.error(`❌ Erro no robô de ${tipo}: ${err.message}`);
+    }
+  }
     } else {
       console.warn('⚠️ Nenhum arquivo de autuação encontrado para tipoServico.');
     }
