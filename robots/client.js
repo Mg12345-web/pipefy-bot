@@ -6,6 +6,12 @@ const { acquireLock, releaseLock } = require('../utils/lock');
 
 async function runClientRobot(req, res) {
   const dados = req.body.dados || {};
+  const arquivos = req.files || {};
+
+  const log = (msg) => {
+    console.log(msg);
+    res?.write?.(msg + '\n');
+  };
 
   const nome = dados['Nome Completo'] || '';
   const cpf = dados['CPF OU CNPJ'] || '';
@@ -13,7 +19,7 @@ async function runClientRobot(req, res) {
   const profissao = dados['Profissão'] || '';
   const email = dados.Email || '';
   const telefone = dados['Número de telefone'] || '';
-  
+
   console.log('📤 Preenchendo formulário com os dados:');
   console.log({ nome, cpf, estadoCivil, profissao, email, telefone });
 
@@ -24,9 +30,6 @@ async function runClientRobot(req, res) {
     log('⛔ Robô já está em execução.');
     return res?.end?.('</pre>');
   }
-
-  const dados = req.body?.dados || {};
-  const arquivos = req.files || {};
 
   log('🧾 Dados recebidos para preenchimento:');
   log(JSON.stringify(dados, null, 2));
@@ -50,7 +53,6 @@ async function runClientRobot(req, res) {
     await page.locator('span:text("Create new card")').first().click();
     await page.waitForTimeout(2000);
 
-    // Preencher os campos principais
     for (const campo of [
       'Nome Completo', 'CPF OU CNPJ', 'Estado Civil Atual', 'Profissão',
       'Email', 'Número de telefone', 'Endereço Completo'
@@ -68,7 +70,6 @@ async function runClientRobot(req, res) {
       }
     }
 
-    // Uploads
     const anexar = async (label, files) => {
       if (!files || files.length === 0) return;
       const el = page.locator(`text=${label}`).first();
@@ -83,7 +84,6 @@ async function runClientRobot(req, res) {
     await anexar('CNH', arquivos.cnh);
     await anexar('Procuração + contrato', [...(arquivos.procuracao || []), ...(arquivos.contrato || [])]);
 
-    // Finalizar
     await page.locator('button:has-text("Criar registro")').click();
     await page.waitForTimeout(3000);
 
