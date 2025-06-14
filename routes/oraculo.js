@@ -11,10 +11,12 @@ async function handleOraculo(req, res) {
   const arquivos = {};
   const autuacoes = [];
   let tarefa = {};
+  let dados = {}, aits = [];
 
   console.log('📥 req.body:', JSON.stringify(req.body, null, 2));
   console.log('📎 req.files:', req.files?.map(f => f.originalname));
 
+  // Organiza arquivos por campo
   for (const file of req.files || []) {
     const field = file.fieldname;
     if (field.startsWith('autuacoes[')) {
@@ -27,6 +29,7 @@ async function handleOraculo(req, res) {
     }
   }
 
+  // Lê tipos de autuações
   Object.keys(req.body).forEach(key => {
     const m = key.match(/autuacoes\[(\d+)\]\[tipo\]/);
     if (m) {
@@ -38,22 +41,27 @@ async function handleOraculo(req, res) {
 
   const procuracao = arquivos.procuracao?.[0]?.path;
   const crlv = arquivos.crlv?.[0]?.path;
-  let dados = {}, aits = [];
 
   try {
+    // 🧾 Processar procuração
     if (procuracao) {
       const ext = path.extname(procuracao).toLowerCase();
       if ([".jpg", ".jpeg", ".png"].includes(ext)) {
         dados = await interpretarImagemComGptVision(procuracao, 'procuracao');
       } else {
         const texto = await extractText(procuracao);
-        dados = JSON.parse(await interpretarTextoComGPT(texto, 'procuracao'));
+        console.log('📝 Texto extraído da procuração:', texto);
+        const resposta = await interpretarTextoComGPT(texto, 'procuracao');
+        console.log('🔍 Resposta do GPT para procuração:', resposta);
+        dados = JSON.parse(resposta);
       }
     }
 
+    // Dados vindos do frontend
     dados.Email = email;
     dados['Número de telefone'] = telefone;
 
+    // 🚗 Processar CRLV
     if (crlv) {
       const ext = path.extname(crlv).toLowerCase();
       let crlvDados = {};
@@ -62,6 +70,7 @@ async function handleOraculo(req, res) {
         crlvDados = await interpretarImagemComGptVision(crlv, 'crlv');
       } else {
         const textoCR = await extractText(crlv);
+        console.log('📝 Texto extraído do CRLV:', textoCR);
         crlvDados = JSON.parse(await interpretarTextoComGPT(textoCR, 'crlv'));
       }
 
@@ -81,24 +90,28 @@ async function handleOraculo(req, res) {
       ).toUpperCase();
     }
 
+    // 📄 Processar autuações
     const caminhosAut = autuacoes.filter(a => a.tipo && a.arquivo).map(a => a.arquivo);
     if (caminhosAut.length > 0) {
       aits = await extrairAitsDosArquivos(caminhosAut);
     }
 
+    // 🧠 Normalizar e completar dados
     dados['Nome Completo'] = dados['Nome Completo'] || dados.nome || '';
-    dados['CPF OU CNPJ'] = dados.cpf || '';
-    dados['Estado Civil'] = dados.estado_civil || '';
-    dados['Profissão'] = dados.profissao || '';
+    dados['CPF OU CNPJ'] = dados['CPF OU CNPJ'] || dados.cpf || '';
+    dados['Estado Civil'] = dados['Estado Civil'] || dados.estado_civil || '';
+    dados['Profissão'] = dados['Profissão'] || dados.profissao || '';
 
     if (dados.logradouro && dados.numero && dados.bairro && dados.cidade) {
       dados['Endereço'] = `${dados.logradouro}, ${dados.numero} - ${dados.bairro} - ${dados.cidade}/${dados.estado || ''}`;
     }
 
+    // Validação crítica
     if (!dados['Nome Completo'] || !dados['Placa']) {
       throw new Error('Dados incompletos: Nome Completo ou Placa ausentes.');
     }
 
+    // 🧾 Montar tarefa
     tarefa = {
       email,
       telefone,
@@ -109,8 +122,10 @@ async function handleOraculo(req, res) {
       timestamp: Date.now()
     };
 
+    // Adicionar à fila
     addToQueue(tarefa);
 
+    // Retorno final
     res.send({
       status: 'ok',
       mensagem: 'Oráculo processado com sucesso',
