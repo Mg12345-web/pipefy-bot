@@ -1,5 +1,3 @@
-// utils/gptVision.js
-
 const fs = require('fs');
 const path = require('path');
 const { OpenAI } = require('openai');
@@ -35,7 +33,7 @@ async function interpretarImagemComGptVision(caminhoImagem, tipoDocumento = 'ger
   const imagemBase64 = fs.readFileSync(path.resolve(caminhoImagem), { encoding: 'base64' });
 
   const response = await openai.chat.completions.create({
-    model: 'gpt-4-vision-preview',
+    model: 'gpt-4o',
     messages: [
       {
         role: 'system',
