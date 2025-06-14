@@ -36,12 +36,11 @@ function startQueue() {
 async function processarTarefa(tarefa) {
   const fakeRes = criarRespostaSimples();
 
-  // Dados formatados para todos os robôs
   const req = {
     query: { observacao: 'Cadastro via site' },
     body: {
       ...tarefa,
-      dados: tarefa.dados || {}  // <- Aqui ficam os campos extraídos pelo oráculo
+      dados: tarefa.dados || {}
     },
     files: tarefa.arquivos
   };
@@ -67,20 +66,20 @@ async function processarTarefa(tarefa) {
   // ⚖️ AUTUAÇÕES
   for (const autuacao of tarefa.autuacoes || []) {
     const tipo = autuacao.tipo;
-    if (!autuacao.ait || !autuacao.orgao) {
-  console.warn(`⚠️ Dados incompletos para autuação ${tipo}. Pulando execução.`);
-  continue;
-}
+    const ait = autuacao.ait || tarefa.dados.numeroAIT || '';
+    const orgao = autuacao.orgao || tarefa.dados.orgaoAutuador || '';
 
-const fakeReq = {
-  files: { autuacoes: [{ path: autuacao.arquivo }] },
-  body: {
-    ait: autuacao.ait,
-    orgao: autuacao.orgao
-  }
-};
+    if (!ait || !orgao) {
+      console.warn(`⚠️ Dados incompletos para autuação ${tipo}. Pulando execução.`);
+      continue;
+    }
 
-  try {
+    const fakeReq = {
+      files: { autuacoes: [{ path: autuacao.arquivo }] },
+      body: { ait, orgao, dados: tarefa.dados }
+    };
+
+    try {
       if (tipo === 'RGP') {
         console.log('\n📌 Executando robô de RGP...');
         await runRgpRobot(fakeReq, fakeRes);
@@ -97,28 +96,23 @@ const fakeReq = {
     }
   }
 
-    console.log('\n✅ Tarefa finalizada.');
+  console.log('\n✅ Tarefa finalizada.');
 }
 
 // Simula a resposta padrão do Express para logs
 function criarRespostaSimples() {
   return {
     setHeader: () => {},
-    write: (msg) => console.log('[LOG]', msg),
-    end: (html) => html && console.log('[FIM]', html)
+    write: msg => console.log('[LOG]', msg),
+    end: html => html && console.log('[FIM]', html)
   };
 }
 
 // Delay entre execuções
 async function aguardarEstabilizacao(contexto) {
   console.log(`⏳ Aguardando 30 segundos após o robô de ${contexto}...`);
-  await delay(30000);
+  await new Promise(resolve => setTimeout(resolve, 30000));
   console.log(`✅ Tempo de estabilização concluído para ${contexto}.\n`);
-}
-
-function delay(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-  fs.writeFileSync(`./logs/tarefa_${Date.now()}.json`, JSON.stringify(tarefa, null, 2));
 }
 
 module.exports = { addToQueue, startQueue };
