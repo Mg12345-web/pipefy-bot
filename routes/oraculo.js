@@ -6,7 +6,7 @@ const { extrairAitsDosArquivos } = require('../utils/extrairAitsDosArquivos');
 const { addToQueue } = require('../robots/fila');
 
 async function handleOraculo(req, res) {
-  const { email, telefone } = req.body;
+  const { email, telefone, tipoServico } = req.body; // <- captura tipoServico (RGP ou semRGP)
   const arquivos = {};
   const autuacoes = [];
   let tarefa = {};
@@ -53,68 +53,58 @@ async function handleOraculo(req, res) {
       }
     }
 
-    // 🧠 Dados manuais do formulário
     dados.Email = email;
     dados['Número de telefone'] = telefone;
 
     // 🚗 Leitura do CRLV
-if (crlv) {
-  const ext = path.extname(crlv).toLowerCase();
-  let crlvDados = {};
+    if (crlv) {
+      const ext = path.extname(crlv).toLowerCase();
+      let crlvDados = {};
 
-  if (['.jpg', '.jpeg', '.png'].includes(ext)) {
-    crlvDados = await interpretarImagemComGptVision(crlv, 'crlv');
-  } else {
-    const textoCR = await extractText(crlv);
-    crlvDados = JSON.parse(await interpretarTextoComGPT(textoCR, 'crlv'));
-  }
+      if (['.jpg', '.jpeg', '.png'].includes(ext)) {
+        crlvDados = await interpretarImagemComGptVision(crlv, 'crlv');
+      } else {
+        const textoCR = await extractText(crlv);
+        crlvDados = JSON.parse(await interpretarTextoComGPT(textoCR, 'crlv'));
+      }
 
-  console.log('🔍 Dados extraídos do CRLV:', crlvDados);
+      console.log('🔍 Dados extraídos do CRLV:', crlvDados);
 
-  // 🔧 Normaliza os campos com capitalização esperada pelos robôs
-  dados['Placa'] = (crlvDados.placa || crlvDados['Placa'] || '').toUpperCase();
-  dados['Chassi'] = (crlvDados.chassi || crlvDados['Chassi'] || '').toUpperCase();
-  dados['Renavam'] = crlvDados.renavam || crlvDados['Renavam'] || '';
-  dados['Estado de Emplacamento'] = (crlvDados.estadoEmplacamento || crlvDados['Estado de Emplacamento'] || '').toUpperCase();
-}
+      dados['Placa'] = (crlvDados.placa || crlvDados['Placa'] || '').toUpperCase();
+      dados['Chassi'] = (crlvDados.chassi || crlvDados['Chassi'] || '').toUpperCase();
+      dados['Renavam'] = crlvDados.renavam || crlvDados['Renavam'] || '';
+      dados['Estado de Emplacamento'] = (crlvDados.estadoEmplacamento || crlvDados['Estado de Emplacamento'] || '').toUpperCase();
+    }
 
-// ⚠️ Autuações
-const caminhosAut = autuacoes
-  .filter(a => a.tipo && a.arquivo)
-  .map(a => a.arquivo);
+    // ⚠️ Autuações
+    const caminhosAut = autuacoes.filter(a => a.tipo && a.arquivo).map(a => a.arquivo);
+    if (caminhosAut.length > 0) {
+      aits = await extrairAitsDosArquivos(caminhosAut);
+    }
 
-if (caminhosAut.length > 0) {
-  aits = await extrairAitsDosArquivos(caminhosAut);
-}
+    // 🔧 Campos obrigatórios compatíveis
+    dados['Nome Completo'] = dados.nome || dados['Nome Completo'] || '';
+    dados['CPF OU CNPJ'] = dados.cpf || '';
+    dados['Estado Civil'] = dados.estado_civil || '';
+    dados['Profissão'] = dados.profissao || '';
 
-// 🔧 Compatibiliza com robô de CLIENTES
-dados['Nome Completo'] = dados.nome || dados['Nome Completo'] || '';
-dados['CPF OU CNPJ'] = dados.cpf || '';
-dados['Estado Civil'] = dados.estado_civil || '';
-dados['Profissão'] = dados.profissao || '';
+    if (dados.logradouro && dados.numero && dados.bairro && dados.cidade) {
+      dados['Endereço'] = `${dados.logradouro}, ${dados.numero} - ${dados.bairro} - ${dados.cidade}/${dados.estado || ''}`;
+    }
 
-// 🧾 Monta o endereço completo
-if (dados.logradouro && dados.numero && dados.bairro && dados.cidade) {
-  dados['Endereço'] = `${dados.logradouro}, ${dados.numero} - ${dados.bairro} - ${dados.cidade}/${dados.estado || ''}`;
-}
+    if (!dados['Nome Completo'] || !dados['Placa']) {
+      throw new Error('Dados incompletos: Nome Completo ou Placa ausentes.');
+    }
 
-// ✅ Verificação obrigatória dos dados
-const nomeCompleto = dados['Nome Completo'];
-const placa = dados['Placa'];
-
-if (!nomeCompleto || !placa) {
-  throw new Error('Dados incompletos: Nome Completo ou Placa ausentes.');
-}
-
-// ✔️ Tudo certo, adiciona na fila
-tarefa = {
-  email,
-  telefone,
-  arquivos,
-  autuacoes: autuacoes.filter(a => a.tipo && a.arquivo),
-  dados,
-  timestamp: Date.now()
-};
+    tarefa = {
+      email,
+      telefone,
+      tipoServico,
+      arquivos,
+      autuacoes: autuacoes.filter(a => a.tipo && a.arquivo),
+      dados,
+      timestamp: Date.now()
+    };
 
     addToQueue(tarefa);
 
