@@ -1,3 +1,4 @@
+// oraculo.js
 const fs = require('fs');
 const path = require('path');
 const { extractText, interpretarTextoComGPT } = require('../utils/extractText');
@@ -14,7 +15,6 @@ async function handleOraculo(req, res) {
   console.log('📥 req.body:', JSON.stringify(req.body, null, 2));
   console.log('📎 req.files:', req.files?.map(f => f.originalname));
 
-  // 📂 Organização dos arquivos recebidos
   for (const file of req.files || []) {
     const field = file.fieldname;
     if (field.startsWith('autuacoes[')) {
@@ -27,7 +27,6 @@ async function handleOraculo(req, res) {
     }
   }
 
-  // 🏷️ Tipos de autuações
   Object.keys(req.body).forEach(key => {
     const m = key.match(/autuacoes\[(\d+)\]\[tipo\]/);
     if (m) {
@@ -44,7 +43,7 @@ async function handleOraculo(req, res) {
   try {
     if (procuracao) {
       const ext = path.extname(procuracao).toLowerCase();
-      if (['.jpg', '.jpeg', '.png'].includes(ext)) {
+      if ([".jpg", ".jpeg", ".png"].includes(ext)) {
         dados = await interpretarImagemComGptVision(procuracao, 'procuracao');
       } else {
         const texto = await extractText(procuracao);
@@ -59,11 +58,15 @@ async function handleOraculo(req, res) {
       const ext = path.extname(crlv).toLowerCase();
       let crlvDados = {};
 
-      if (['.jpg', '.jpeg', '.png'].includes(ext)) {
+      if ([".jpg", ".jpeg", ".png"].includes(ext)) {
         crlvDados = await interpretarImagemComGptVision(crlv, 'crlv');
       } else {
         const textoCR = await extractText(crlv);
         crlvDados = JSON.parse(await interpretarTextoComGPT(textoCR, 'crlv'));
+      }
+
+      if (Object.keys(crlvDados).length === 0) {
+        console.warn('⚠️ CRLV retornou vazio. Verifique a imagem ou prompt.');
       }
 
       console.log('🔍 Dados extraídos do CRLV:', crlvDados);
@@ -71,7 +74,11 @@ async function handleOraculo(req, res) {
       dados['Placa'] = (crlvDados.placa || crlvDados['Placa'] || '').toUpperCase();
       dados['Chassi'] = (crlvDados.chassi || crlvDados['Chassi'] || '').toUpperCase();
       dados['Renavam'] = crlvDados.renavam || crlvDados['Renavam'] || '';
-      dados['Estado de Emplacamento'] = (crlvDados.estadoEmplacamento || crlvDados['Estado de Emplacamento'] || '').toUpperCase();
+      dados['Estado de Emplacamento'] = (
+        crlvDados.estadoEmplacamento ||
+        crlvDados['Estado de Emplacamento'] ||
+        crlvDados.estado || ''
+      ).toUpperCase();
     }
 
     const caminhosAut = autuacoes.filter(a => a.tipo && a.arquivo).map(a => a.arquivo);
@@ -79,7 +86,7 @@ async function handleOraculo(req, res) {
       aits = await extrairAitsDosArquivos(caminhosAut);
     }
 
-    dados['Nome Completo'] = dados.nome || dados['Nome Completo'] || '';
+    dados['Nome Completo'] = dados['Nome Completo'] || dados.nome || '';
     dados['CPF OU CNPJ'] = dados.cpf || '';
     dados['Estado Civil'] = dados.estado_civil || '';
     dados['Profissão'] = dados.profissao || '';
