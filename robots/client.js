@@ -5,10 +5,17 @@ const { loginPipefy } = require('../utils/auth');
 const { acquireLock, releaseLock } = require('../utils/lock');
 
 async function runClientRobot(req, res) {
-  const log = msg => {
-    res?.write?.(msg + '\n');
-    console.log('[LOG]', msg);
-  };
+  const dados = req.body.dados || {};
+
+  const nome = dados['Nome Completo'] || '';
+  const cpf = dados['CPF OU CNPJ'] || '';
+  const estadoCivil = dados['Estado Civil'] || '';
+  const profissao = dados['Profissão'] || '';
+  const email = dados.Email || '';
+  const telefone = dados['Número de telefone'] || '';
+  
+  console.log('📤 Preenchendo formulário com os dados:');
+  console.log({ nome, cpf, estadoCivil, profissao, email, telefone });
 
   res?.setHeader?.('Content-Type', 'text/html; charset=utf-8');
   res?.write?.('<pre>🤖 Iniciando robô de CLIENTES...\n');
