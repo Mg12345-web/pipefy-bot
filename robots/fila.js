@@ -8,13 +8,11 @@ const { runSemRgpRobot } = require('./semrgp');
 let fila = [];
 let emExecucao = false;
 
-// Adiciona uma tarefa na fila
 function addToQueue(tarefa) {
   fila.push(tarefa);
   console.log(`📥 Tarefa adicionada à fila. Total na fila: ${fila.length}`);
 }
 
-// Inicia o loop que processa tarefas da fila
 function startQueue() {
   setInterval(() => {
     if (emExecucao || fila.length === 0) return;
@@ -28,11 +26,9 @@ function startQueue() {
       .finally(() => {
         emExecucao = false;
       });
-
   }, 3000);
 }
 
-// Processa uma tarefa (executa os robôs)
 async function processarTarefa(tarefa) {
   const fakeRes = criarRespostaSimples();
 
@@ -62,17 +58,20 @@ async function processarTarefa(tarefa) {
   } catch (err) {
     console.error('❌ Erro no robô de CRLV:', err.message);
   }
-    // Caso não tenha autuações individuais, mas tenha tipoServico global
-  if ((!tarefa.autuacoes || tarefa.autuacoes.length === 0) && tarefa.tipoServico) {
-    const tipo = tarefa.tipoServico;
-    const ait = tarefa.dados.numeroAIT || '';
-    const orgao = tarefa.dados.orgaoAutuador || '';
 
-    if (!ait || !orgao) {
-      console.warn(`⚠️ Dados incompletos para tipoServico ${tipo}. Pulando execução.`);
-    } else {
+  // 🔄 Normaliza autuações
+  const autuacoesValidas = (tarefa.autuacoes || []).filter(a => a.arquivo && a.tipo);
+
+  // ✅ Se não houver autuações válidas, mas tiver tipoServico, roda o tipo global
+  if (autuacoesValidas.length === 0 && tarefa.tipoServico) {
+    const tipo = tarefa.tipoServico;
+    const ait = tarefa.dados.numeroAIT || 'AIT-NAO-INFORMADA';
+    const orgao = tarefa.dados.orgaoAutuador || 'ORGAO-NAO-INFORMADO';
+    const autuacaoPath = tarefa.arquivos?.autuacao?.[0]?.path;
+
+    if (autuacaoPath) {
       const fakeReq = {
-        files: { autuacoes: [{ path: tarefa.arquivos?.autuacao?.[0]?.path }] },
+        files: { autuacoes: [{ path: autuacaoPath }] },
         body: { ait, orgao, dados: tarefa.dados }
       };
 
@@ -89,11 +88,13 @@ async function processarTarefa(tarefa) {
       } catch (err) {
         console.error(`❌ Erro no robô de ${tipo}: ${err.message}`);
       }
+    } else {
+      console.warn('⚠️ Nenhum arquivo de autuação encontrado para tipoServico.');
     }
   }
 
-  // ⚖️ AUTUAÇÕES
-  for (const autuacao of tarefa.autuacoes || []) {
+  // ⚖️ Autuações Individuais
+  for (const autuacao of autuacoesValidas) {
     const tipo = autuacao.tipo;
     const ait = autuacao.ait || tarefa.dados.numeroAIT || '';
     const orgao = autuacao.orgao || tarefa.dados.orgaoAutuador || '';
@@ -128,7 +129,6 @@ async function processarTarefa(tarefa) {
   console.log('\n✅ Tarefa finalizada.');
 }
 
-// Simula a resposta padrão do Express para logs
 function criarRespostaSimples() {
   return {
     setHeader: () => {},
@@ -137,7 +137,6 @@ function criarRespostaSimples() {
   };
 }
 
-// Delay entre execuções
 async function aguardarEstabilizacao(contexto) {
   console.log(`⏳ Aguardando 30 segundos após o robô de ${contexto}...`);
   await new Promise(resolve => setTimeout(resolve, 30000));
