@@ -62,6 +62,35 @@ async function processarTarefa(tarefa) {
   } catch (err) {
     console.error('❌ Erro no robô de CRLV:', err.message);
   }
+    // Caso não tenha autuações individuais, mas tenha tipoServico global
+  if ((!tarefa.autuacoes || tarefa.autuacoes.length === 0) && tarefa.tipoServico) {
+    const tipo = tarefa.tipoServico;
+    const ait = tarefa.dados.numeroAIT || '';
+    const orgao = tarefa.dados.orgaoAutuador || '';
+
+    if (!ait || !orgao) {
+      console.warn(`⚠️ Dados incompletos para tipoServico ${tipo}. Pulando execução.`);
+    } else {
+      const fakeReq = {
+        files: { autuacoes: [{ path: tarefa.arquivos?.autuacao?.[0]?.path }] },
+        body: { ait, orgao, dados: tarefa.dados }
+      };
+
+      try {
+        if (tipo === 'RGP') {
+          console.log('\n📌 Executando robô de RGP...');
+          await runRgpRobot(fakeReq, fakeRes);
+          await aguardarEstabilizacao('RGP');
+        } else if (tipo === 'Sem RGP') {
+          console.log('\n📌 Executando robô de Sem RGP...');
+          await runSemRgpRobot(fakeReq, fakeRes);
+          await aguardarEstabilizacao('Sem RGP');
+        }
+      } catch (err) {
+        console.error(`❌ Erro no robô de ${tipo}: ${err.message}`);
+      }
+    }
+  }
 
   // ⚖️ AUTUAÇÕES
   for (const autuacao of tarefa.autuacoes || []) {
