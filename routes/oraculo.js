@@ -1,13 +1,12 @@
 const fs = require('fs');
 const path = require('path');
-const tipoServico = req.body.servico || '';
 const { extractText, interpretarTextoComGPT } = require('../utils/extractText');
 const { interpretarImagemComGptVision } = require('../utils/gptVision');
 const { extrairAitsDosArquivos } = require('../utils/extrairAitsDosArquivos');
 const { addToQueue } = require('../robots/fila');
 
 async function handleOraculo(req, res) {
-  const { email, telefone, tipoServico } = req.body; // <- captura tipoServico (RGP ou semRGP)
+  const { email, telefone, tipoServico } = req.body;
   const arquivos = {};
   const autuacoes = [];
   let tarefa = {};
@@ -43,7 +42,6 @@ async function handleOraculo(req, res) {
   let dados = {}, aits = [];
 
   try {
-    // 📄 Leitura da procuração
     if (procuracao) {
       const ext = path.extname(procuracao).toLowerCase();
       if (['.jpg', '.jpeg', '.png'].includes(ext)) {
@@ -57,7 +55,6 @@ async function handleOraculo(req, res) {
     dados.Email = email;
     dados['Número de telefone'] = telefone;
 
-    // 🚗 Leitura do CRLV
     if (crlv) {
       const ext = path.extname(crlv).toLowerCase();
       let crlvDados = {};
@@ -77,13 +74,11 @@ async function handleOraculo(req, res) {
       dados['Estado de Emplacamento'] = (crlvDados.estadoEmplacamento || crlvDados['Estado de Emplacamento'] || '').toUpperCase();
     }
 
-    // ⚠️ Autuações
     const caminhosAut = autuacoes.filter(a => a.tipo && a.arquivo).map(a => a.arquivo);
     if (caminhosAut.length > 0) {
       aits = await extrairAitsDosArquivos(caminhosAut);
     }
 
-    // 🔧 Campos obrigatórios compatíveis
     dados['Nome Completo'] = dados.nome || dados['Nome Completo'] || '';
     dados['CPF OU CNPJ'] = dados.cpf || '';
     dados['Estado Civil'] = dados.estado_civil || '';
@@ -98,15 +93,14 @@ async function handleOraculo(req, res) {
     }
 
     tarefa = {
-  email,
-  telefone,
-  arquivos,
-  autuacoes: autuacoes.filter(a => a.tipo && a.arquivo),
-  dados,
-  tipoServico, // <- aqui
-  timestamp: Date.now()
-};
-
+      email,
+      telefone,
+      arquivos,
+      autuacoes: autuacoes.filter(a => a.tipo && a.arquivo),
+      dados,
+      tipoServico,
+      timestamp: Date.now()
+    };
 
     addToQueue(tarefa);
 
