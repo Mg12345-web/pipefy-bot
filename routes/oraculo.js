@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const tipoServico = req.body.servico || '';
 const { extractText, interpretarTextoComGPT } = require('../utils/extractText');
 const { interpretarImagemComGptVision } = require('../utils/gptVision');
 const { extrairAitsDosArquivos } = require('../utils/extrairAitsDosArquivos');
