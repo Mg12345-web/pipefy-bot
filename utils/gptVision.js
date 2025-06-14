@@ -48,23 +48,37 @@ async function interpretarImagemComGptVision(caminhoImagem, tipoDocumento = 'ger
     max_tokens: 1000
   });
 
-  const conteudo = response.choices[0].message.content;
+  let conteudo = response.choices[0].message.content?.trim();
+
+  // Remove blocos de markdown tipo ```json
+  conteudo = conteudo.replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
+
   try {
-    return JSON.parse(conteudo);
+    let dados = JSON.parse(conteudo);
+
+    // Padronização dos nomes dos campos
+    if (dados.nome) dados['Nome Completo'] = dados.nome;
+    if (dados.placa) dados['Placa'] = dados.placa.toUpperCase();
+    if (dados.chassi) dados['Chassi'] = dados.chassi.toUpperCase();
+    if (dados.renavam) dados['Renavam'] = dados.renavam;
+    if (dados.estado || dados.estadoEmplacamento)
+      dados['Estado de Emplacamento'] = (dados.estado || dados.estadoEmplacamento).toUpperCase();
+
+    return dados;
   } catch (e) {
     console.error('❌ Retorno não é um JSON válido:', conteudo);
 
-    // 🛠️ Fallback: tentar extrair campos básicos com regex
+    // Fallback: extrair campos com regex
     const fallback = {};
     const matchPlaca = conteudo.match(/placa\s*[:=]?\s*["']?([A-Z0-9\-]{5,8})["']?/i);
     const matchChassi = conteudo.match(/chassi\s*[:=]?\s*["']?([\w\d]{8,})["']?/i);
     const matchRenavam = conteudo.match(/renavam\s*[:=]?\s*["']?([\d]{8,})["']?/i);
     const matchEstado = conteudo.match(/estado\s*[:=]?\s*["']?([A-Z]{2})["']?/i);
 
-    if (matchPlaca) fallback.placa = matchPlaca[1];
-    if (matchChassi) fallback.chassi = matchChassi[1];
-    if (matchRenavam) fallback.renavam = matchRenavam[1];
-    if (matchEstado) fallback.estadoEmplacamento = matchEstado[1];
+    if (matchPlaca) fallback['Placa'] = matchPlaca[1].toUpperCase();
+    if (matchChassi) fallback['Chassi'] = matchChassi[1].toUpperCase();
+    if (matchRenavam) fallback['Renavam'] = matchRenavam[1];
+    if (matchEstado) fallback['Estado de Emplacamento'] = matchEstado[1];
 
     return fallback;
   }
