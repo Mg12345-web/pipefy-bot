@@ -89,11 +89,7 @@ async function processarTarefa(tarefa) {
       console.error(`❌ Erro no robô de ${tipo}: ${err.message}`);
     }
   }
-    } else {
-      console.warn('⚠️ Nenhum arquivo de autuação encontrado para tipoServico.');
-    }
-  }
-
+    
   // ⚖️ Autuações Individuais
   for (const autuacao of autuacoesValidas) {
     const tipo = autuacao.tipo;
