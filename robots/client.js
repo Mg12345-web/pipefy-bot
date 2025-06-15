@@ -41,7 +41,9 @@ async function runClientRobot(req, res) {
     await loginPipefy(page, log);
 
     log('📁 Acessando Pipe Clientes...');
+    await page.getByText('Databases', { exact: true }).click();
     await page.getByText('Clientes', { exact: true }).click();
+    await page.click('button:has-text("Criar registro")');
     await page.waitForTimeout(2000);
 
     const botaoEntrar = page.locator('text=Entrar no pipe');
@@ -50,10 +52,6 @@ async function runClientRobot(req, res) {
       await botaoEntrar.first().click();
       await page.waitForTimeout(2000);
     }
-
-    log('🆕 Criando novo card...');
-    await page.locator('span:text("Create new card")').first().click();
-    await page.waitForTimeout(2000);
 
     const campos = [
       ['Nome Completo', nome],
