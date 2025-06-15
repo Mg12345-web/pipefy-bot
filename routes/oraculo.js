@@ -112,8 +112,8 @@ async function handleOraculo(req, res) {
   }
 
     // Validação crítica
-    if (!dados['Nome Completo'] || !dados['Placa']) {
-      throw new Error('Dados incompletos: Nome Completo ou Placa ausentes.');
+    if (!dados['CPF OU CNPJ'] || !dados['Placa']) {
+      throw new Error('Dados incompletos: CPF ou Placa ausentes.');
     }
 
     // 🧾 Montar tarefa
