@@ -19,7 +19,7 @@ Você é um assistente que extrai apenas os dados do OUTORGANTE de uma procuraç
 
 Retorne apenas os seguintes campos, em formato JSON:
 {
-  "nome": "",
+  "Nome Completo": "",
   "data_nascimento": "",
   "nacionalidade": "",
   "estado_civil": "",
@@ -47,7 +47,7 @@ Você é um assistente que extrai dados de um CRLV (Certificado de Registro e Li
 
 Responda somente com este JSON:
 {
-  "placa": "",
+  "Placa": "",
   "chassi": "",
   "renavam": "",
   "estadoEmplacamento": ""
