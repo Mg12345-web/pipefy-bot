@@ -108,10 +108,8 @@ async function handleOraculo(req, res) {
     dados['Profissão'] = dados['Profissão'] || dados.profissao || '';
 
     if (dados.logradouro && dados.numero && dados.bairro && dados.cidade) {
-      dados['Endereço'] = `${dados.logradouro}, ${dados.numero} - ${dados.bairro} - ${dados.cidade}/${dados.estado || ''}`;
-      dados['Endereço'] = endereco;
-      dados['Endereço Completo'] = endereco;
-    }
+      dados['Endereço Completo'] = `${dados.logradouro}, ${dados.numero} - ${dados.bairro} - ${dados.cidade}/${dados.estado || ''}`;
+  }
 
     // Validação crítica
     if (!dados['Nome Completo'] || !dados['Placa']) {
