@@ -109,6 +109,8 @@ async function handleOraculo(req, res) {
 
     if (dados.logradouro && dados.numero && dados.bairro && dados.cidade) {
       dados['Endereço'] = `${dados.logradouro}, ${dados.numero} - ${dados.bairro} - ${dados.cidade}/${dados.estado || ''}`;
+      dados['Endereço'] = endereco;
+      dados['Endereço Completo'] = endereco;
     }
 
     // Validação crítica
