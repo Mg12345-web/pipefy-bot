@@ -40,8 +40,8 @@ async function runClientRobot(req, res) {
     log('🔐 Fazendo login no Pipefy...');
     await loginPipefy(page, log);
 
-    log('📁 Acessando Pipe CLIENTES...');
-    await page.getByText('CLIENTES', { exact: true }).click();
+    log('📁 Acessando Pipe Clientes...');
+    await page.getByText('Clientes', { exact: true }).click();
     await page.waitForTimeout(2000);
 
     const botaoEntrar = page.locator('text=Entrar no pipe');
