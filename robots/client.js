@@ -82,12 +82,27 @@ async function runClientRobot(req, res) {
     const anexar = async (label, files) => {
       if (!files || files.length === 0) return;
       try {
-        const el = page.locator(`text=${label}`).first();
-        const [fileChooser] = await Promise.all([
-          page.waitForEvent('filechooser'),
-          el.click()
-        ]);
-        await fileChooser.setFiles(files.map(f => f.path));
+        // 1º botão: CNH
+if (label === 'CNH') {
+  const botaoCNH = page.locator('text=Adicionar novos arquivos').nth(0);
+  const [fileChooser] = await Promise.all([
+    page.waitForEvent('filechooser'),
+    botaoCNH.click()
+  ]);
+  await fileChooser.setFiles(files.map(f => f.path));
+  log(`📎 Arquivo(s) anexado(s) no campo CNH`);
+}
+
+// 2º botão: Procuração + contrato
+if (label === 'Procuração + contrato') {
+  const botaoProc = page.locator('text=Adicionar novos arquivos').nth(1);
+  const [fileChooser] = await Promise.all([
+    page.waitForEvent('filechooser'),
+    botaoProc.click()
+  ]);
+  await fileChooser.setFiles(files.map(f => f.path));
+  log(`📎 Arquivo(s) anexado(s) no campo Procuração + contrato`);
+}
         log(`📎 Arquivo(s) anexado(s) em ${label}`);
       } catch (e) {
         log(`⚠️ Falha ao anexar em ${label}: ${e.message}`);
