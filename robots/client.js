@@ -14,6 +14,7 @@ async function runClientRobot(req, res) {
   const profissao = dados['Profissão'] || '';
   const email = dados.Email || '';
   const telefone = dados['Número de telefone'] || '';
+  const Endereço Completo = dados['Endereço Completo'] || '';
 
   const log = msg => {
     console.log(msg);
