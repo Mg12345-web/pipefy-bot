@@ -20,6 +20,9 @@ async function runClientRobot(req, res) {
     res?.write?.(msg + '\n');
   };
 
+  console.log('📤 Preenchendo formulário com os dados:');
+  console.log({ nome, cpf, estadoCivil, profissao, email, telefone });
+  
   res?.setHeader?.('Content-Type', 'text/html; charset=utf-8');
   res?.write?.('<pre>🤖 Iniciando robô de CLIENTES...\n');
 
@@ -116,9 +119,18 @@ if (label === 'Procuração + contrato') {
     ]);
 
     log('💾 Enviando formulário...');
-    await page.locator('button:has-text("Criar registro")').click();
-    await page.waitForTimeout(3000);
-
+    const botoes = await page.$$('button');
+    for (let i = 0; i < botoes.length; i++) {
+      const texto = await botoes[i].innerText();
+      const box = await botoes[i].boundingBox();
+      if (texto.trim() === 'Criar registro' && box && box.width > 200) {
+        await botoes[i].scrollIntoViewIfNeeded();
+        await botoes[i].click();
+        console.log('✅ Registro de cliente criado');
+        break;
+      }
+    }
+    
     const printPath = path.resolve(__dirname, '../../prints/print_final_clientes.png');
     fs.mkdirSync(path.dirname(printPath), { recursive: true });
     await page.screenshot({ path: printPath });
