@@ -64,7 +64,7 @@ async function runClientRobot(req, res) {
       ['Profissão', profissao],
       ['Email', email],
       ['Número de telefone', telefone],
-      ['Endereço Completo', enderecoCompleto],
+      ['Endereço Completo', enderecoCompleto]
     ];
 
     for (const [campo, valor] of campos) {
