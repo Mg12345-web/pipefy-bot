@@ -45,18 +45,23 @@ async function handleOraculo(req, res) {
   try {
     // 🧾 Processar procuração
     if (procuracao) {
-      const ext = path.extname(procuracao).toLowerCase();
-      if ([".jpg", ".jpeg", ".png"].includes(ext)) {
-        dados = await interpretarImagemComGptVision(procuracao, 'procuracao');
-      } else {
-        const texto = await extractText(procuracao);
-        console.log('📝 Texto extraído da procuração:', texto);
-        const resposta = await interpretarTextoComGPT(texto, 'procuracao');
-        console.log('🔍 Resposta do GPT para procuração:', resposta);
-        dados = JSON.parse(resposta);
-      }
+  try {
+    const ext = path.extname(procuracao).toLowerCase();
+    if ([".jpg", ".jpeg", ".png"].includes(ext)) {
+      console.log('🧠 Interpretando imagem da procuração com GPT Vision...');
+      dados = await interpretarImagemComGptVision(procuracao, 'procuracao');
+    } else {
+      console.log('📄 Interpretando texto da procuração (PDF ou similar)...');
+      const texto = await extractText(procuracao);
+      console.log('📝 Texto extraído:', texto);
+      const gptResponse = await interpretarTextoComGPT(texto, 'procuracao');
+      console.log('🔍 Resposta do GPT:', gptResponse);
+      dados = JSON.parse(gptResponse);
     }
-
+  } catch (err) {
+    console.warn('⚠️ Falha ao extrair dados da procuração:', err.message);
+  }
+}
     // Dados vindos do frontend
     dados.Email = email;
     dados['Número de telefone'] = telefone;
