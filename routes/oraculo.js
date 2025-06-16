@@ -102,7 +102,7 @@ async function handleOraculo(req, res) {
       throw new Error('Dados incompletos: CPF ou Placa ausentes.');
     }
 
-    tarefa = {
+        tarefa = {
       email,
       telefone,
       arquivos,
@@ -112,7 +112,15 @@ async function handleOraculo(req, res) {
       timestamp: Date.now()
     };
 
-    addToQueue(tarefa);
+    // Ativação condicional dos robôs com base no tipo de serviço
+    const robos = [];
+    if (tipoServico === 'RGP') robos.push('RGP');
+    if (tipoServico === 'Sem RGP') robos.push('Sem RGP');
+
+    for (const robo of robos) {
+      console.log(`🚀 Enviando para robô ${robo}`);
+      addToQueue({ ...tarefa, robo });
+    }
 
     res.send({
       status: 'ok',
