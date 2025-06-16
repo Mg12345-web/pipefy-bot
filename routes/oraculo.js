@@ -6,7 +6,7 @@ const { extrairAitsDosArquivos } = require('../utils/extrairAitsDosArquivos');
 const { addToQueue } = require('../robots/fila');
 
 async function handleOraculo(req, res) {
-  const { email, telefone, servico  } = req.body;
+  const { email, telefone, servico } = req.body;
   const arquivos = {};
   const autuacoes = [];
   let tarefa = {};
