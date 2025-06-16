@@ -20,16 +20,18 @@ async function handleOraculo(req, res) {
   console.log('📎 req.files:', req.files?.map(f => f.originalname));
 
   for (const file of req.files || []) {
-    const field = file.fieldname;
-    if (field.startsWith('autuacoes[')) {
-      const idx = +field.match(/autuacoes\[(\d+)\]/)[1];
-      autuacoes[idx] = autuacoes[idx] || {};
-      autuacoes[idx].arquivo = file.path;
-    } else {
-      arquivos[field] = arquivos[field] || [];
-      arquivos[field].push(file);
-    }
+  const field = file.fieldname;
+
+  const match = field.match(/autuacoes\[(\d+)\]/);
+  if (match) {
+    const idx = +match[1];
+    autuacoes[idx] = autuacoes[idx] || {};
+    autuacoes[idx].arquivo = file.path;
+  } else {
+    arquivos[field] = arquivos[field] || [];
+    arquivos[field].push(file);
   }
+}
 
   Object.keys(req.body).forEach(key => {
     const m = key.match(/autuacoes\[(\d+)\]\[tipo\]/);
@@ -102,7 +104,7 @@ async function handleOraculo(req, res) {
       email,
       telefone,
       arquivos,
-      autuacoes: autuacoes.filter(a => a.tipo && a.arquivo),
+      autuacoes: autuacoes.filter(a => a.tipo || a.arquivo),
       dados,
        tipoServico: servico,
       timestamp: Date.now()
