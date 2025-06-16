@@ -17,7 +17,10 @@ async function runSemRgpRobot(req, res) {
   }
 
   const autuacoes = req.body?.autuacoes || [];
-  const arquivos = autuacoes.map(a => a.arquivo).filter(Boolean);
+  const arquivos = autuacoes.map(a => {
+  if (typeof a.arquivo === 'object' && a.arquivo?.path) return a.arquivo.path;
+  return a.arquivo;
+}).filter(Boolean);
   const { dados = {} } = req.body;
   const ait = dados.numeroAIT || '';
   const orgao = dados.orgaoAutuador || '';
