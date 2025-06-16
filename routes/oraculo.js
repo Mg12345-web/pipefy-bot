@@ -90,8 +90,9 @@ async function handleOraculo(req, res) {
       dados['Endereço Completo'] = `${dados.logradouro}, ${dados.numero} - ${dados.bairro} - ${dados.cidade}/${dados.estado || ''}`;
     }
 
-    const cpf = dados['CPF'];
-    const placa = dados['Placa'];
+    const cpf = dados['CPF'] || req.body.cpf || req.body['CPF OU CNPJ'];
+    const placa = dados['Placa'] || req.body.placa || req.body.Placa;
+
 
     if (!cpf || !placa) {
       throw new Error('Dados incompletos: CPF ou Placa ausentes.');
