@@ -1,4 +1,3 @@
-// oraculo.js corrigido
 const fs = require('fs');
 const path = require('path');
 const { extractText, interpretarTextoComGPT } = require('../utils/extractText');
