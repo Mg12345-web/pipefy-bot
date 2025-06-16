@@ -32,7 +32,7 @@ async function runSemRgpRobot(req, res) {
   log(`🔍 Buscando cliente com CPF: ${cpf}`);
   log(`🔍 Buscando CRLV com Placa: ${placa}`);
 
-  const caminhoPDF = normalizarArquivo('autuacao', arquivos[0].path);
+  const caminhoPDF = normalizarArquivo('autuacao', arquivos[0]); 
   let browser, page;
 
   try {
