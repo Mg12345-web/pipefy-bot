@@ -6,7 +6,7 @@ const { extrairAitsDosArquivos } = require('../utils/extrairAitsDosArquivos');
 const { addToQueue } = require('../robots/fila');
 
 async function handleOraculo(req, res) {
-  const { email, telefone, tipoServico } = req.body;
+  const { email, telefone, servico  } = req.body;
   const arquivos = {};
   const autuacoes = [];
   let tarefa = {};
@@ -108,7 +108,7 @@ async function handleOraculo(req, res) {
       arquivos,
       autuacoes: autuacoes.filter(a => a.tipo && a.arquivo),
       dados,
-      tipoServico,
+       tipoServico: servico,
       timestamp: Date.now()
     };
 
