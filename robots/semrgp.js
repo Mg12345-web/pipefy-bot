@@ -8,6 +8,7 @@ const { normalizarArquivo } = require('../utils/normalizarArquivo');
 async function runSemRgpRobot(req, res) {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.write('<pre>⏳ Preparando robô Sem RGP...\n');
+    console.log('📥 Dados recebidos pelo robô Sem RGP:', JSON.stringify(req.body, null, 2));
 
   const log = msg => { res.write(msg + '\n'); console.log(msg); };
   if (!acquireLock()) {
