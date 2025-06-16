@@ -11,7 +11,11 @@ async function handleOraculo(req, res) {
   const arquivos = {};
   const autuacoes = [];
   let tarefa = {};
-  let dados = {}, aits = [];
+
+  // Copia dados manuais
+  let dados = { ...req.body.dados };
+  dados['Placa'] = req.body.placa || req.body.Placa;
+  let aits = [];
 
   console.log('📥 req.body:', JSON.stringify(req.body, null, 2));
   console.log('📎 req.files:', req.files?.map(f => f.originalname));
@@ -45,11 +49,13 @@ async function handleOraculo(req, res) {
       try {
         const ext = path.extname(procuracao).toLowerCase();
         if ([".jpg", ".jpeg", ".png"].includes(ext)) {
-          dados = await interpretarImagemComGptVision(procuracao, 'procuracao');
+          const dadosProc = await interpretarImagemComGptVision(procuracao, 'procuracao');
+          dados = { ...dados, ...dadosProc };
         } else {
           const texto = await extractText(procuracao);
           const gptResponse = await interpretarTextoComGPT(texto, 'procuracao');
-          dados = JSON.parse(gptResponse);
+          const dadosProc = JSON.parse(gptResponse);
+          dados = { ...dados, ...dadosProc };
         }
       } catch (err) {
         console.warn('⚠️ Falha ao extrair dados da procuração:', err.message);
@@ -70,7 +76,7 @@ async function handleOraculo(req, res) {
         crlvDados = JSON.parse(await interpretarTextoComGPT(textoCR, 'crlv'));
       }
 
-      dados['Placa'] = (crlvDados.placa || crlvDados['Placa'] || '').toUpperCase();
+      dados['Placa'] = (crlvDados.placa || crlvDados['Placa'] || dados['Placa'] || '').toUpperCase();
       dados['Chassi'] = (crlvDados.chassi || crlvDados['Chassi'] || '').toUpperCase();
       dados['Renavam'] = crlvDados.renavam || crlvDados['Renavam'] || '';
       dados['Estado de Emplacamento'] = (crlvDados.estadoEmplacamento || crlvDados['Estado de Emplacamento'] || crlvDados.estado || '').toUpperCase();
@@ -90,9 +96,8 @@ async function handleOraculo(req, res) {
       dados['Endereço Completo'] = `${dados.logradouro}, ${dados.numero} - ${dados.bairro} - ${dados.cidade}/${dados.estado || ''}`;
     }
 
-    const cpf = dados['CPF'] || req.body.cpf || req.body['CPF OU CNPJ'];
-    const placa = dados['Placa'] || req.body.placa || req.body.Placa;
-
+    const cpf = dados['CPF'];
+    const placa = dados['Placa'];
 
     if (!cpf || !placa) {
       throw new Error('Dados incompletos: CPF ou Placa ausentes.');
@@ -129,5 +134,4 @@ async function handleOraculo(req, res) {
     }
   }
 }
-
 module.exports = { handleOraculo };
