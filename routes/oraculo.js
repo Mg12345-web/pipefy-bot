@@ -100,11 +100,13 @@ async function handleOraculo(req, res) {
     }
 
         // Não precisa extrair AITs para RGP/Sem RGP, mas deixamos o campo preparado
-    tarefa = {
+console.log('🔍 Autuações filtradas:', autuacoes.filter(a => a.tipo && a.arquivo));
+
+tarefa = {
       email,
       telefone,
       arquivos,
-      autuacoes: autuacoes.filter(a => a.tipo || a.arquivo),
+      autuacoes: autuacoes.filter(a => a.tipo && a.arquivo),
       dados,
        tipoServico: servico,
       timestamp: Date.now()
