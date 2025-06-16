@@ -81,11 +81,6 @@ async function handleOraculo(req, res) {
       dados['Estado de Emplacamento'] = (crlvDados.estadoEmplacamento || crlvDados['Estado de Emplacamento'] || crlvDados.estado || '').toUpperCase();
     }
 
-    const caminhosAut = autuacoes.filter(a => a.tipo && a.arquivo).map(a => a.arquivo);
-    if (caminhosAut.length > 0) {
-      aits = await extrairAitsDosArquivos(caminhosAut);
-    }
-
     dados['Nome Completo'] = dados['Nome Completo'] || dados.nome || '';
     dados['CPF'] = dados['CPF'] || dados['CPF OU CNPJ'] || dados.cpf || '';
     dados['Estado Civil'] = dados['Estado Civil'] || dados.estado_civil || '';
@@ -102,7 +97,8 @@ async function handleOraculo(req, res) {
       throw new Error('Dados incompletos: CPF ou Placa ausentes.');
     }
 
-        tarefa = {
+        // Não precisa extrair AITs para RGP/Sem RGP, mas deixamos o campo preparado
+    tarefa = {
       email,
       telefone,
       arquivos,
@@ -126,7 +122,7 @@ async function handleOraculo(req, res) {
     res.send({
       status: 'ok',
       mensagem: 'Oráculo processado com sucesso',
-      dadosExtraidos: { ...dados, aits }
+      dadosExtraidos: { ...dados }
     });
 
     fs.writeFileSync('./logs/ultimo-oraculo.json', JSON.stringify({ dadosExtraidos: { ...dados, aits } }, null, 2));
