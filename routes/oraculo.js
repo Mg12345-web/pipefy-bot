@@ -114,10 +114,10 @@ async function handleOraculo(req, res) {
 
     // Ativação condicional dos robôs com base no tipo de serviço
     const robos = [];
+    const tipoServico = tarefa.tipoServico;
     if (tipoServico === 'RGP') robos.push('RGP');
     if (tipoServico === 'Sem RGP') robos.push('Sem RGP');
-    const tipoServico = tarefa.tipoServico;
-
+    
     for (const robo of robos) {
       console.log(`🚀 Enviando para robô ${robo}`);
       addToQueue({ ...tarefa, robo });
