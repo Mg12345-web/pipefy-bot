@@ -1,11 +1,12 @@
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 /**
- * Renomeia um arquivo mantendo sua extensão original para um nome padrão.
- * @param {string} nomeBase - Nome desejado para o arquivo (sem extensão).
- * @param {string} caminhoOriginal - Caminho atual do arquivo.
- * @returns {string} - Novo caminho do arquivo renomeado.
+ * Renomeia um arquivo de forma segura, com nome único e extensão preservada.
+ * @param {string} nomeBase - Prefixo do nome (ex: 'autuacao').
+ * @param {string} caminhoOriginal - Caminho do arquivo recebido.
+ * @returns {string} - Caminho final do novo arquivo.
  */
 function normalizarArquivo(nomeBase, caminhoOriginal) {
   if (!fs.existsSync(caminhoOriginal)) {
@@ -14,12 +15,11 @@ function normalizarArquivo(nomeBase, caminhoOriginal) {
 
   const dir = path.dirname(caminhoOriginal);
   const ext = path.extname(caminhoOriginal).toLowerCase();
-  const novoCaminho = path.join(dir, `${nomeBase}${ext}`);
+  const hash = crypto.randomBytes(4).toString('hex'); // exemplo: 'a9f1c2d3'
+  const nomeFinal = `${nomeBase}_${hash}${ext}`;
+  const novoCaminho = path.join(dir, nomeFinal);
 
-  if (caminhoOriginal !== novoCaminho) {
-    fs.renameSync(caminhoOriginal, novoCaminho);
-  }
-
+  fs.renameSync(caminhoOriginal, novoCaminho);
   return novoCaminho;
 }
 
