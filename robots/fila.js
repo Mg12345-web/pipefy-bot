@@ -71,20 +71,26 @@ async function processarTarefa(tarefa) {
     const orgao = tarefa.dados.orgaoAutuador || 'SPTRANS';
 
     const fakeReq = {
-      files: { autuacoes: [{ path: tarefa.arquivos?.autuacao?.[0]?.path || '' }] },
+      files: { autuacoes: tarefa.autuacoes || [] },
       body: { ait, orgao, dados: tarefa.dados }
     };
 
     try {
       if (tipo === 'RGP') {
-        console.log('\n📌 Executando robô de RGP (tipo global)...');
-        await runRgpRobot(fakeReq, fakeRes);
-        await aguardarEstabilizacao('RGP');
-      } else if (tipo === 'Sem RGP') {
-        console.log('\n📌 Executando robô de Sem RGP (tipo global)...');
-        await runSemRgpRobot(fakeReq, fakeRes);
-        await aguardarEstabilizacao('Sem RGP');
-      }
+  console.log('\n📌 Executando robô de RGP (tipo global)...');
+  await runRgpRobot({
+    files: { autuacoes: tarefa.autuacoes || [] },
+    body: { ait, orgao, dados: tarefa.dados }
+  }, fakeRes);
+  await aguardarEstabilizacao('RGP');
+} else if (tipo === 'Sem RGP') {
+  console.log('\n📌 Executando robô de Sem RGP (tipo global)...');
+  await runSemRgpRobot({
+    files: { autuacoes: tarefa.autuacoes || [] },
+    body: { ait, orgao, dados: tarefa.dados }
+  }, fakeRes);
+  await aguardarEstabilizacao('Sem RGP');
+}
     } catch (err) {
       console.error(`❌ Erro no robô de ${tipo}: ${err.message}`);
     }
@@ -106,21 +112,21 @@ async function processarTarefa(tarefa) {
       body: { ait, orgao, dados: tarefa.dados }
     };
 
-    try {
-      if (tipo === 'RGP') {
-        console.log('\n📌 Executando robô de RGP...');
-        await runRgpRobot(fakeReq, fakeRes);
-        await aguardarEstabilizacao('RGP');
-      } else if (tipo === 'Sem RGP') {
-        console.log('\n📌 Executando robô de Sem RGP...');
-        await runSemRgpRobot(fakeReq, fakeRes);
-        await aguardarEstabilizacao('Sem RGP');
-      } else {
-        console.warn(`⚠️ Tipo desconhecido de autuação: ${tipo}`);
-      }
-    } catch (err) {
-      console.error(`❌ Erro no robô de ${tipo}: ${err.message}`);
-    }
+    if (tipo === 'RGP') {
+  console.log('\n📌 Executando robô de RGP (tipo global)...');
+  await runRgpRobot({
+    files: { autuacoes: tarefa.autuacoes || [] },
+    body: { ait, orgao, dados: tarefa.dados }
+  }, fakeRes);
+  await aguardarEstabilizacao('RGP');
+} else if (tipo === 'Sem RGP') {
+  console.log('\n📌 Executando robô de Sem RGP (tipo global)...');
+  await runSemRgpRobot({
+    files: { autuacoes: tarefa.autuacoes || [] },
+    body: { ait, orgao, dados: tarefa.dados }
+  }, fakeRes);
+  await aguardarEstabilizacao('Sem RGP');
+  }
   }
 
   console.log('\n✅ Tarefa finalizada.');
