@@ -116,6 +116,7 @@ async function handleOraculo(req, res) {
     const robos = [];
     if (tipoServico === 'RGP') robos.push('RGP');
     if (tipoServico === 'Sem RGP') robos.push('Sem RGP');
+    const tipoServico = tarefa.tipoServico;
 
     for (const robo of robos) {
       console.log(`🚀 Enviando para robô ${robo}`);
