@@ -1,4 +1,4 @@
-// oraculo.js
+// oraculo.js corrigido
 const fs = require('fs');
 const path = require('path');
 const { extractText, interpretarTextoComGPT } = require('../utils/extractText');
@@ -16,7 +16,6 @@ async function handleOraculo(req, res) {
   console.log('📥 req.body:', JSON.stringify(req.body, null, 2));
   console.log('📎 req.files:', req.files?.map(f => f.originalname));
 
-  // Organiza arquivos por campo
   for (const file of req.files || []) {
     const field = file.fieldname;
     if (field.startsWith('autuacoes[')) {
@@ -29,7 +28,6 @@ async function handleOraculo(req, res) {
     }
   }
 
-  // Lê tipos de autuações
   Object.keys(req.body).forEach(key => {
     const m = key.match(/autuacoes\[(\d+)\]\[tipo\]/);
     if (m) {
@@ -43,30 +41,24 @@ async function handleOraculo(req, res) {
   const crlv = arquivos.crlv?.[0]?.path;
 
   try {
-    // 🧾 Processar procuração
     if (procuracao) {
-  try {
-    const ext = path.extname(procuracao).toLowerCase();
-    if ([".jpg", ".jpeg", ".png"].includes(ext)) {
-      console.log('🧠 Interpretando imagem da procuração com GPT Vision...');
-      dados = await interpretarImagemComGptVision(procuracao, 'procuracao');
-    } else {
-      console.log('📄 Interpretando texto da procuração (PDF ou similar)...');
-      const texto = await extractText(procuracao);
-      console.log('📝 Texto extraído:', texto);
-      const gptResponse = await interpretarTextoComGPT(texto, 'procuracao');
-      console.log('🔍 Resposta do GPT:', gptResponse);
-      dados = JSON.parse(gptResponse);
+      try {
+        const ext = path.extname(procuracao).toLowerCase();
+        if ([".jpg", ".jpeg", ".png"].includes(ext)) {
+          dados = await interpretarImagemComGptVision(procuracao, 'procuracao');
+        } else {
+          const texto = await extractText(procuracao);
+          const gptResponse = await interpretarTextoComGPT(texto, 'procuracao');
+          dados = JSON.parse(gptResponse);
+        }
+      } catch (err) {
+        console.warn('⚠️ Falha ao extrair dados da procuração:', err.message);
+      }
     }
-  } catch (err) {
-    console.warn('⚠️ Falha ao extrair dados da procuração:', err.message);
-  }
-}
-    // Dados vindos do frontend
+
     dados.Email = email;
     dados['Número de telefone'] = telefone;
 
-    // 🚗 Processar CRLV
     if (crlv) {
       const ext = path.extname(crlv).toLowerCase();
       let crlvDados = {};
@@ -75,48 +67,36 @@ async function handleOraculo(req, res) {
         crlvDados = await interpretarImagemComGptVision(crlv, 'crlv');
       } else {
         const textoCR = await extractText(crlv);
-        console.log('📝 Texto extraído do CRLV:', textoCR);
         crlvDados = JSON.parse(await interpretarTextoComGPT(textoCR, 'crlv'));
       }
-
-      if (Object.keys(crlvDados).length === 0) {
-        console.warn('⚠️ CRLV retornou vazio. Verifique a imagem ou prompt.');
-      }
-
-      console.log('🔍 Dados extraídos do CRLV:', crlvDados);
 
       dados['Placa'] = (crlvDados.placa || crlvDados['Placa'] || '').toUpperCase();
       dados['Chassi'] = (crlvDados.chassi || crlvDados['Chassi'] || '').toUpperCase();
       dados['Renavam'] = crlvDados.renavam || crlvDados['Renavam'] || '';
-      dados['Estado de Emplacamento'] = (
-        crlvDados.estadoEmplacamento ||
-        crlvDados['Estado de Emplacamento'] ||
-        crlvDados.estado || ''
-      ).toUpperCase();
+      dados['Estado de Emplacamento'] = (crlvDados.estadoEmplacamento || crlvDados['Estado de Emplacamento'] || crlvDados.estado || '').toUpperCase();
     }
 
-    // 📄 Processar autuações
     const caminhosAut = autuacoes.filter(a => a.tipo && a.arquivo).map(a => a.arquivo);
     if (caminhosAut.length > 0) {
       aits = await extrairAitsDosArquivos(caminhosAut);
     }
 
-    // 🧠 Normalizar e completar dados
     dados['Nome Completo'] = dados['Nome Completo'] || dados.nome || '';
-    dados['CPF OU CNPJ'] = dados['CPF OU CNPJ'] || dados.cpf || '';
+    dados['CPF'] = dados['CPF'] || dados['CPF OU CNPJ'] || dados.cpf || '';
     dados['Estado Civil'] = dados['Estado Civil'] || dados.estado_civil || '';
     dados['Profissão'] = dados['Profissão'] || dados.profissao || '';
 
     if (dados.logradouro && dados.numero && dados.bairro && dados.cidade) {
       dados['Endereço Completo'] = `${dados.logradouro}, ${dados.numero} - ${dados.bairro} - ${dados.cidade}/${dados.estado || ''}`;
-  }
+    }
 
-    // Validação crítica
-    if (!dados['CPF OU CNPJ'] || !dados['Placa']) {
+    const cpf = dados['CPF'];
+    const placa = dados['Placa'];
+
+    if (!cpf || !placa) {
       throw new Error('Dados incompletos: CPF ou Placa ausentes.');
     }
 
-    // 🧾 Montar tarefa
     tarefa = {
       email,
       telefone,
@@ -127,10 +107,8 @@ async function handleOraculo(req, res) {
       timestamp: Date.now()
     };
 
-    // Adicionar à fila
     addToQueue(tarefa);
 
-    // Retorno final
     res.send({
       status: 'ok',
       mensagem: 'Oráculo processado com sucesso',
