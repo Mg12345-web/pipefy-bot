@@ -1,177 +1,206 @@
-const fs = require('fs');
+const { chromium } = require('playwright');
 const path = require('path');
-const { extractText, interpretarTextoComGPT } = require('../utils/extractText');
-const { interpretarImagemComGptVision } = require('../utils/gptVision');
-const { extrairAitsDosArquivos } = require('../utils/extrairAitsDosArquivos');
-const { addToQueue } = require('../robots/fila');
+const fs = require('fs');
+const { acquireLock, releaseLock } = require('../utils/lock');
+const { loginPipefy } = require('../utils/auth');
+const { normalizarArquivo } = require('../utils/normalizarArquivo');
 
-async function handleOraculo(req, res) {
-  const { email, telefone, servico } = req.body;
-  const tipoServicoNormalizado = (servico || '').trim().toLowerCase();
-  const arquivos = {};
-  const autuacoes = [];
-  let tarefa = {};
+async function runSemRgpRobot(req, res) {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.write('<pre>⏳ Preparando robô Sem RGP...\n');
+  console.log('📥 Dados recebidos pelo robô Sem RGP:', JSON.stringify(req.body, null, 2));
 
-  // Copia dados manuais
-  let dados = { ...req.body.dados };
-  dados['Placa'] = req.body.placa || req.body.Placa;
-  let aits = [];
+  const log = msg => { res.write(msg + '\n'); console.log(msg); };
+  if (!acquireLock()) {
+    log('⛔ Robô já está em execução.');
+    return res.end('</pre>');
+  }
 
-  console.log('📥 req.body:', JSON.stringify(req.body, null, 2));
-  console.log('📎 req.files:', req.files?.map(f => f.originalname));
+  let arquivos = [];
+  if (req.files?.autuacoes?.length) {
+    arquivos = req.files.autuacoes.map(f => f.path);
+  }
 
-  // Captura todos os campos de autuações (ait, orgao, tipo, prazo etc.)
-  if (Array.isArray(req.body.autuacoes)) {
-  req.body.autuacoes.forEach((a, i) => {
-    autuacoes[i] = { ...a };
-  });
-} else {
-  Object.keys(req.body).forEach(key => {
-    const match = key.match(/autuacoes\[(\d+)\]\[(.+?)\]/);
-    if (match) {
-      const idx = +match[1];
-      const prop = match[2];
-      autuacoes[idx] = autuacoes[idx] || {};
-      autuacoes[idx][prop] = req.body[key];
-    }
-  });
-}
+  if (!arquivos.length && Array.isArray(req.body?.autuacoes)) {
+    arquivos = req.body.autuacoes
+      .map(a => (typeof a.arquivo === 'object' && a.arquivo?.path) ? a.arquivo.path : a.arquivo)
+      .filter(Boolean);
+  }
 
-  // 🔁 Preenche tipo com base no serviço, se estiver faltando
-  autuacoes.forEach(a => {
-    if (!a.tipo && servico) {
-      a.tipo = servico;
-    }
-  });
+  const { dados = {}, autuacoes = [] } = req.body;
+  const autuacao = autuacoes[0] || {};
+  const ait = autuacao.ait || '';
+  const orgao = autuacao.orgao || '';
+  const prazo = autuacao.prazo || '';
+  const cpf = dados['CPF'] || '';
+  const placa = dados['Placa'] || req.body.placa || '';
 
-  // 🔧 Associa corretamente os arquivos a cada autuação
-    for (const file of req.files || []) {
-      const field = file.fieldname;
-      const match = field.match(/autuacoes\[(\d+)\]\[arquivo\]/);
-      if (match) {
-        const idx = +match[1];
-        autuacoes[idx] = autuacoes[idx] || {};
-        autuacoes[idx].arquivo = file.path;
-      } else {
-        arquivos[field] = arquivos[field] || [];
-        arquivos[field].push(file);
-      }
-    }
+  if (!arquivos.length) {
+    log('❌ Nenhum arquivo de autuação recebido.');
+    releaseLock();
+    return res.end('</pre>');
+  }
 
-  const procuracao = req.files?.find(f => f.fieldname === 'procuracao')?.path;
-  const crlv = req.files?.find(f => f.fieldname === 'crlv')?.path;
+  log(`🔍 Buscando cliente com CPF: ${cpf}`);
+  log(`🔍 Buscando CRLV com Placa: ${placa}`);
+
+  const caminhoPDF = normalizarArquivo('autuacao', arquivos[0]); 
+  let browser, page;
 
   try {
-    if (procuracao) {
-      try {
-        const ext = path.extname(procuracao).toLowerCase();
-        if ([".jpg", ".jpeg", ".png"].includes(ext)) {
-          const dadosProc = await interpretarImagemComGptVision(procuracao, 'procuracao');
-          dados = { ...dados, ...dadosProc };
-        } else {
-          const texto = await extractText(procuracao);
-          const gptResponse = await interpretarTextoComGPT(texto, 'procuracao');
-          const dadosProc = JSON.parse(gptResponse);
-          dados = { ...dados, ...dadosProc };
-        }
-      } catch (err) {
-        console.warn('⚠️ Falha ao extrair dados da procuração:', err.message);
-      }
+    browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
+    const context = await browser.newContext();
+    page = await context.newPage();
+
+    await loginPipefy(page, log);
+
+    log('📂 Acessando Pipe Sem RGP...');
+    await page.getByText('Sem RGP', { exact: true }).click();
+    await page.waitForTimeout(3000);
+
+    const botaoPipe = page.locator('text=Entrar no pipe');
+    if (await botaoPipe.count() > 0) {
+      await botaoPipe.first().click();
+      await page.waitForTimeout(3000);
     }
 
-    dados.Email = email;
-    dados['Número de telefone'] = telefone;
+    log('🆕 Criando novo card...');
+    await page.locator('span:text("Create new card")').first().click();
+    await page.waitForTimeout(3000);
 
-    if (crlv) {
-      const ext = path.extname(crlv).toLowerCase();
-      let crlvDados = {};
+    // Cliente
+    log('👤 Selecionando cliente...');
+    await page.locator('div:has-text("Cliente") >> :text("Criar registro")').first().click();
+    await page.locator('input[placeholder*="Pesquisar"]').fill(cpf);
+    await page.waitForTimeout(1500);
+    await page.getByText(cpf, { exact: false }).first().click();
+    log('✅ Cliente selecionado');
 
-      if ([".jpg", ".jpeg", ".png"].includes(ext)) {
-        crlvDados = await interpretarImagemComGptVision(crlv, 'crlv');
-      } else {
-        const textoCR = await extractText(crlv);
-        crlvDados = JSON.parse(await interpretarTextoComGPT(textoCR, 'crlv'));
-      }
+    // CRLV
+    log('🚗 Selecionando CRLV...');
+    const campoEstavel = page.locator('input[placeholder="Digite aqui ..."]').first();
+    await campoEstavel.scrollIntoViewIfNeeded();
+    await campoEstavel.click();
+    await page.waitForTimeout(1000);
+    await page.keyboard.press('PageDown');
+    await page.waitForTimeout(1000);
 
-      dados['Placa'] = (crlvDados.placa || crlvDados['Placa'] || dados['Placa'] || '').toUpperCase();
-      dados['Chassi'] = (crlvDados.chassi || crlvDados['Chassi'] || '').toUpperCase();
-      dados['Renavam'] = crlvDados.renavam || crlvDados['Renavam'] || '';
-      dados['Estado de Emplacamento'] = (crlvDados.estadoEmplacamento || crlvDados['Estado de Emplacamento'] || crlvDados.estado || '').toUpperCase();
+    const botoesCriar = await page.locator('text=Criar registro');
+    if ((await botoesCriar.count()) >= 2) {
+      const botaoCRLV = botoesCriar.nth(1);
+      const box = await botaoCRLV.boundingBox();
+      if (!box || box.width === 0) throw new Error('❌ Botão CRLV invisível!');
+      await botaoCRLV.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(1000);
+      await botaoCRLV.click();
+      log('✅ Botão CRLV clicado');
+    } else {
+      throw new Error('❌ Botão CRLV não encontrado');
     }
-
-    dados['Nome Completo'] = dados['Nome Completo'] || dados.nome || '';
-    dados['CPF'] = dados['CPF'] || dados['CPF OU CNPJ'] || dados.cpf || '';
-    dados['Estado Civil'] = dados['Estado Civil'] || dados.estado_civil || '';
-    dados['Profissão'] = dados['Profissão'] || dados.profissao || '';
-
-    if (dados.logradouro && dados.numero && dados.bairro && dados.cidade) {
-      dados['Endereço Completo'] = `${dados.logradouro}, ${dados.numero} - ${dados.bairro} - ${dados.cidade}/${dados.estado || ''}`;
-    }
-
-    // 🛠️ Garante que 'Placa' esteja nos dados, mesmo se vier fora do objeto 'dados'
-dados['Placa'] = dados['Placa'] || req.body.placa || req.body.Placa || '';
-
-const cpf = dados['CPF'];
-const placa = dados['Placa'];
-
-if (!cpf || !placa) {
-  console.warn('⚠️ CPF ou Placa ausente. Encerrando sem enviar à fila.');
-  return res.status(400).send({ status: 'erro', mensagem: 'CPF ou Placa ausente' });
-}
-
-console.log('🔍 Autuações recebidas (sem filtro):', autuacoes);
-console.log('✅ Chegou após autuações, preparando tarefa...');
-
-tarefa = {
-  email,
-  telefone,
-  arquivos,
-  autuacoes,
-  dados,
-  tipoServico: servico,
-  timestamp: Date.now()
-};
-
-// Ativação condicional de robôs com base no tipo de serviço
-    const robos = [];
-
-if (tipoServicoNormalizado === 'rgp') robos.push('RGP');
-if (tipoServicoNormalizado === 'sem rgp') robos.push('Sem RGP');
-
-console.log('🤖 Robôs atribuídos:', robos);
-
-if (robos.length === 0) {
-  console.warn('⚠️ Nenhum robô atribuído. Serviço não reconhecido:', tipoServicoNormalizado);
-  // FORÇA ENVIO DE TESTE:
-  tarefa.robo = 'Sem RGP';
-  console.log('🚨 Enviando tarefa manualmente com robô forçado:', tarefa.robo);
-  addToQueue(tarefa);
-} else {
-  for (const robo of robos) {
-    const tarefaFinal = { ...tarefa, robo };
-    console.log('📤 Tarefa enviada ao robô:', JSON.stringify(tarefaFinal, null, 2));
-    addToQueue(tarefaFinal);
-  }
-}
-
-    res.send({
-      status: 'ok',
-      mensagem: 'Oráculo processado com sucesso',
-      dadosExtraidos: { ...dados }
-    });
-
-    fs.writeFileSync('./logs/ultimo-oraculo.json', JSON.stringify({ dadosExtraidos: { ...dados, aits } }, null, 2));
-
-  } catch (err) {
-    console.error('❌ Oráculo erro:', err.message);
-    res.status(500).send({ status: 'erro', mensagem: err.message });
 
     try {
-      fs.writeFileSync(`./logs/oraculo_${Date.now()}.json`, JSON.stringify(tarefa, null, 2));
-    } catch (logErr) {
-      console.error('⚠️ Falha ao salvar log do oráculo:', logErr.message);
+      await page.waitForSelector('input[placeholder*="Pesquisar"]', { timeout: 15000 });
+      await page.locator('input[placeholder*="Pesquisar"]').fill(placa);
+      await page.waitForTimeout(1500);
+      await page.getByText(placa, { exact: false }).first().click();
+      log('✅ CRLV selecionado');
+    } catch (e) {
+      const erroPath = path.resolve(__dirname, '../../prints/print_crlv_erro.jpg');
+      fs.mkdirSync(path.dirname(erroPath), { recursive: true });
+      await page.screenshot({ path: erroPath });
+      const base64Erro = fs.readFileSync(erroPath).toString('base64');
+      res.write(`<img src="data:image/jpeg;base64,${base64Erro}" style="max-width:100%">`);
+      throw new Error('❌ Falha ao selecionar CRLV');
     }
+
+    // Preenchimento
+    const inputs = await page.locator('input[placeholder="Digite aqui ..."]');
+    if (ait) { await inputs.nth(0).fill(ait); log('✅ AIT preenchido'); }
+    if (orgao) { await inputs.nth(1).fill(orgao); log('✅ Órgão preenchido'); }
+
+    // Prazo
+    log('📆 Preenchendo campo "Prazo para Protocolo"...');
+    const df = [
+      '[data-testid="day-input"]',
+      '[data-testid="month-input"]',
+      '[data-testid="year-input"]',
+      '[data-testid="hour-input"]',
+      '[data-testid="minute-input"]'
+    ];
+    
+    let val = ['','','','','']; // padrão
+    try {
+      const dt = new Date(prazo);
+      if (!isNaN(dt)) {
+        val = [
+          String(dt.getDate()).padStart(2, '0'),
+          String(dt.getMonth() + 1).padStart(2, '0'),
+          String(dt.getFullYear()),
+          '08', '00'
+        ];
+      } else {
+        log('⚠️ Data inválida no campo "prazo". Usando valor padrão.');
+      }
+    } catch (err) {
+      log('⚠️ Erro ao interpretar data de prazo. Usando valor padrão.');
+    }
+
+    for (let i = 0; i < df.length; i++) {
+      const el = await page.locator(df[i]).first();
+      await el.click();
+      await page.keyboard.type(val[i], { delay: 100 });
+    }
+    log('✅ Prazo preenchido');
+
+    // Upload
+    log('📎 Anexando arquivo...');
+    const botaoUpload = await page.locator('button[data-testid="attachments-dropzone-button"]').last();
+    await botaoUpload.scrollIntoViewIfNeeded();
+    const [fileChooser] = await Promise.all([page.waitForEvent('filechooser'), botaoUpload.click()]);
+    await fileChooser.setFiles(caminhoPDF);
+    await page.waitForTimeout(3000);
+    log('📎 Autuação anexada');
+
+    // Finalizar
+    log('🚀 Finalizando card...');
+    const botoesFinal = await page.locator('button:has-text("Create new card")');
+    for (let i = 0; i < await botoesFinal.count(); i++) {
+      const b = botoesFinal.nth(i);
+      const box = await b.boundingBox();
+      if (box && box.width > 200) {
+        await b.scrollIntoViewIfNeeded();
+        await page.waitForTimeout(500);
+        await b.click();
+        break;
+      }
+    }
+
+    const printPath = path.resolve(__dirname, '../../prints/print_final_semrgp.png');
+    fs.mkdirSync(path.dirname(printPath), { recursive: true });
+    await page.screenshot({ path: printPath });
+
+    log(`📸 Print final salvo: ${path.basename(printPath)}`);
+    await browser.close();
+
+    const img = fs.readFileSync(printPath).toString('base64');
+    res.write(`<img src="data:image/png;base64,${img}" style="max-width:100%">`);
+    res.end('</pre><h3>✅ Processo Sem RGP concluído com sucesso</h3><p><a href="/">⬅️ Voltar</a></p>');
+
+  } catch (err) {
+    log(`❌ Erro crítico: ${err.message}`);
+    if (page) {
+      const erroPath = path.resolve(__dirname, '../../prints/print_erro_debug.jpg');
+      fs.mkdirSync(path.dirname(erroPath), { recursive: true });
+      await page.screenshot({ path: erroPath });
+      const img = fs.readFileSync(erroPath).toString('base64');
+      res.write(`<img src="data:image/jpeg;base64,${img}" style="max-width:100%">`);
+    }
+    if (browser) await browser.close();
+    res.end('</pre><h3 style="color:red">❌ Erro no robô Sem RGP.</h3>');
+  } finally {
+    if (fs.existsSync(caminhoPDF)) fs.unlinkSync(caminhoPDF);
+    releaseLock();
   }
 }
 
-module.exports = { handleOraculo };
+module.exports = { runSemRgpRobot };
