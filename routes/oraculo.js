@@ -107,7 +107,7 @@ tarefa = {
       email,
       telefone,
       arquivos,
-      autuacoes: autuacoes.filter(a => a.tipo && a.arquivo),
+      autuacoes,
       dados,
        tipoServico: servico,
       timestamp: Date.now()
@@ -120,7 +120,11 @@ tarefa = {
     if (tipoServico === 'Sem RGP') robos.push('Sem RGP');
     
     for (const robo of robos) {
-  const tarefaFinal = { ...tarefa, robo };
+  const tarefaFinal = {
+    ...tarefa,
+    autuacoes,
+    robo
+  };
   console.log('📤 Tarefa enviada ao robô:', JSON.stringify(tarefaFinal, null, 2));
   addToQueue(tarefaFinal);
 }
