@@ -35,9 +35,7 @@ async function processarTarefa(tarefa) {
 
   const req = {
     query: { observacao: 'Cadastro via site' },
-    body: {
-      ...tarefa,
-      dados: tarefa.dados || {}
+    body: tarefa,
     },
     files: tarefa.arquivos
   };
