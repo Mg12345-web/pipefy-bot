@@ -17,7 +17,8 @@ function normalizarArquivo(nomeBase, caminhoOriginal) {
   const ext = path.extname(caminhoOriginal).toLowerCase();
   const hash = crypto.randomBytes(4).toString('hex'); // exemplo: 'a9f1c2d3'
   const nomeFinal = `${nomeBase}_${hash}${ext}`;
-  const novoCaminho = path.join(dir, nomeFinal);
+  const timestamp = Date.now();
+  const novoCaminho = path.join(dir, `${nomeBase}_${timestamp}${ext}`);
 
   fs.renameSync(caminhoOriginal, novoCaminho);
   return novoCaminho;
