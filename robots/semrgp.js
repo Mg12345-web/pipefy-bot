@@ -16,11 +16,20 @@ async function runSemRgpRobot(req, res) {
     return res.end('</pre>');
   }
 
-  const autuacoes = req.body?.autuacoes || [];
-  const arquivos = autuacoes.map(a => {
-  if (typeof a.arquivo === 'object' && a.arquivo?.path) return a.arquivo.path;
-  return a.arquivo;
-}).filter(Boolean);
+  // Combina arquivos da body e da files (multer)
+let arquivos = [];
+
+// Se vier pelo req.files (via fila)
+if (req.files?.autuacoes?.length) {
+  arquivos = req.files.autuacoes.map(f => f.path);
+}
+
+// Se vier pelo req.body (via oráculo direto)
+if (!arquivos.length && Array.isArray(req.body?.autuacoes)) {
+  arquivos = req.body.autuacoes
+    .map(a => (typeof a.arquivo === 'object' && a.arquivo?.path) ? a.arquivo.path : a.arquivo)
+    .filter(Boolean);
+}
   const { dados = {} } = req.body;
   const ait = dados.numeroAIT || '';
   const orgao = dados.orgaoAutuador || '';
