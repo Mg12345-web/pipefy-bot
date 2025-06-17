@@ -107,7 +107,7 @@ tarefa = {
   email,
   telefone,
   arquivos,
-  autuacoes, // <-- não filtre aqui
+  autuacoes,
   dados,
   tipoServico: servico,
   timestamp: Date.now()
