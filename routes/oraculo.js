@@ -19,39 +19,26 @@ async function handleOraculo(req, res) {
   console.log('📥 req.body:', JSON.stringify(req.body, null, 2));
   console.log('📎 req.files:', req.files?.map(f => f.originalname));
 
-  for (const file of req.files || []) {
-  const field = file.fieldname;
-  const match = field.match(/autuacoes\[(\d+)\]\[arquivo\]/);
-  if (match) {
-    const idx = +match[1];
-    autuacoes[idx] = autuacoes[idx] || {};
-    autuacoes[idx].arquivo = file.path;
-  } else {
-    arquivos[field] = arquivos[field] || [];
-    arquivos[field].push(file);
-  }
-}
+  // Captura todos os campos de autuações (ait, orgao, tipo, prazo etc.)
+  Object.keys(req.body).forEach(key => {
+    const match = key.match(/autuacoes\[(\d+)\]\[(.+?)\]/);
+    if (match) {
+      const idx = +match[1];
+      const prop = match[2];
+      autuacoes[idx] = autuacoes[idx] || {};
+      autuacoes[idx][prop] = req.body[key];
+    }
+  });
 
-// Aqui capturamos todos os campos de cada autuação
-Object.keys(req.body).forEach(key => {
-  const match = key.match(/autuacoes\[(\d+)\]\[(.+?)\]/);
-  if (match) {
-    const idx = +match[1];
-    const prop = match[2];
-    autuacoes[idx] = autuacoes[idx] || {};
-    autuacoes[idx][prop] = req.body[key];
-  }
-});
+  // 🔁 Preenche tipo com base no serviço, se estiver faltando
+  autuacoes.forEach(a => {
+    if (!a.tipo && servico) {
+      a.tipo = servico;
+    }
+  });
 
-  // 🔁 Preenche tipo em cada autuação com base no serviço global, caso esteja ausente
-autuacoes.forEach(a => {
-  if (!a.tipo && servico) {
-    a.tipo = servico;
-  }
-});
-
-  const procuracao = arquivos.procuracao?.[0]?.path;
-  const crlv = arquivos.crlv?.[0]?.path;
+  const procuracao = req.files?.find(f => f.fieldname === 'procuracao')?.path;
+  const crlv = req.files?.find(f => f.fieldname === 'crlv')?.path;
 
   try {
     if (procuracao) {
@@ -107,54 +94,42 @@ autuacoes.forEach(a => {
       throw new Error('Dados incompletos: CPF ou Placa ausentes.');
     }
 
-// 🔧 Garante que cada arquivo seja anexado à autuação correta
-for (const file of req.files || []) {
-  const field = file.fieldname;
-  const match = field.match(/autuacoes\[(\d+)\]\[arquivo\]/);
-  if (match) {
-    const idx = +match[1];
-    autuacoes[idx] = autuacoes[idx] || {};
-    autuacoes[idx].arquivo = file.path;
-  } else {
-    arquivos[field] = arquivos[field] || [];
-    arquivos[field].push(file);
-  }
-}
+    // 🔧 Associa corretamente os arquivos a cada autuação
+    for (const file of req.files || []) {
+      const field = file.fieldname;
+      const match = field.match(/autuacoes\[(\d+)\]\[arquivo\]/);
+      if (match) {
+        const idx = +match[1];
+        autuacoes[idx] = autuacoes[idx] || {};
+        autuacoes[idx].arquivo = file.path;
+      } else {
+        arquivos[field] = arquivos[field] || [];
+        arquivos[field].push(file);
+      }
+    }
 
-// ✅ GARANTE que tipo seja preenchido se faltar (opcional, segurança extra)
-autuacoes.forEach(a => {
-  if (!a.tipo && servico) {
-    a.tipo = servico;
-  }
-});
-    
-console.log('🔍 Autuações recebidas (sem filtro):', autuacoes);
+    console.log('🔍 Autuações recebidas (sem filtro):', autuacoes);
 
-tarefa = {
-  email,
-  telefone,
-  arquivos,
-  autuacoes,
-  dados,
-  tipoServico: servico,
-  timestamp: Date.now()
-};
-    
-    // Ativação condicional dos robôs com base no tipo de serviço
+    tarefa = {
+      email,
+      telefone,
+      arquivos,
+      autuacoes,
+      dados,
+      tipoServico: servico,
+      timestamp: Date.now()
+    };
+
+    // Ativação condicional de robôs com base no tipo de serviço
     const robos = [];
-    const tipoServico = tarefa.tipoServico;
-    if (tipoServico === 'RGP') robos.push('RGP');
-    if (tipoServico === 'Sem RGP') robos.push('Sem RGP');
-    
+    if (servico === 'RGP') robos.push('RGP');
+    if (servico === 'Sem RGP') robos.push('Sem RGP');
+
     for (const robo of robos) {
-  const tarefaFinal = {
-    ...tarefa,
-    autuacoes,
-    robo
-  };
-  console.log('📤 Tarefa enviada ao robô:', JSON.stringify(tarefaFinal, null, 2));
-  addToQueue(tarefaFinal);
-}
+      const tarefaFinal = { ...tarefa, robo };
+      console.log('📤 Tarefa enviada ao robô:', JSON.stringify(tarefaFinal, null, 2));
+      addToQueue(tarefaFinal);
+    }
 
     res.send({
       status: 'ok',
@@ -175,4 +150,5 @@ tarefa = {
     }
   }
 }
+
 module.exports = { handleOraculo };
