@@ -108,26 +108,31 @@ async function handleOraculo(req, res) {
       dados['Endereço Completo'] = `${dados.logradouro}, ${dados.numero} - ${dados.bairro} - ${dados.cidade}/${dados.estado || ''}`;
     }
 
-    const cpf = dados['CPF'];
-    const placa = dados['Placa'];
+    // 🛠️ Garante que 'Placa' esteja nos dados, mesmo se vier fora do objeto 'dados'
+dados['Placa'] = dados['Placa'] || req.body.placa || req.body.Placa || '';
 
-    if (!cpf || !placa) {
-      throw new Error('Dados incompletos: CPF ou Placa ausentes.');
-    }
+const cpf = dados['CPF'];
+const placa = dados['Placa'];
 
-    console.log('🔍 Autuações recebidas (sem filtro):', autuacoes);
+if (!cpf || !placa) {
+  console.warn('⚠️ CPF ou Placa ausente. Encerrando sem enviar à fila.');
+  return res.status(400).send({ status: 'erro', mensagem: 'CPF ou Placa ausente' });
+}
 
-    tarefa = {
-      email,
-      telefone,
-      arquivos,
-      autuacoes,
-      dados,
-      tipoServico: servico,
-      timestamp: Date.now()
-    };
+console.log('🔍 Autuações recebidas (sem filtro):', autuacoes);
+console.log('✅ Chegou após autuações, preparando tarefa...');
 
-    // Ativação condicional de robôs com base no tipo de serviço
+tarefa = {
+  email,
+  telefone,
+  arquivos,
+  autuacoes,
+  dados,
+  tipoServico: servico,
+  timestamp: Date.now()
+};
+
+// Ativação condicional de robôs com base no tipo de serviço
     const robos = [];
 
 if (tipoServicoNormalizado === 'rgp') robos.push('RGP');
