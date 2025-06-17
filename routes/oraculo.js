@@ -43,6 +43,13 @@ Object.keys(req.body).forEach(key => {
   }
 });
 
+  // 🔁 Preenche tipo em cada autuação com base no serviço global, caso esteja ausente
+autuacoes.forEach(a => {
+  if (!a.tipo && servico) {
+    a.tipo = servico;
+  }
+});
+
   const procuracao = arquivos.procuracao?.[0]?.path;
   const crlv = arquivos.crlv?.[0]?.path;
 
