@@ -7,6 +7,7 @@ const { addToQueue } = require('../robots/fila');
 
 async function handleOraculo(req, res) {
   const { email, telefone, servico } = req.body;
+  const tipoServicoNormalizado = (servico || '').trim().toLowerCase();
   const arquivos = {};
   const autuacoes = [];
   let tarefa = {};
@@ -128,8 +129,8 @@ async function handleOraculo(req, res) {
 
     // Ativação condicional de robôs com base no tipo de serviço
     const robos = [];
-    if (servico === 'RGP') robos.push('RGP');
-    if (servico === 'Sem RGP') robos.push('Sem RGP');
+    if (tipoServicoNormalizado === 'rgp') robos.push('RGP');
+    if (tipoServicoNormalizado === 'sem rgp') robos.push('Sem RGP');
 
     for (const robo of robos) {
       const tarefaFinal = { ...tarefa, robo };
