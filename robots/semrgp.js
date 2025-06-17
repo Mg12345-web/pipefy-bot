@@ -33,7 +33,7 @@ if (!arquivos.length && Array.isArray(req.body?.autuacoes)) {
   const { dados = {} } = req.body;
   const ait = dados.numeroAIT || '';
   const orgao = dados.orgaoAutuador || '';
-  const cpf = dados['CPF OU CNPJ'] || '';
+  const cpf = dados['CPF'] || '';
   const placa = dados['Placa'] || '';
 
   if (!arquivos.length) {
