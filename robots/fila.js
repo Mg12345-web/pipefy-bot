@@ -17,18 +17,20 @@ function addToQueue(tarefa) {
 
 function startQueue() {
   setInterval(() => {
-    if (emExecucao || fila.length === 0) return;
+  if (emExecucao || fila.length === 0) return;
 
-    const tarefa = fila.shift();
-    emExecucao = true;
+  console.log(`⏳ Verificando fila... emExecucao: ${emExecucao} | Tarefas pendentes: ${fila.length}`);
 
-    console.log('🚀 Iniciando tarefa da fila...');
-    processarTarefa(tarefa)
-      .catch(err => console.error('❌ Erro ao processar tarefa:', err))
-      .finally(() => {
-        emExecucao = false;
-      });
-  }, 3000);
+  const tarefa = fila.shift();
+  emExecucao = true;
+
+  console.log('🚀 Iniciando tarefa da fila...');
+  processarTarefa(tarefa)
+    .catch(err => console.error('❌ Erro ao processar tarefa:', err))
+    .finally(() => {
+      emExecucao = false;
+    });
+}, 3000);
 }
 
 async function processarTarefa(tarefa) {
