@@ -21,8 +21,7 @@ async function handleOraculo(req, res) {
 
   for (const file of req.files || []) {
   const field = file.fieldname;
-
-  const match = field.match(/autuacoes\[(\d+)\]/);
+  const match = field.match(/autuacoes\[(\d+)\]\[arquivo\]/);
   if (match) {
     const idx = +match[1];
     autuacoes[idx] = autuacoes[idx] || {};
@@ -33,14 +32,16 @@ async function handleOraculo(req, res) {
   }
 }
 
-  Object.keys(req.body).forEach(key => {
-    const m = key.match(/autuacoes\[(\d+)\]\[tipo\]/);
-    if (m) {
-      const idx = +m[1];
-      autuacoes[idx] = autuacoes[idx] || {};
-      autuacoes[idx].tipo = req.body[key];
-    }
-  });
+// Aqui capturamos todos os campos de cada autuação
+Object.keys(req.body).forEach(key => {
+  const match = key.match(/autuacoes\[(\d+)\]\[(.+?)\]/);
+  if (match) {
+    const idx = +match[1];
+    const prop = match[2];
+    autuacoes[idx] = autuacoes[idx] || {};
+    autuacoes[idx][prop] = req.body[key];
+  }
+});
 
   const procuracao = arquivos.procuracao?.[0]?.path;
   const crlv = arquivos.crlv?.[0]?.path;
