@@ -31,7 +31,7 @@ const { dados = {}, autuacoes = [] } = req.body;
 console.log('📦 Conteúdo de autuacoes:', autuacoes);
 const cpf = dados['CPF'] || '';
 const placa = dados['Placa'] || req.body.placa || '';
-const autuacoes = [{
+autuacoes[0] = {
   ait: req.body.ait || dados['AIT'] || '',
   orgao: req.body.orgao || dados['Órgão Autuador'] || '',
   prazo: dados['Prazo para Protocolo'] || '',
