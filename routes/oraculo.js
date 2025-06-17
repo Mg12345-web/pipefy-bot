@@ -107,7 +107,27 @@ autuacoes.forEach(a => {
       throw new Error('Dados incompletos: CPF ou Placa ausentes.');
     }
 
-        // Não precisa extrair AITs para RGP/Sem RGP, mas deixamos o campo preparado
+// 🔧 Garante que cada arquivo seja anexado à autuação correta
+for (const file of req.files || []) {
+  const field = file.fieldname;
+  const match = field.match(/autuacoes\[(\d+)\]\[arquivo\]/);
+  if (match) {
+    const idx = +match[1];
+    autuacoes[idx] = autuacoes[idx] || {};
+    autuacoes[idx].arquivo = file.path;
+  } else {
+    arquivos[field] = arquivos[field] || [];
+    arquivos[field].push(file);
+  }
+}
+
+// ✅ GARANTE que tipo seja preenchido se faltar (opcional, segurança extra)
+autuacoes.forEach(a => {
+  if (!a.tipo && servico) {
+    a.tipo = servico;
+  }
+});
+    
 console.log('🔍 Autuações recebidas (sem filtro):', autuacoes);
 
 tarefa = {
