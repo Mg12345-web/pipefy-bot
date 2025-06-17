@@ -27,7 +27,7 @@ async function runSemRgpRobot(req, res) {
       .filter(Boolean);
   }
 
-const { dados = {} } = req.body;
+const { dados = {}, autuacoes = [] } = req.body;
 console.log('📦 Conteúdo de autuacoes:', autuacoes);
 const cpf = dados['CPF'] || '';
 const placa = dados['Placa'] || req.body.placa || '';
