@@ -27,7 +27,8 @@ async function runSemRgpRobot(req, res) {
       .filter(Boolean);
   }
 
-  const { dados = {}, autuacoes = [] } = req.body;
+const { dados = {}, autuacoes = [] } = req.body;
+console.log('📦 Conteúdo de autuacoes:', autuacoes);
 const autuacao = autuacoes[0] || {}; // só uma vez!
 const ait = autuacao.ait || '';
 const orgao = autuacao.orgao || '';
@@ -35,7 +36,7 @@ const prazo = autuacao.prazo || '';
 const cpf = dados['CPF'] || '';
 const placa = dados['Placa'] || req.body.placa || '';
 
-log(`📄 Dados extraídos: AIT=${ait} | Órgão=${orgao} | Prazo=${prazo}`);
+log(`📄 Dados extraídos: AIT=${autuacao.ait} | Órgão=${autuacao.orgao} | Prazo=${autuacao.prazo}`);
 
   if (!arquivos.length) {
     log('❌ Nenhum arquivo de autuação recebido.');
