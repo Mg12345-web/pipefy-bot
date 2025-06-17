@@ -8,7 +8,7 @@ const { normalizarArquivo } = require('../utils/normalizarArquivo');
 async function runSemRgpRobot(req, res) {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.write('<pre>⏳ Preparando robô Sem RGP...\n');
-    console.log('📥 Dados recebidos pelo robô Sem RGP:', JSON.stringify(req.body, null, 2));
+  console.log('📥 Dados recebidos pelo robô Sem RGP:', JSON.stringify(req.body, null, 2));
 
   const log = msg => { res.write(msg + '\n'); console.log(msg); };
   if (!acquireLock()) {
@@ -16,22 +16,18 @@ async function runSemRgpRobot(req, res) {
     return res.end('</pre>');
   }
 
-  // Combina arquivos da body e da files (multer)
-let arquivos = [];
+  let arquivos = [];
+  if (req.files?.autuacoes?.length) {
+    arquivos = req.files.autuacoes.map(f => f.path);
+  }
 
-// Se vier pelo req.files (via fila)
-if (req.files?.autuacoes?.length) {
-  arquivos = req.files.autuacoes.map(f => f.path);
-}
+  if (!arquivos.length && Array.isArray(req.body?.autuacoes)) {
+    arquivos = req.body.autuacoes
+      .map(a => (typeof a.arquivo === 'object' && a.arquivo?.path) ? a.arquivo.path : a.arquivo)
+      .filter(Boolean);
+  }
 
-// Se vier pelo req.body (via oráculo direto)
-if (!arquivos.length && Array.isArray(req.body?.autuacoes)) {
-  arquivos = req.body.autuacoes
-    .map(a => (typeof a.arquivo === 'object' && a.arquivo?.path) ? a.arquivo.path : a.arquivo)
-    .filter(Boolean);
-}
   const { dados = {}, autuacoes = [] } = req.body;
-  const autuacao = autuacoes[0] || {};
   const autuacao = autuacoes[0] || {};
   const ait = autuacao.ait || '';
   const orgao = autuacao.orgao || '';
@@ -132,44 +128,29 @@ if (!arquivos.length && Array.isArray(req.body?.autuacoes)) {
       '[data-testid="minute-input"]'
     ];
     
-    // Transforma 'prazo' em blocos de data
-let val = ['','','','','']; // dia, mês, ano, hora, minuto
+    let val = ['','','','','']; // padrão
+    try {
+      const dt = new Date(prazo);
+      if (!isNaN(dt)) {
+        val = [
+          String(dt.getDate()).padStart(2, '0'),
+          String(dt.getMonth() + 1).padStart(2, '0'),
+          String(dt.getFullYear()),
+          '08', '00'
+        ];
+      } else {
+        log('⚠️ Data inválida no campo "prazo". Usando valor padrão.');
+      }
+    } catch (err) {
+      log('⚠️ Erro ao interpretar data de prazo. Usando valor padrão.');
+    }
 
-if (prazo) {
-  const dt = new Date(prazo);
-  val = [
-    String(dt.getDate()).padStart(2, '0'),
-    String(dt.getMonth() + 1).padStart(2, '0'),
-    String(dt.getFullYear()),
-    '08', // Hora padrão
-    '00'  // Minuto padrão
-  ];
-}
-
-try {
-  const data = new Date(prazo);
-  if (!isNaN(data)) {
-    val = [
-      String(data.getDate()).padStart(2, '0'),
-      String(data.getMonth() + 1).padStart(2, '0'),
-      String(data.getFullYear()),
-      '08', // hora padrão
-      '00'
-    ];
-  } else {
-    log('⚠️ Data inválida no campo "prazo". Usando padrão.');
-  }
-} catch (err) {
-  log('⚠️ Erro ao interpretar data de prazo. Usando valor padrão.');
-}
-
-for (let i = 0; i < df.length; i++) {
-  const el = await page.locator(df[i]).first();
-  await el.click();
-  await page.keyboard.type(val[i], { delay: 100 });
-}
-
-log('✅ Prazo preenchido');
+    for (let i = 0; i < df.length; i++) {
+      const el = await page.locator(df[i]).first();
+      await el.click();
+      await page.keyboard.type(val[i], { delay: 100 });
+    }
+    log('✅ Prazo preenchido');
 
     // Upload
     log('📎 Anexando arquivo...');
