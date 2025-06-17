@@ -10,6 +10,7 @@ let emExecucao = false;
 
 function addToQueue(tarefa) {
   fila.push(tarefa);
+  if (tarefa.tipoServico)
   console.log(`📥 Tarefa adicionada à fila. Total na fila: ${fila.length}`);
 }
 
