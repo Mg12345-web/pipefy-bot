@@ -101,18 +101,18 @@ Object.keys(req.body).forEach(key => {
     }
 
         // Não precisa extrair AITs para RGP/Sem RGP, mas deixamos o campo preparado
-console.log('🔍 Autuações filtradas:', autuacoes.filter(a => a.tipo && a.arquivo));
+console.log('🔍 Autuações recebidas (sem filtro):', autuacoes);
 
 tarefa = {
-      email,
-      telefone,
-      arquivos,
-      autuacoes,
-      dados,
-       tipoServico: servico,
-      timestamp: Date.now()
-    };
-
+  email,
+  telefone,
+  arquivos,
+  autuacoes, // <-- não filtre aqui
+  dados,
+  tipoServico: servico,
+  timestamp: Date.now()
+};
+    
     // Ativação condicional dos robôs com base no tipo de serviço
     const robos = [];
     const tipoServico = tarefa.tipoServico;
