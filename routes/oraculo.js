@@ -120,13 +120,10 @@ if (!cpf || !placa) {
 console.log('🔍 Autuações recebidas (sem filtro):', autuacoes);
 console.log('✅ Chegou após autuações, preparando tarefa...');
 
-   autuacoes = autuacoes.map((a) => ({
-  tipo: a.tipo || '',
-  ait: a.ait || '',
-  orgao: a.orgao || '',
-  prazo: a.prazo || '',
-  arquivo: a.arquivo || ''
-}));
+const autuacaoPrincipal = autuacoes[0] || {};
+dados['AIT'] = autuacaoPrincipal.ait || '';
+dados['Órgão Autuador'] = autuacaoPrincipal.orgao || '';
+dados['Prazo para Protocolo'] = autuacaoPrincipal.prazo || '';
 
 tarefa = {
   email,
