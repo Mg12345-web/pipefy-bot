@@ -30,11 +30,13 @@ if (!arquivos.length && Array.isArray(req.body?.autuacoes)) {
     .map(a => (typeof a.arquivo === 'object' && a.arquivo?.path) ? a.arquivo.path : a.arquivo)
     .filter(Boolean);
 }
-  const { dados = {} } = req.body;
-  const ait = dados.numeroAIT || '';
-  const orgao = dados.orgaoAutuador || '';
+  const { dados = {}, autuacoes = [] } = req.body;
+  const autuacao = autuacoes[0] || {};
+  const ait = autuacao.ait || '';
+  const orgao = autuacao.orgao || '';
+  const prazo = autuacao.prazo || '';
   const cpf = dados['CPF'] || '';
-  const placa = dados['Placa'] || '';
+  const placa = dados['Placa'] || req.body.placa || '';
 
   if (!arquivos.length) {
     log('❌ Nenhum arquivo de autuação recebido.');
@@ -128,13 +130,33 @@ if (!arquivos.length && Array.isArray(req.body?.autuacoes)) {
       '[data-testid="hour-input"]',
       '[data-testid="minute-input"]'
     ];
-    const val = ['09','06','2025','08','00'];
-    for (let i = 0; i < df.length; i++) {
-      const el = await page.locator(df[i]).first();
-      await el.click();
-      await page.keyboard.type(val[i], { delay: 100 });
-    }
-    log('✅ Prazo preenchido');
+    
+    let val = ['09','06','2025','08','00']; // Valor padrão
+
+try {
+  const data = new Date(prazo);
+  if (!isNaN(data)) {
+    val = [
+      String(data.getDate()).padStart(2, '0'),
+      String(data.getMonth() + 1).padStart(2, '0'),
+      String(data.getFullYear()),
+      '08', // hora padrão
+      '00'
+    ];
+  } else {
+    log('⚠️ Data inválida no campo "prazo". Usando padrão.');
+  }
+} catch (err) {
+  log('⚠️ Erro ao interpretar data de prazo. Usando valor padrão.');
+}
+
+for (let i = 0; i < df.length; i++) {
+  const el = await page.locator(df[i]).first();
+  await el.click();
+  await page.keyboard.type(val[i], { delay: 100 });
+}
+
+log('✅ Prazo preenchido');
 
     // Upload
     log('📎 Anexando arquivo...');
