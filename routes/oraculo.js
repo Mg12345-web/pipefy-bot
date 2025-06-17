@@ -22,9 +22,7 @@ async function handleOraculo(req, res) {
 
   // Captura todos os campos de autuações (ait, orgao, tipo, prazo etc.)
   if (Array.isArray(req.body.autuacoes)) {
-  req.body.autuacoes.forEach((a, i) => {
-    autuacoes[i] = { ...a };
-  });
+  autuacoes = req.body.autuacoes.map((a) => ({ ...a }));
 } else {
   Object.keys(req.body).forEach(key => {
     const match = key.match(/autuacoes\[(\d+)\]\[(.+?)\]/);
@@ -121,6 +119,14 @@ if (!cpf || !placa) {
 
 console.log('🔍 Autuações recebidas (sem filtro):', autuacoes);
 console.log('✅ Chegou após autuações, preparando tarefa...');
+
+   autuacoes = autuacoes.map((a) => ({
+  tipo: a.tipo || '',
+  ait: a.ait || '',
+  orgao: a.orgao || '',
+  prazo: a.prazo || '',
+  arquivo: a.arquivo || ''
+}));
 
 tarefa = {
   email,
