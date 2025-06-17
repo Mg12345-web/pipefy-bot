@@ -8,6 +8,8 @@ const { runSemRgpRobot } = require('./semrgp');
 let fila = [];
 let emExecucao = false;
 
+console.log('📦 Tarefa recebida no addToQueue:', JSON.stringify(tarefa, null, 2));
+
 function addToQueue(tarefa) {
   fila.push(tarefa);
   if (tarefa.tipoServico)
@@ -16,6 +18,7 @@ function addToQueue(tarefa) {
 
 function startQueue() {
   setInterval(() => {
+    console.log('⏳ Verificando fila... emExecucao:', emExecucao, '| Tarefas pendentes:', fila.length);
     if (emExecucao || fila.length === 0) return;
 
     const tarefa = fila.shift();
