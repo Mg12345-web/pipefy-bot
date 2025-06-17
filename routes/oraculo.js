@@ -37,6 +37,20 @@ async function handleOraculo(req, res) {
     }
   });
 
+  // 🔧 Associa corretamente os arquivos a cada autuação
+    for (const file of req.files || []) {
+      const field = file.fieldname;
+      const match = field.match(/autuacoes\[(\d+)\]\[arquivo\]/);
+      if (match) {
+        const idx = +match[1];
+        autuacoes[idx] = autuacoes[idx] || {};
+        autuacoes[idx].arquivo = file.path;
+      } else {
+        arquivos[field] = arquivos[field] || [];
+        arquivos[field].push(file);
+      }
+    }
+
   const procuracao = req.files?.find(f => f.fieldname === 'procuracao')?.path;
   const crlv = req.files?.find(f => f.fieldname === 'crlv')?.path;
 
@@ -92,20 +106,6 @@ async function handleOraculo(req, res) {
 
     if (!cpf || !placa) {
       throw new Error('Dados incompletos: CPF ou Placa ausentes.');
-    }
-
-    // 🔧 Associa corretamente os arquivos a cada autuação
-    for (const file of req.files || []) {
-      const field = file.fieldname;
-      const match = field.match(/autuacoes\[(\d+)\]\[arquivo\]/);
-      if (match) {
-        const idx = +match[1];
-        autuacoes[idx] = autuacoes[idx] || {};
-        autuacoes[idx].arquivo = file.path;
-      } else {
-        arquivos[field] = arquivos[field] || [];
-        arquivos[field].push(file);
-      }
     }
 
     console.log('🔍 Autuações recebidas (sem filtro):', autuacoes);
