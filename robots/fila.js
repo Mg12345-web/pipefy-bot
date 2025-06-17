@@ -71,9 +71,12 @@ async function processarTarefa(tarefa) {
     const orgao = tarefa.dados.orgaoAutuador || 'SPTRANS';
 
     const fakeReq = {
-      files: { autuacoes: tarefa.autuacoes || [] },
-      body: { ait, orgao, dados: tarefa.dados }
-    };
+      files: { autuacoes: tarefa.autuacoes.map(a => ({ path: a.arquivo })) },
+  body: {
+    autuacoes: tarefa.autuacoes,
+    dados: tarefa.dados
+  }
+}, fakeRes);
 
     try {
       if (tipo === 'RGP') {
