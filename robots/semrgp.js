@@ -28,12 +28,14 @@ async function runSemRgpRobot(req, res) {
   }
 
   const { dados = {}, autuacoes = [] } = req.body;
-  const autuacao = autuacoes[0] || {};
-  const ait = autuacao.ait || '';
-  const orgao = autuacao.orgao || '';
-  const prazo = autuacao.prazo || '';
-  const cpf = dados['CPF'] || '';
-  const placa = dados['Placa'] || req.body.placa || '';
+const autuacao = autuacoes[0] || {}; // só uma vez!
+const ait = autuacao.ait || '';
+const orgao = autuacao.orgao || '';
+const prazo = autuacao.prazo || '';
+const cpf = dados['CPF'] || '';
+const placa = dados['Placa'] || req.body.placa || '';
+
+log(`📄 Dados extraídos: AIT=${ait} | Órgão=${orgao} | Prazo=${prazo}`);
 
   if (!arquivos.length) {
     log('❌ Nenhum arquivo de autuação recebido.');
