@@ -129,14 +129,25 @@ async function handleOraculo(req, res) {
 
     // Ativação condicional de robôs com base no tipo de serviço
     const robos = [];
-    if (tipoServicoNormalizado === 'rgp') robos.push('RGP');
-    if (tipoServicoNormalizado === 'sem rgp') robos.push('Sem RGP');
 
-    for (const robo of robos) {
-      const tarefaFinal = { ...tarefa, robo };
-      console.log('📤 Tarefa enviada ao robô:', JSON.stringify(tarefaFinal, null, 2));
-      addToQueue(tarefaFinal);
-    }
+if (tipoServicoNormalizado === 'rgp') robos.push('RGP');
+if (tipoServicoNormalizado === 'sem rgp') robos.push('Sem RGP');
+
+console.log('🤖 Robôs atribuídos:', robos);
+
+if (robos.length === 0) {
+  console.warn('⚠️ Nenhum robô atribuído. Serviço não reconhecido:', tipoServicoNormalizado);
+  // FORÇA ENVIO DE TESTE:
+  tarefa.robo = 'Sem RGP';
+  console.log('🚨 Enviando tarefa manualmente com robô forçado:', tarefa.robo);
+  addToQueue(tarefa);
+} else {
+  for (const robo of robos) {
+    const tarefaFinal = { ...tarefa, robo };
+    console.log('📤 Tarefa enviada ao robô:', JSON.stringify(tarefaFinal, null, 2));
+    addToQueue(tarefaFinal);
+  }
+}
 
     res.send({
       status: 'ok',
