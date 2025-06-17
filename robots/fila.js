@@ -67,16 +67,20 @@ async function processarTarefa(tarefa) {
    // RGP ou Sem RGP baseado em tipoServico
   if (tarefa.tipoServico) {
     const tipo = tarefa.tipoServico;
-    const ait = tarefa.dados.numeroAIT || '0000000';
-    const orgao = tarefa.dados.orgaoAutuador || 'SPTRANS';
+const ait = tarefa.dados.numeroAIT || '0000000';
+const orgao = tarefa.dados.orgaoAutuador || 'SPTRANS';
 
-    const fakeReq = {
-      files: { autuacoes: tarefa.autuacoes.map(a => ({ path: a.arquivo })) },
+const fakeReq = {
+  files: {
+    autuacoes: (tarefa.autuacoes || []).map(a => ({ path: a.arquivo }))
+  },
   body: {
+    ait,
+    orgao,
     autuacoes: tarefa.autuacoes,
     dados: tarefa.dados
   }
-}, fakeRes);
+};
 
     try {
       if (tipo === 'RGP') {
