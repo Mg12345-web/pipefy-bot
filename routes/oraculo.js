@@ -120,10 +120,17 @@ if (!cpf || !placa) {
 console.log('🔍 Autuações recebidas (sem filtro):', autuacoes);
 console.log('✅ Chegou após autuações, preparando tarefa...');
 
-const autuacaoPrincipal = autuacoes[0] || {};
+// Se não houver autuações (ex: modo individual), tenta pegar direto do req.body
+const autuacaoPrincipal = (autuacoes.length ? autuacoes[0] : {
+  ait: req.body.ait,
+  orgao: req.body.orgao,
+  prazo: req.body.prazo
+}) || {};
+
 dados['AIT'] = autuacaoPrincipal.ait || '';
 dados['Órgão Autuador'] = autuacaoPrincipal.orgao || '';
 dados['Prazo para Protocolo'] = autuacaoPrincipal.prazo || '';
+
 
 tarefa = {
   email,
