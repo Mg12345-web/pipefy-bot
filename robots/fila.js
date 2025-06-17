@@ -17,7 +17,6 @@ function addToQueue(tarefa) {
 
 function startQueue() {
   setInterval(() => {
-    console.log('⏳ Verificando fila... emExecucao:', emExecucao, '| Tarefas pendentes:', fila.length);
     if (emExecucao || fila.length === 0) return;
 
     const tarefa = fila.shift();
