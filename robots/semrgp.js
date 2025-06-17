@@ -31,9 +31,12 @@ const { dados = {} } = req.body;
 console.log('📦 Conteúdo de autuacoes:', autuacoes);
 const cpf = dados['CPF'] || '';
 const placa = dados['Placa'] || req.body.placa || '';
-const ait = dados['AIT'] || '';
-const orgao = dados['Órgão Autuador'] || '';
-const prazo = dados['Prazo para Protocolo'] || '';
+const autuacoes = [{
+  ait: req.body.ait || dados['AIT'] || '',
+  orgao: req.body.orgao || dados['Órgão Autuador'] || '',
+  prazo: dados['Prazo para Protocolo'] || '',
+  arquivo: arquivos[0] || ''
+}];
 
 log(`📄 Dados extraídos: AIT=${ait} | Órgão=${orgao} | Prazo=${prazo}`);
   
