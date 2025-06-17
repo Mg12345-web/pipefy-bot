@@ -65,6 +65,9 @@ async function processarTarefa(tarefa) {
   // 🔄 Normaliza autuações
   const autuacoesValidas = (tarefa.autuacoes || []).filter(a => a.arquivo && a.tipo);
 
+  // ✅ Log do tipo de serviço para debug
+  console.log('🧾 Tipo de serviço:', tarefa.tipoServico);
+
    // RGP ou Sem RGP baseado em tipoServico
   if (tarefa.tipoServico) {
     const tipo = tarefa.tipoServico;
