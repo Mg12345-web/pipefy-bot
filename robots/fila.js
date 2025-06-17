@@ -98,7 +98,7 @@ const fakeReq = {
   }
 
   // Autua\u00e7\u00f5es individuais
-  const autuacoesValidas = (tarefa.autuacoes || []).filter(a => a.arquivo && a.tipo);
+  const autuacoesFiltradas = (tarefa.autuacoes || []).filter(a => a.arquivo && a.tipo);
   for (const autuacao of autuacoesValidas) {
     const tipo = autuacao.tipo;
     const ait = autuacao.ait || tarefa.dados.numeroAIT || '';
