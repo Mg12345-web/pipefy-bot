@@ -32,6 +32,7 @@ if (!arquivos.length && Array.isArray(req.body?.autuacoes)) {
 }
   const { dados = {}, autuacoes = [] } = req.body;
   const autuacao = autuacoes[0] || {};
+  const autuacao = autuacoes[0] || {};
   const ait = autuacao.ait || '';
   const orgao = autuacao.orgao || '';
   const prazo = autuacao.prazo || '';
@@ -131,7 +132,19 @@ if (!arquivos.length && Array.isArray(req.body?.autuacoes)) {
       '[data-testid="minute-input"]'
     ];
     
-    let val = ['09','06','2025','08','00']; // Valor padrão
+    // Transforma 'prazo' em blocos de data
+let val = ['','','','','']; // dia, mês, ano, hora, minuto
+
+if (prazo) {
+  const dt = new Date(prazo);
+  val = [
+    String(dt.getDate()).padStart(2, '0'),
+    String(dt.getMonth() + 1).padStart(2, '0'),
+    String(dt.getFullYear()),
+    '08', // Hora padrão
+    '00'  // Minuto padrão
+  ];
+}
 
 try {
   const data = new Date(prazo);
