@@ -20,6 +20,11 @@ async function handleOraculo(req, res) {
   console.log('📎 req.files:', req.files?.map(f => f.originalname));
 
   // Captura todos os campos de autuações (ait, orgao, tipo, prazo etc.)
+  if (Array.isArray(req.body.autuacoes)) {
+  req.body.autuacoes.forEach((a, i) => {
+    autuacoes[i] = { ...a };
+  });
+} else {
   Object.keys(req.body).forEach(key => {
     const match = key.match(/autuacoes\[(\d+)\]\[(.+?)\]/);
     if (match) {
@@ -29,6 +34,7 @@ async function handleOraculo(req, res) {
       autuacoes[idx][prop] = req.body[key];
     }
   });
+}
 
   // 🔁 Preenche tipo com base no serviço, se estiver faltando
   autuacoes.forEach(a => {
