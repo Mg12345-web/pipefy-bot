@@ -12,7 +12,7 @@ function addToQueue(tarefa) {
   console.log('📦 Tarefa recebida no addToQueue:', JSON.stringify(tarefa, null, 2));
   fila.push(tarefa);
   if (tarefa.tipoServico)
-  console.log(`📥 Tarefa adicionada à fila. Total na fila: ${fila.length}`);
+    console.log(`📥 Tarefa adicionada à fila. Total na fila: ${fila.length}`);
 }
 
 function startQueue() {
