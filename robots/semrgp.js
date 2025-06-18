@@ -78,18 +78,22 @@ log(`📄 Dados extraídos: AIT=${ait} | Órgão=${orgao} | Prazo=${prazo}`);
     await page.waitForTimeout(3000);
 
     // Cliente
+// Cliente
 log('👤 Selecionando cliente...');
 
-// Clica no campo do cliente para abrir a janelinha
-const clienteInput = await page.getByPlaceholder('Pesquisar');
-await clienteInput.click();
+// Clica no botão "+ Criar registro" abaixo do campo "Clientes"
+const botoesCriarRegistro = await page.locator('span', { hasText: 'Criar registro' }).all();
+await botoesCriarRegistro[0].click(); // O primeiro é o do campo Clientes
+
+// Aguarda a janelinha flutuante aparecer (com campo de busca visível)
+await page.waitForSelector('input[placeholder="Pesquisar"]', { timeout: 10000 });
+
+// Digita o CPF do cliente
+const clienteInput = page.locator('input[placeholder="Pesquisar"]');
+await clienteInput.fill(cpf);
 await page.waitForTimeout(1500);
 
-// Digita o CPF do cliente na busca
-await clienteInput.fill(cpf);
-await page.waitForTimeout(2000);
-
-// Garante que está clicando na janelinha flutuante certa
+// Clica no card correto dentro do popup
 const popup = page.locator('div[role="dialog"]');
 const clienteOption = popup.locator('div[data-testid="card-title"]', { hasText: cpf });
 await clienteOption.first().click({ force: true });
