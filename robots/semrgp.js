@@ -36,7 +36,7 @@ autuacoes[0] = {
   orgao: req.body.orgao || dados['Órgão Autuador'] || '',
   prazo: dados['Prazo para Protocolo'] || '',
   arquivo: arquivos[0] || ''
-}];
+};
 
 log(`📄 Dados extraídos: AIT=${ait} | Órgão=${orgao} | Prazo=${prazo}`);
   
