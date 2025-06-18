@@ -84,24 +84,17 @@ log('👤 Selecionando cliente...');
 const botoesCriarCliente = await page.locator('button:has(span:has-text("Criar registro"))').all();
 await botoesCriarCliente[0].click(); // sempre o primeiro é o do campo Clientes
 
-// Aguarda campo de busca
-const clienteInput = page.locator('input[placeholder="Pesquisar"]');
+// Aguarda o campo de pesquisa aparecer
+const clienteInput = page.locator('input[placeholder*="cards pelo título"]');
 await clienteInput.waitFor({ timeout: 15000 });
 
 // Preenche o CPF
 await clienteInput.fill(cpf);
-await page.waitForTimeout(15000); // tempo extra para garantir que resultados apareçam
+await page.waitForTimeout(3000); // tempo extra para carregar resultados
 
-// Tira um print da tela após preencher o CPF
-await page.screenshot({ path: './prints/cliente_cpf_preenchido.png', fullPage: true });
-log('📸 Print salvo em ./prints/cliente_cpf_preenchido.png');
-
-// Clica no card do cliente dentro do popup
-const popup = page.locator('div[role="dialog"]');
-const clienteCard = popup.locator('div[data-testid="card-title"]', { hasText: cpf });
-
-await clienteCard.first().waitFor({ timeout: 15000 });
-await clienteCard.first().click({ force: true });
+// Clica no resultado que contém o CPF
+const clienteResultado = page.locator(`text=${cpf}`);
+await clienteResultado.first().click({ timeout: 15000 });
 
 log(`✅ Cliente ${cpf} selecionado`);
 
