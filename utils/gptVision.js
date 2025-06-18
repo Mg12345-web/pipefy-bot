@@ -14,8 +14,20 @@ async function interpretarImagemComGptVision(caminhoImagem, tipoDocumento = 'ger
       prompt = `Extraia os seguintes dados da procuração: nome completo, CPF, CNH, profissão, estado civil, endereço completo (rua, número, bairro, cidade, estado, CEP). Retorne em JSON.`;
       break;
     case 'crlv':
-      prompt = `Extraia os dados do CRLV: placa, chassi, renavam, município, estado e ano. Retorne em JSON.`;
-      break;
+  prompt = `
+Você está lendo um CRLV (Certificado de Registro e Licenciamento de Veículo).
+
+⚠️ Extraia **apenas a placa atual do veículo**. Ignore completamente campos como "placa anterior", "PLACA ANTERIOR / UF" ou qualquer coisa semelhante.
+
+Retorne exatamente neste formato JSON:
+{
+  "Placa": "",
+  "chassi": "",
+  "renavam": "",
+  "estadoEmplacamento": ""
+}
+`.trim();
+  break;
     case 'autuacao':
       prompt = `Extraia da notificação de autuação: órgão autuador, número da AIT, placa, data da infração. Retorne em JSON.`;
       break;
