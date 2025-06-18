@@ -145,8 +145,8 @@ function criarRespostaSimples() {
 }
 
 async function aguardarEstabilizacao(contexto) {
-  console.log(`\u23F3 Aguardando 30 segundos ap\u00f3s o rob\u00f4 de ${contexto}...`);
-  await new Promise(resolve => setTimeout(resolve, 30000));
+  console.log(`\u23F3 Aguardando 60 segundos ap\u00f3s o rob\u00f4 de ${contexto}...`);
+  await new Promise(resolve => setTimeout(resolve, 60000));
   console.log(`\u2705 Tempo de estabiliza\u00e7\u00e3o conclu\u00eddo para ${contexto}.\n`);
 }
 
