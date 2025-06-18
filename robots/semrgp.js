@@ -113,29 +113,27 @@ await page.keyboard.press('PageDown');
 await page.waitForTimeout(1000);
 
 // ✅ Etapa: Selecionar botão "Criar registro" do CRLV dinâmico
-// 🚗 Selecionando CRLV dinâmico
-log(`🚗 Selecionando CRLV ${placa}...`);
+ // CRLV
+    log('🚗 Selecionando CRLV...');
+    const campoEstavel = page.locator('input[placeholder="Digite aqui ..."]').first();
+    await campoEstavel.scrollIntoViewIfNeeded();
+    await campoEstavel.click();
+    await page.waitForTimeout(10000);
+    await page.keyboard.press('PageDown');
+    await page.waitForTimeout(10000);
 
-// 1) Encontra o botão “Criar registro” que está junto ao rótulo “Veículo (CRLV)”
-const botaoCriarCRLV = await page
-  .locator('div:has-text("Veículo (CRLV)") >> button:has-text("Criar registro")')
-  .first();
-
-await botaoCriarCRLV.waitFor({ state: 'visible', timeout: 10000 });
-await botaoCriarCRLV.click();
-log('🧩 Botão "Criar registro" do CRLV clicado');
-
-// 2) Aguarda o campo de busca e preenche com a placa
-const crlvInput = await page.waitForSelector('input[placeholder*="Pesquisar"]', { timeout: 10000 });
-await crlvInput.fill(placa);
-await page.waitForTimeout(1500);
-
-// 3) Clica no primeiro card que contém exatamente a placa
-const crlvCard = page.locator(`div:has-text("${placa}")`).first();
-await crlvCard.waitFor({ state: 'visible', timeout: 10000 });
-await crlvCard.click({ force: true });
-
-log(`✅ CRLV ${placa} selecionado com sucesso`);
+    const botoesCriar = await page.locator('text=Criar registro');
+    if ((await botoesCriar.count()) >= 2) {
+      const botaoCRLV = botoesCriar.nth(1);
+      const box = await botaoCRLV.boundingBox();
+      if (!box || box.width === 0) throw new Error('❌ Botão CRLV invisível!');
+      await botaoCRLV.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(10000);
+      await botaoCRLV.click();
+      log('✅ Botão CRLV clicado');
+    } else {
+      throw new Error('❌ Botão CRLV não encontrado');
+    }
 
     // Preenchimento
     const inputs = await page.locator('input[placeholder="Digite aqui ..."]');
