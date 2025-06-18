@@ -103,16 +103,23 @@ await clienteCard.click({ force: true });
 
 log(`✅ Cliente ${cpf} selecionado`);
 
+    await page.getByText('*Cliente', { exact: true }).click();
     await page.waitForTimeout(10000); // aguarda 10 segundos antes de buscar o CRLV
 
     // CRLV
     log('🚗 Selecionando CRLV...');
-    const campoEstavel = page.locator('input[placeholder="Digite aqui ..."]').first();
-    await campoEstavel.scrollIntoViewIfNeeded();
-    await campoEstavel.click();
-    await page.waitForTimeout(1000);
-    await page.keyboard.press('PageDown');
-    await page.waitForTimeout(1000);
+const botaoCRLV = await page.locator('text=Criar registro').nth(1); // segundo botão
+await botaoCRLV.scrollIntoViewIfNeeded();
+await botaoCRLV.click();
+await page.waitForTimeout(1000);
+
+// Preenche a placa
+await page.locator('input[placeholder*="cards pelo título"]').fill(placa); // ex: 'OPB3D62'
+await page.waitForTimeout(1500);
+
+// Clica na opção da placa
+await page.getByText(placa, { exact: false }).first().click();
+log(`✅ CRLV ${placa} selecionado`);
 
     const botoesCriar = await page.locator('text=Criar registro');
     if ((await botoesCriar.count()) >= 2) {
