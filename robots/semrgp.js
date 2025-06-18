@@ -79,11 +79,20 @@ log(`📄 Dados extraídos: AIT=${ait} | Órgão=${orgao} | Prazo=${prazo}`);
 
     // Cliente
     log('👤 Selecionando cliente...');
-    await page.locator('div:has-text("Cliente") >> :text("Criar registro")').first().click();
-    await page.locator('input[placeholder*="Pesquisar"]').fill(cpf);
-    await page.waitForTimeout(1500);
-    await page.getByText(cpf, { exact: false }).first().click();
-    log('✅ Cliente selecionado');
+
+const clienteInput = page.locator('[data-testid="select-box"]').first();
+await clienteInput.click();
+await page.waitForTimeout(1000);
+
+// Digita o CPF do cliente na busca
+await page.getByPlaceholder('Pesquisar').fill(cpf);
+await page.waitForTimeout(1500);
+
+// Clica no resultado correto
+const clienteOption = page.locator('div[data-testid="card-title"]', { hasText: cpf });
+await clienteOption.first().click();
+
+log(`✅ Cliente ${cpf} selecionado`);
 
     // CRLV
     log('🚗 Selecionando CRLV...');
