@@ -94,7 +94,7 @@ const campos = [
         log(`✍️ Campo preenchido: ${campo}`);
         await page.waitForTimeout(300);
       } catch (e) {
-        log(⚠️ Falha ao preencher o campo: ${campo} – ${e.message});
+        log(`⚠️ Falha ao preencher o campo: ${campo} – ${e.message}`);
       }
     }
 
