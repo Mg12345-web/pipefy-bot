@@ -91,7 +91,7 @@ let tarefa = {};
         crlvDados = JSON.parse(await interpretarTextoComGPT(textoCR, 'crlv'));
       }
 
-      dados['Placa'] = (crlvDados.placa || crlvDados['Placa'] || dados['Placa'] || '').toUpperCase();
+      dados['Placa'] = (req.body.placa || req.body.Placa || dados['Placa'] || '').toUpperCase();
       dados['Chassi'] = (crlvDados.chassi || crlvDados['Chassi'] || '').toUpperCase();
       dados['Renavam'] = crlvDados.renavam || crlvDados['Renavam'] || '';
       dados['Estado de Emplacamento'] = (crlvDados.estadoEmplacamento || crlvDados['Estado de Emplacamento'] || crlvDados.estado || '').toUpperCase();
