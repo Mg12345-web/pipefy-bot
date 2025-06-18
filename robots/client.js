@@ -11,7 +11,7 @@ async function runClientRobot(req, res) {
   const nomecompleto = dados['Nome Completo'] || dados.nome_completo || '';
   const cpf = dados.cpf || dados['CPF'] || dados['CPF OU CNPJ'] || '';
   const estadoCivil = dados['Estado Civil'] || '';
-  const profissão = dados['Profissão'] || '';
+  const profissao = dados['Profissão'] || dados.profissao || '';
   const email = dados.Email || '';
   const telefone = dados['Número de telefone'] || '';
   const endereçocompleto = dados['Endereço Completo'] || '';
