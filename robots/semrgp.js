@@ -105,9 +105,8 @@ await clienteCard.click({ force: true });
 
 log(`✅ Cliente ${cpf} selecionado`);
 
-// Fecha o dropdown clicando no próprio label de "Clientes"
-await page.locator('label:has-text("* Clientes")').first().click();
-await page.waitForTimeout(1000);
+await page.mouse.click(10, 10);
+await page.waitForTimeout(500);
 
 // Scroll para garantir que a seção CRLV fique visível
 await page.keyboard.press('PageDown');
