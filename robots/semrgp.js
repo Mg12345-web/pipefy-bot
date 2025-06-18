@@ -101,11 +101,14 @@ await clienteTexto.waitFor({ timeout: 15000 });
 const clienteCard = clienteTexto.locator('..').locator('..');
 await clienteCard.click({ force: true });
 
-log(`✅ Cliente ${cpf} selecionado`);
+// Força o campo de pesquisa a perder o foco, fechando o seletor
+await page.evaluate(() => {
+  const input = document.querySelector('input[placeholder="Pesquisar"]');
+  if (input) input.blur();
+});
+await page.waitForTimeout(1000);
 
-// Clique no cabeçalho do formulário, onde está "Sem RGP"
-await page.locator('label', { hasText: '* Clientes' }).first().click();
-await page.waitForTimeout(10000);
+log(`✅ Cliente ${cpf} selecionado`);
 
     // CRLV
     log('🚗 Selecionando CRLV...');
