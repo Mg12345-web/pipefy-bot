@@ -8,7 +8,7 @@ async function runClientRobot(req, res) {
   const dados = req.body?.dados || {};
   const arquivos = req.files || {};
 
-  const nome = dados.nome_completo || dados['Nome Completo'] || '';
+  const nomecompleto = dados['Nome Completo'] || dados.nome_completo || '';
   const cpf = dados.cpf || dados['CPF'] || dados['CPF OU CNPJ'] || '';
   const estadoCivil = dados['Estado Civil'] || '';
   const profissão = dados['Profissão'] || '';
