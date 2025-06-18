@@ -78,20 +78,21 @@ log(`📄 Dados extraídos: AIT=${ait} | Órgão=${orgao} | Prazo=${prazo}`);
     await page.waitForTimeout(3000);
 
     // Cliente
-    log('👤 Selecionando cliente...');
+log('👤 Selecionando cliente...');
 
-// Clica no botão "+ Criar registro" abaixo do campo "Clientes"
-const botoesCriarRegistro = await page.locator('span', { hasText: 'Criar registro' }).all();
-await botoesCriarRegistro[0].click(); // O primeiro é o de Clientes
+// Clica no campo do cliente para abrir a janelinha
+const clienteInput = await page.getByPlaceholder('Pesquisar');
+await clienteInput.click();
 await page.waitForTimeout(1500);
 
 // Digita o CPF do cliente na busca
-await page.getByPlaceholder('Pesquisar').fill(cpf);
+await clienteInput.fill(cpf);
 await page.waitForTimeout(2000);
 
-// Clica no resultado correto
-const clienteOption = page.locator('div[data-testid="card-title"]', { hasText: cpf });
-await clienteOption.first().click();
+// Garante que está clicando na janelinha flutuante certa
+const popup = page.locator('div[role="dialog"]');
+const clienteOption = popup.locator('div[data-testid="card-title"]', { hasText: cpf });
+await clienteOption.first().click({ force: true });
 
 log(`✅ Cliente ${cpf} selecionado`);
 
