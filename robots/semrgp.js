@@ -109,8 +109,10 @@ await page.waitForTimeout(500);
 
 log('🚗 Selecionando CRLV...');
 
-// clica no “Criar registro” dentro do container Veículo (CRLV)
-const botaoCRLV = page.locator('div:has-text("Veículo (CRLV)") >> button:has-text("Criar registro")').first();
+// encontra o <label> com “Veículo (CRLV)” e, a partir dele, o botão “Criar registro”
+const container = page.locator('label:has-text("Veículo (CRLV)")').locator('..');
+const botaoCRLV = container.getByRole('button', { name: 'Criar registro' });
+
 await botaoCRLV.waitFor({ state: 'visible', timeout: 10000 });
 await botaoCRLV.click();
 
@@ -121,9 +123,10 @@ await crlvInput.fill(placa);
 await page.waitForTimeout(1500);
 
 // seleciona o card com a placa
-await page.getByText(placa, { exact: false }).first().click();
+await page.getByText(placa).first().click();
 
 log(`✅ CRLV ${placa} selecionado com sucesso`);
+
 
   // Preenchimento
     const inputs = await page.locator('input[placeholder="Digite aqui ..."]');
