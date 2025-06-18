@@ -77,7 +77,6 @@ log(`📄 Dados extraídos: AIT=${ait} | Órgão=${orgao} | Prazo=${prazo}`);
     await page.locator('span:text("Create new card")').first().click();
     await page.waitForTimeout(3000);
 
-    // Cliente
 // Cliente
 log('👤 Selecionando cliente...');
 
