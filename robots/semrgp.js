@@ -126,28 +126,21 @@ await page.waitForSelector('div[role="listbox"]', { state: 'detached', timeout: 
   
 // CRLV
 log('🚗 Selecionando CRLV...');
+// Clica direto no segundo "Criar registro" (índice 1)
+const botaoCRLV = await page.locator('text=Criar registro').nth(1);
+await botaoCRLV.scrollIntoViewIfNeeded();
+await botaoCRLV.click();
+await page.waitForTimeout(1000);
 
-// 2) Localiza o container da seção “Veículo (CRLV)”
-const containerCRLV = page.locator('div:has-text("Veículo (CRLV)")').first();
-await containerCRLV.waitFor({ state: 'visible', timeout: 10000 });
-await containerCRLV.scrollIntoViewIfNeeded();
+// Preenche o campo de busca do CRLV
+// (use o placeholder que funcionar no seu app; no antigo era "cards pelo título")
+await page.locator('input[placeholder*="cards pelo título"]').fill(placa);
+await page.waitForTimeout(1500);
 
-// 3) Clica no botão “Criar registro” dentro desse container
-await containerCRLV
-  .locator('.. >> button:has-text("Criar registro")')
-  .first()
-  .click({ timeout: 5000 });
-
-// 4) Espera o input “Pesquisar” dentro do mesmo container, e preenche com a placa
-const crlvInput = containerCRLV.locator('..').locator('input[placeholder="Pesquisar"]');
-await crlvInput.waitFor({ timeout: 10000 });
-await crlvInput.fill(placa);
-
-// 5) Seleciona o card com a placa
+// Seleciona o card da placa
 await page.getByText(placa, { exact: false }).first().click();
 
-log(`✅ CRLV ${placa} selecionado`);
-
+log(`✅ CRLV ${placa} selecionado com sucesso`);
 
   // Preenchimento
     const inputs = await page.locator('input[placeholder="Digite aqui ..."]');
