@@ -149,22 +149,7 @@ await page.getByText(placa, { exact: false }).first().click();
 log(`✅ CRLV ${placa} selecionado`);
 
 
-    try {
-      await page.waitForSelector('input[placeholder*="Pesquisar"]', { timeout: 15000 });
-      await page.locator('input[placeholder*="Pesquisar"]').fill(placa);
-      await page.waitForTimeout(1500);
-      await page.getByText(placa, { exact: false }).first().click();
-      log('✅ CRLV selecionado');
-    } catch (e) {
-      const erroPath = path.resolve(__dirname, '../../prints/print_crlv_erro.jpg');
-      fs.mkdirSync(path.dirname(erroPath), { recursive: true });
-      await page.screenshot({ path: erroPath });
-      const base64Erro = fs.readFileSync(erroPath).toString('base64');
-      res.write(`<img src="data:image/jpeg;base64,${base64Erro}" style="max-width:100%">`);
-      throw new Error('❌ Falha ao selecionar CRLV');
-    }
-
-    // Preenchimento
+  // Preenchimento
     const inputs = await page.locator('input[placeholder="Digite aqui ..."]');
     if (ait) { await inputs.nth(0).fill(ait); log('✅ AIT preenchido'); }
     if (orgao) { await inputs.nth(1).fill(orgao); log('✅ Órgão preenchido'); }
