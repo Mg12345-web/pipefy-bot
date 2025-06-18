@@ -80,9 +80,9 @@ log(`📄 Dados extraídos: AIT=${ait} | Órgão=${orgao} | Prazo=${prazo}`);
     // Cliente
     log('👤 Selecionando cliente...');
 
-const clienteSection = await page.locator('text=Clientes').first();
-const botaoCliente = clienteSection.locator('xpath=..').locator('text=Criar registro').first();
-await clienteInput.click();
+// Clica no botão "+ Criar registro" abaixo do campo "Clientes"
+const botoesCriarRegistro = await page.locator('span', { hasText: 'Criar registro' }).all();
+await botoesCriarRegistro[0].click(); // O primeiro é o de Clientes
 await page.waitForTimeout(1500);
 
 // Digita o CPF do cliente na busca
