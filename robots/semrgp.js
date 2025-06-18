@@ -80,26 +80,24 @@ log(`📄 Dados extraídos: AIT=${ait} | Órgão=${orgao} | Prazo=${prazo}`);
 // Cliente
 log('👤 Selecionando cliente...');
 
-// Localiza o título "Clientes"
-const clienteTitulo = await page.locator('text=Clientes').first();
+// Clica no botão correto com base no título "Criar registro" (botão de Cliente é o primeiro)
+const botoesCriar = await page.locator('button:has(span:has-text("Criar registro"))').all();
+await botoesCriar[0].click(); // sempre o primeiro é o do campo Clientes
 
-// A partir dele, acha o botão "+ Criar registro" que está abaixo
-const botaoCriarCliente = clienteTitulo.locator('xpath=..').locator('text=Criar registro').first();
-await botaoCriarCliente.click();
-
-await page.waitForSelector('input[placeholder="Pesquisar"]', { timeout: 10000 });
-
-// Digita o CPF
+// Aguarda campo de busca
 const clienteInput = page.locator('input[placeholder="Pesquisar"]');
+await clienteInput.waitFor({ timeout: 10000 });
+
+// Preenche o CPF
 await clienteInput.fill(cpf);
 await page.waitForTimeout(1500);
 
-// Espera e clica no CPF correto
+// Clica no card do cliente dentro do popup
 const popup = page.locator('div[role="dialog"]');
-const clienteOption = popup.locator('div[data-testid="card-title"]', { hasText: cpf });
+const clienteCard = popup.locator('div[data-testid="card-title"]', { hasText: cpf });
 
-await clienteOption.first().waitFor({ timeout: 10000 });
-await clienteOption.first().click({ force: true });
+await clienteCard.first().waitFor({ timeout: 10000 });
+await clienteCard.first().click({ force: true });
 
 log(`✅ Cliente ${cpf} selecionado`);
 
