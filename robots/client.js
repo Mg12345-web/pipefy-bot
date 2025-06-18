@@ -84,7 +84,7 @@ const campos = [
 
     for (const [campo, valor] of campos) {
       if (!valor) {
-        log(⚠️ Campo "${campo}" vazio, pulando...);
+        log(`⚠️ Campo "${campo}" vazio, pulando...`);
         continue;
       }
 
