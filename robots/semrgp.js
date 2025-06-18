@@ -109,31 +109,22 @@ await page.waitForTimeout(10000);
 
     // CRLV
     log('🚗 Selecionando CRLV...');
-const botaoCRLV = await page.locator('text=Criar registro').nth(1); // segundo botão
+    
+// Clica no botão correto associado ao campo "Veículo (CRLV)"
+const botaoCRLV = page.locator('div:has-text("Veículo (CRLV)") >> text=Criar registro').first();
+await botaoCRLV.waitFor({ timeout: 10000 });
 await botaoCRLV.scrollIntoViewIfNeeded();
 await botaoCRLV.click();
 await page.waitForTimeout(1000);
 
-// Preenche a placa
-await page.locator('input[placeholder*="cards pelo título"]').fill(placa); // ex: 'OPB3D62'
+// Preenche o campo com a placa
+await page.locator('input[placeholder*="cards pelo título"]').fill(placa);
 await page.waitForTimeout(1500);
 
-// Clica na opção da placa
+// Seleciona o card da placa (não exige texto exato)
 await page.getByText(placa, { exact: false }).first().click();
-log(`✅ CRLV ${placa} selecionado`);
 
-    const botoesCriar = await page.locator('text=Criar registro');
-    if ((await botoesCriar.count()) >= 2) {
-      const botaoCRLV = botoesCriar.nth(1);
-      const box = await botaoCRLV.boundingBox();
-      if (!box || box.width === 0) throw new Error('❌ Botão CRLV invisível!');
-      await botaoCRLV.scrollIntoViewIfNeeded();
-      await page.waitForTimeout(1000);
-      await botaoCRLV.click();
-      log('✅ Botão CRLV clicado');
-    } else {
-      throw new Error('❌ Botão CRLV não encontrado');
-    }
+log(`✅ CRLV ${placa} selecionado`);
 
     try {
       await page.waitForSelector('input[placeholder*="Pesquisar"]', { timeout: 15000 });
