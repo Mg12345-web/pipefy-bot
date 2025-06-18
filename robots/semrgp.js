@@ -38,6 +38,10 @@ autuacoes[0] = {
   arquivo: arquivos[0] || ''
 };
 
+const ait = autuacoes[0].ait;
+const orgao = autuacoes[0].orgao;
+const prazo = autuacoes[0].prazo;
+
 log(`📄 Dados extraídos: AIT=${ait} | Órgão=${orgao} | Prazo=${prazo}`);
   
   if (!arquivos.length) {
