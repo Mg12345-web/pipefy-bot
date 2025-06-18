@@ -99,41 +99,50 @@ const campos = [
     }
 
     // Uploads
-    const anexar = async (label, files) => {
-      if (!files || files.length === 0) return;
-      try {
-        // 1º botão: CNH
-if (label === 'CNH') {
-  const botaoCNH = page.locator('text=Adicionar novos arquivos').nth(0);
-  const [fileChooser] = await Promise.all([
-    page.waitForEvent('filechooser'),
-    botaoCNH.click()
-  ]);
-  await fileChooser.setFiles(files.map(f => f.path));
-  log(`📎 Arquivo(s) anexado(s) no campo CNH`);
-}
+const anexar = async (label, files) => {
+  if (!files || files.length === 0) {
+    log(`⚠️ Nenhum arquivo para anexar em ${label}`);
+    return;
+  }
 
-// 2º botão: Procuração + contrato
-if (label === 'Procuração + contrato') {
-  const botaoProc = page.locator('text=Adicionar novos arquivos').nth(1);
-  const [fileChooser] = await Promise.all([
-    page.waitForEvent('filechooser'),
-    botaoProc.click()
-  ]);
-  await fileChooser.setFiles(files.map(f => f.path));
-  log(`📎 Arquivo(s) anexado(s) no campo Procuração + contrato`);
-}
-        log(`📎 Arquivo(s) anexado(s) em ${label}`);
-      } catch (e) {
-        log(`⚠️ Falha ao anexar em ${label}: ${e.message}`);
-      }
-    };
+  try {
+    const nomes = files.map(f => path.basename(f.path)).join(', ');
+    log(`📎 Iniciando upload de: ${nomes} → ${label}`);
 
-    await anexar('CNH', arquivos.cnh);
-    await anexar('Procuração + contrato', [
-      ...(arquivos.procuracao || []),
-      ...(arquivos.contrato || [])
-    ]);
+    if (label === 'CNH') {
+      const botaoCNH = page.locator('text=Adicionar novos arquivos').nth(0);
+      const [fileChooser] = await Promise.all([
+        page.waitForEvent('filechooser'),
+        botaoCNH.click()
+      ]);
+      await fileChooser.setFiles(files.map(f => f.path));
+      log(`✅ CNH anexada com sucesso`);
+    }
+
+    if (label === 'Procuração + contrato') {
+      const botaoProc = page.locator('text=Adicionar novos arquivos').nth(1);
+      const [fileChooser] = await Promise.all([
+        page.waitForEvent('filechooser'),
+        botaoProc.click()
+      ]);
+      await fileChooser.setFiles(files.map(f => f.path));
+      log(`✅ Procuração + contrato anexados com sucesso`);
+    }
+
+  } catch (e) {
+    log(`❌ Falha ao anexar em ${label}: ${e.message}`);
+  }
+};
+
+// Aplica pausa de 5 segundos entre cada upload
+await anexar('CNH', arquivos.cnh);
+await page.waitForTimeout(5000);
+
+await anexar('Procuração + contrato', [
+  ...(arquivos.procuracao || []),
+  ...(arquivos.contrato || [])
+]);
+await page.waitForTimeout(5000);
 
     log('💾 Enviando formulário...');
     const botoes = await page.$$('button');
