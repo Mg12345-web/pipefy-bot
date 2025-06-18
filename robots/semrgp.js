@@ -81,8 +81,8 @@ log(`📄 Dados extraídos: AIT=${ait} | Órgão=${orgao} | Prazo=${prazo}`);
 log('👤 Selecionando cliente...');
 
 // Clica no botão correto com base no título "Criar registro" (botão de Cliente é o primeiro)
-const botoesCriar = await page.locator('button:has(span:has-text("Criar registro"))').all();
-await botoesCriar[0].click(); // sempre o primeiro é o do campo Clientes
+const botoesCriarCliente = await page.locator('button:has(span:has-text("Criar registro"))').all();
+await botoesCriarCliente[0].click(); // sempre o primeiro é o do campo Clientes
 
 // Aguarda campo de busca
 const clienteInput = page.locator('input[placeholder="Pesquisar"]');
