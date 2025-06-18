@@ -93,19 +93,19 @@ await clienteInput.waitFor({ timeout: 15000 });
 await clienteInput.fill(cpf);
 await page.waitForTimeout(10000); // deixa carregar os resultados
 
-// Localiza o texto do CPF
-const clienteTexto = page.locator(`text=${cpf}`).first();
-await clienteTexto.waitFor({ timeout: 15000 });
+// 1) Espera até que o CPF exato apareça na lista
+const opcaoCpf = page.getByText(cpf, { exact: true });
+await opcaoCpf.waitFor({ timeout: 15000 });
 
-// Sobe até o bloco do card e clica
-const clienteCard = clienteTexto.locator('..').locator('..');
-await clienteCard.click({ force: true });
+// 2) Clica diretamente nesse elemento de texto (ou no card que o contém)
+await opcaoCpf.click({ force: true });
+
+await page.getByText('*Cliente', { exact: true }).click();
+await page.waitForTimeout(10000);
+await page.keyboard.press('PageDown');
+await page.waitForTimeout(1000);
 
 log(`✅ Cliente ${cpf} selecionado`);
-
-// fecha o dropdown de cliente clicando no próprio cabeçalho de CRLV (dentro do modal)
-await page.locator('div:has-text("Veículo (CRLV)")').first().click();
-await page.waitForTimeout(500);
 
 log('🚗 Selecionando CRLV...');
 
