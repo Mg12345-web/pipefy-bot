@@ -8,13 +8,18 @@ async function runClientRobot(req, res) {
   const dados = req.body?.dados || {};
   const arquivos = req.files || {};
 
-  const nome = dados['Nome Completo'] || dados.nome_completo || dados.nomecompleto || '';
+const nome = dados['Nome Completo'] || dados.nome_completo || dados.nomecompleto || '';
 const cpf = dados['CPF'] || dados['CPF OU CNPJ'] || dados.cpf || '';
 const estadoCivil = dados['Estado Civil'] || dados.estado_civil || '';
 const profissao = dados['Profissão'] || dados.profissao || dados['profissão'] || '';
 const email = dados.Email || '';
 const telefone = dados['Número de telefone'] || '';
-const enderecoCompleto = dados['Endereço Completo'] || '';
+
+let enderecoCompleto = dados['Endereço Completo'] || '';
+if (!enderecoCompleto && dados.endereco) {
+  const e = dados.endereco;
+  enderecoCompleto = `${e.rua || ''}, ${e.numero || ''} - ${e.bairro || ''} - ${e.cidade || ''}/${e.estado || ''}`.trim();
+}
 
   const log = msg => {
     console.log(msg);
