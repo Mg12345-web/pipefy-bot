@@ -81,7 +81,7 @@ log(`📄 Dados extraídos: AIT=${ait} | Órgão=${orgao} | Prazo=${prazo}`);
 log('👤 Selecionando cliente...');
 
 // Clica no botão correto para abrir o campo de seleção do cliente
-const botaoCriarCliente = page.locator('div:has-text("*Clientes") >> button:has-text("Criar registro")').first();
+const botaoCriarCliente = page.locator('div:has-text("Clientes") >> button:has-text("Criar registro")').first();
 await botaoCriarCliente.click();
 await page.waitForTimeout(1000);
 
@@ -103,8 +103,9 @@ await clienteCard.click({ force: true });
 
 log(`✅ Cliente ${cpf} selecionado`);
 
-    await page.getByText('*Cliente', { exact: true }).click();
-    await page.waitForTimeout(10000); // aguarda 10 segundos antes de buscar o CRLV
+// Clique no cabeçalho do formulário, onde está "Sem RGP"
+await page.getByText('Sem RGP').click();
+await page.waitForTimeout(10000);
 
     // CRLV
     log('🚗 Selecionando CRLV...');
