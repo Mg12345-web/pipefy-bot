@@ -91,7 +91,7 @@ const campos = [
       try {
         const input = page.getByLabel(campo);
         await input.fill(valor);
-        log(✍️ Campo preenchido: ${campo});
+        log(`✍️ Campo preenchido: ${campo}`);
         await page.waitForTimeout(300);
       } catch (e) {
         log(⚠️ Falha ao preencher o campo: ${campo} – ${e.message});
