@@ -8,13 +8,13 @@ async function runClientRobot(req, res) {
   const dados = req.body?.dados || {};
   const arquivos = req.files || {};
 
-  const nome = dados['Nome Completo'] || '';
-  const cpf = dados['CPF OU CNPJ'] || '';
+  const nomecompleto = dados['Nome Completo'] || '';
+  const CPF = dados['CPF OU CNPJ'] || '';
   const estadoCivil = dados['Estado Civil'] || '';
-  const profissao = dados['Profissão'] || '';
-  const email = dados.Email || '';
-  const telefone = dados['Número de telefone'] || '';
-  const enderecoCompleto = dados['Endereço Completo'] || '';
+  const profissão = dados['Profissão'] || '';
+  const Email = dados.Email || '';
+  const Número de telefone = dados['Número de telefone'] || '';
+  const endereçocompleto = dados['Endereço Completo'] || '';
 
   const log = msg => {
     console.log(msg);
@@ -22,7 +22,7 @@ async function runClientRobot(req, res) {
   };
 
   console.log('📤 Preenchendo formulário com os dados:');
-  console.log({ nome, cpf, estadoCivil, profissao, email, telefone });
+  console.log({ nome, cpf, estadoCivil, profissao, email, telefone, endereçocompleto });
   
   res?.setHeader?.('Content-Type', 'text/html; charset=utf-8');
   res?.write?.('<pre>🤖 Iniciando robô de CLIENTES...\n');
