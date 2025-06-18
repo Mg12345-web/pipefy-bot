@@ -113,21 +113,41 @@ log(`✅ Cliente ${cpf} selecionado`);
     // CRLV
     log('🚗 Selecionando CRLV...');
     
-// Clica no botão correto associado ao campo "Veículo (CRLV)"
-const botaoCRLV = page.locator('div:has-text("Veículo (CRLV)") >> text=Criar registro').first();
-await botaoCRLV.waitFor({ timeout: 10000 });
-await botaoCRLV.scrollIntoViewIfNeeded();
-await botaoCRLV.click();
-await page.waitForTimeout(1000);
+// Força o campo de pesquisa a perder o foco, fechando o seletor
+await page.evaluate(() => {
+  const input = document.querySelector('input[placeholder="Pesquisar"]');
+  if (input) input.blur();
+});
 
-// Preenche o campo com a placa
-await page.locator('input[placeholder*="cards pelo título"]').fill(placa);
-await page.waitForTimeout(1500);
+log(`✅ Cliente ${cpf} selecionado`);
 
-// Seleciona o card da placa (não exige texto exato)
+// espera o listbox de cliente sair do DOM
+await page.waitForSelector('div[role="listbox"]', { state: 'detached', timeout: 5000 });
+  
+// CRLV
+log('🚗 Selecionando CRLV...');
+
+// 2) Localiza o container da seção “Veículo (CRLV)”
+const containerCRLV = page.locator('div:has-text("Veículo (CRLV)")').first();
+await containerCRLV.waitFor({ state: 'visible', timeout: 10000 });
+await containerCRLV.scrollIntoViewIfNeeded();
+
+// 3) Clica no botão “Criar registro” dentro desse container
+await containerCRLV
+  .locator('.. >> button:has-text("Criar registro")')
+  .first()
+  .click({ timeout: 5000 });
+
+// 4) Espera o input “Pesquisar” dentro do mesmo container, e preenche com a placa
+const crlvInput = containerCRLV.locator('..').locator('input[placeholder="Pesquisar"]');
+await crlvInput.waitFor({ timeout: 10000 });
+await crlvInput.fill(placa);
+
+// 5) Seleciona o card com a placa
 await page.getByText(placa, { exact: false }).first().click();
 
 log(`✅ CRLV ${placa} selecionado`);
+
 
     try {
       await page.waitForSelector('input[placeholder*="Pesquisar"]', { timeout: 15000 });
