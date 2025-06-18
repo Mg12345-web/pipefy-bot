@@ -82,7 +82,7 @@ const campos = [
       ['Endereço Completo', enderecoCompleto]
     ];
 
-     for (const [campo, valor] of campos) {
+    for (const [campo, valor] of campos) {
       if (!valor) {
         log(⚠️ Campo "${campo}" vazio, pulando...);
         continue;
@@ -97,6 +97,7 @@ const campos = [
         log(⚠️ Falha ao preencher o campo: ${campo} – ${e.message});
       }
     }
+
 
     // Uploads
 const anexar = async (label, files) => {
