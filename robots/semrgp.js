@@ -80,23 +80,23 @@ log(`📄 Dados extraídos: AIT=${ait} | Órgão=${orgao} | Prazo=${prazo}`);
 // Cliente
 log('👤 Selecionando cliente...');
 
-// Clica no botão com base no texto "Criar registro" abaixo de "Cliente"
+// Clica no botão correto para abrir o campo de seleção do cliente
 const botaoCriarCliente = page.locator('div:has-text("Cliente") >> button:has-text("Criar registro")').first();
 await botaoCriarCliente.click();
 await page.waitForTimeout(1000);
 
-// Agora sim: campo de busca aparece com placeholder "Pesquisar"
+// Aguarda o input de busca
 const clienteInput = page.locator('input[placeholder="Pesquisar"]');
 await clienteInput.waitFor({ timeout: 15000 });
 
 // Preenche o CPF
 await clienteInput.fill(cpf);
-await page.waitForTimeout(3000); // tempo para aparecer resultados
+await page.waitForTimeout(3000); // deixa carregar os resultados
 
-// Clica no primeiro card que contenha o CPF
+// Força o clique via evaluate para evitar bloqueios
 const clienteCard = page.locator(`div:has-text("${cpf}")`).first();
 await clienteCard.waitFor({ timeout: 15000 });
-await clienteCard.click();
+await clienteCard.evaluate(el => el.click());
 
 log(`✅ Cliente ${cpf} selecionado`);
 
