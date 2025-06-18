@@ -115,7 +115,7 @@ await page.waitForTimeout(1000);
 // ✅ Etapa: Selecionar botão "Criar registro" do CRLV dinâmico
  // CRLV
     log('🚗 Selecionando CRLV...');
-    const campoEstavel = page.locator('input[placeholder="Digite aqui ..."]').first();
+    const campoEstavel = page.locator('input[placeholder*="Pesquisar"]').first();
     await campoEstavel.scrollIntoViewIfNeeded();
     await campoEstavel.click();
     await page.waitForTimeout(10000);
