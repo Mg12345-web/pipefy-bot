@@ -103,6 +103,8 @@ await clienteCard.click({ force: true });
 
 log(`✅ Cliente ${cpf} selecionado`);
 
+    await page.waitForTimeout(10000); // aguarda 10 segundos antes de buscar o CRLV
+
     // CRLV
     log('🚗 Selecionando CRLV...');
     const campoEstavel = page.locator('input[placeholder="Digite aqui ..."]').first();
