@@ -90,7 +90,11 @@ await clienteInput.waitFor({ timeout: 15000 });
 
 // Preenche o CPF
 await clienteInput.fill(cpf);
-await page.waitForTimeout(15000);
+await page.waitForTimeout(15000); // tempo extra para garantir que resultados apareçam
+
+// Tira um print da tela após preencher o CPF
+await page.screenshot({ path: './prints/cliente_cpf_preenchido.png', fullPage: true });
+log('📸 Print salvo em ./prints/cliente_cpf_preenchido.png');
 
 // Clica no card do cliente dentro do popup
 const popup = page.locator('div[role="dialog"]');
@@ -100,6 +104,7 @@ await clienteCard.first().waitFor({ timeout: 15000 });
 await clienteCard.first().click({ force: true });
 
 log(`✅ Cliente ${cpf} selecionado`);
+
 
     // CRLV
     log('🚗 Selecionando CRLV...');
