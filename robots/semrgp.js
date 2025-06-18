@@ -80,19 +80,20 @@ log(`📄 Dados extraídos: AIT=${ait} | Órgão=${orgao} | Prazo=${prazo}`);
 // Cliente
 log('👤 Selecionando cliente...');
 
-// Clica no botão de "Criar registro" (primeiro da lista)
-const botoesCriarCliente = await page.locator('button:has(span:has-text("Criar registro"))').all();
-await botoesCriarCliente[0].click();
+// Clica no botão com base no texto "Criar registro" abaixo de "Cliente"
+const botaoCriarCliente = page.locator('div:has-text("Cliente") >> button:has-text("Criar registro")').first();
+await botaoCriarCliente.click();
+await page.waitForTimeout(1000);
 
-// Aguarda campo de busca
-const clienteInput = page.locator('input[placeholder*="cards pelo título"]');
+// Agora sim: campo de busca aparece com placeholder "Pesquisar"
+const clienteInput = page.locator('input[placeholder="Pesquisar"]');
 await clienteInput.waitFor({ timeout: 15000 });
 
 // Preenche o CPF
 await clienteInput.fill(cpf);
-await page.waitForTimeout(15000); // aguarda aparecer o card
+await page.waitForTimeout(3000); // tempo para aparecer resultados
 
-// Seleciona o card que contém o CPF visível (não usa data-testid)
+// Clica no primeiro card que contenha o CPF
 const clienteCard = page.locator(`div:has-text("${cpf}")`).first();
 await clienteCard.waitFor({ timeout: 15000 });
 await clienteCard.click();
