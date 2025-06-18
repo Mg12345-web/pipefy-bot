@@ -113,50 +113,29 @@ await page.keyboard.press('PageDown');
 await page.waitForTimeout(1000);
 
 // ✅ Etapa: Selecionar botão "Criar registro" do CRLV dinâmico
+// 🚗 Selecionando CRLV dinâmico
 log(`🚗 Selecionando CRLV ${placa}...`);
-const botoesCriar = await page.locator('text=Criar registro');
-const total = await botoesCriar.count();
-log(`🧩 Encontrados ${total} botões 'Criar registro'`);
 
-if (total >= 2) {
-  const botaoCRLV = botoesCriar.nth(1); // geralmente o segundo é o do CRLV
-  const box = await botaoCRLV.boundingBox();
+// 1) Encontra o botão “Criar registro” que está junto ao rótulo “Veículo (CRLV)”
+const botaoCriarCRLV = await page
+  .locator('div:has-text("Veículo (CRLV)") >> button:has-text("Criar registro")')
+  .first();
 
-  if (box && box.width > 0 && box.height > 0) {
-    await botaoCRLV.scrollIntoViewIfNeeded();
-    await page.waitForTimeout(500);
-    await botaoCRLV.click({ force: true });
-    log('✅ Botão "Criar registro" do CRLV clicado com sucesso');
-  } else {
-    throw new Error('❌ Botão do CRLV invisível ou mal renderizado!');
-  }
-} else {
-  throw new Error('❌ Botão de CRLV não encontrado!');
-}
+await botaoCriarCRLV.waitFor({ state: 'visible', timeout: 10000 });
+await botaoCriarCRLV.click();
+log('🧩 Botão "Criar registro" do CRLV clicado');
 
-// ✅ Etapa: Preencher e selecionar o CRLV
-try {
-  await page.waitForSelector('input[placeholder*="Pesquisar"]', { timeout: 15000 });
-  await page.locator('input[placeholder*="Pesquisar"]').fill(placa);
-  await page.waitForTimeout(1500);
+// 2) Aguarda o campo de busca e preenche com a placa
+const crlvInput = await page.waitForSelector('input[placeholder*="Pesquisar"]', { timeout: 10000 });
+await crlvInput.fill(placa);
+await page.waitForTimeout(1500);
 
-  // usa o atributo data-selector-card-title para garantir unicidade
-  const opcaoCRLV = page.locator(`[data-selector-card-title="${placa}"]`).first();
-  await opcaoCRLV.scrollIntoViewIfNeeded();
-  await page.waitForTimeout(500);
-  await opcaoCRLV.click({ force: true });
+// 3) Clica no primeiro card que contém exatamente a placa
+const crlvCard = page.locator(`div:has-text("${placa}")`).first();
+await crlvCard.waitFor({ state: 'visible', timeout: 10000 });
+await crlvCard.click({ force: true });
 
-  log(`✅ CRLV ${placa} selecionado com sucesso`);
-} catch (e) {
-  log('❌ Campo de pesquisa do CRLV não apareceu ou falhou');
-  // snapshot de erro
-  const erroPath = path.resolve(__dirname, '../../prints/print_crlv_erro.jpg');
-  if (!fs.existsSync(path.dirname(erroPath))) {
-    fs.mkdirSync(path.dirname(erroPath), { recursive: true });
-  }
-  await page.screenshot({ path: erroPath, fullPage: true });
-  throw e;
-}
+log(`✅ CRLV ${placa} selecionado com sucesso`);
 
     // Preenchimento
     const inputs = await page.locator('input[placeholder="Digite aqui ..."]');
