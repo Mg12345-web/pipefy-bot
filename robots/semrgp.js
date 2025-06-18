@@ -91,12 +91,15 @@ await clienteInput.waitFor({ timeout: 15000 });
 
 // Preenche o CPF
 await clienteInput.fill(cpf);
-await page.waitForTimeout(3000); // deixa carregar os resultados
+await page.waitForTimeout(10000); // deixa carregar os resultados
 
-// Força o clique via evaluate para evitar bloqueios
-const clienteCard = page.locator(`div:has-text("${cpf}")`).first();
-await clienteCard.waitFor({ timeout: 15000 });
-await clienteCard.evaluate(el => el.click());
+// Localiza o texto do CPF
+const clienteTexto = page.locator(`text=${cpf}`).first();
+await clienteTexto.waitFor({ timeout: 15000 });
+
+// Sobe até o bloco do card e clica
+const clienteCard = clienteTexto.locator('..').locator('..');
+await clienteCard.click({ force: true });
 
 log(`✅ Cliente ${cpf} selecionado`);
 
