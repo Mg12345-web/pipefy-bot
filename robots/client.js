@@ -69,7 +69,7 @@ const campos = [
 
     const campos = [
       ['Nome Completo', nome],
-      ['CPF OU CNPJ', cpf],
+      ['CPF', cpf],
       ['Estado Civil Atual', estadoCivil],
       ['Profissão', profissao],
       ['Email', email],
