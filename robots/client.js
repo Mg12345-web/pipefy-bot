@@ -82,23 +82,21 @@ const campos = [
       ['Endereço Completo', enderecoCompleto]
     ];
 
-    const modal = page.locator('[data-testid="modal"]'); // <- define uma vez
+     for (const [campo, valor] of campos) {
+      if (!valor) {
+        log(⚠️ Campo "${campo}" vazio, pulando...);
+        continue;
+      }
 
-for (const [campo, valor] of campos) {
-  if (!valor) {
-    log(`⚠️ Campo "${campo}" vazio, pulando...`);
-    continue;
-  }
-
-  try {
-    const input = modal.getByLabel(campo); // <- busca só no modal
-    await input.fill(valor);
-    log(`✍️ Campo preenchido: ${campo}`);
-    await page.waitForTimeout(300);
-  } catch (e) {
-    log(`⚠️ Falha ao preencher o campo: ${campo} – ${e.message}`);
-  }
-}
+      try {
+        const input = page.getByLabel(campo);
+        await input.fill(valor);
+        log(✍️ Campo preenchido: ${campo});
+        await page.waitForTimeout(300);
+      } catch (e) {
+        log(⚠️ Falha ao preencher o campo: ${campo} – ${e.message});
+      }
+    }
 
     // Uploads
 const anexar = async (label, files) => {
