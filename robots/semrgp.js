@@ -80,24 +80,24 @@ log(`📄 Dados extraídos: AIT=${ait} | Órgão=${orgao} | Prazo=${prazo}`);
 // Cliente
 log('👤 Selecionando cliente...');
 
-// Clica no botão correto com base no título "Criar registro" (botão de Cliente é o primeiro)
+// Clica no botão de "Criar registro" (primeiro da lista)
 const botoesCriarCliente = await page.locator('button:has(span:has-text("Criar registro"))').all();
-await botoesCriarCliente[0].click(); // sempre o primeiro é o do campo Clientes
+await botoesCriarCliente[0].click();
 
-// Aguarda o campo de pesquisa aparecer
+// Aguarda campo de busca
 const clienteInput = page.locator('input[placeholder*="cards pelo título"]');
 await clienteInput.waitFor({ timeout: 15000 });
 
 // Preenche o CPF
 await clienteInput.fill(cpf);
-await page.waitForTimeout(3000); // tempo extra para carregar resultados
+await page.waitForTimeout(15000); // aguarda aparecer o card
 
-// Clica no resultado que contém o CPF
-const clienteResultado = page.locator(`text=${cpf}`);
-await clienteResultado.first().click({ timeout: 15000 });
+// Seleciona o card que contém o CPF visível (não usa data-testid)
+const clienteCard = page.locator(`div:has-text("${cpf}")`).first();
+await clienteCard.waitFor({ timeout: 15000 });
+await clienteCard.click();
 
 log(`✅ Cliente ${cpf} selecionado`);
-
 
     // CRLV
     log('🚗 Selecionando CRLV...');
