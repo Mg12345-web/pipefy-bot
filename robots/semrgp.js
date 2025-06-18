@@ -80,13 +80,14 @@ log(`📄 Dados extraídos: AIT=${ait} | Órgão=${orgao} | Prazo=${prazo}`);
     // Cliente
     log('👤 Selecionando cliente...');
 
-const clienteInput = page.locator('[data-testid="select-box"]').first();
+const clienteSection = await page.locator('text=Clientes').first();
+const botaoCliente = clienteSection.locator('xpath=..').locator('text=Criar registro').first();
 await clienteInput.click();
-await page.waitForTimeout(1000);
+await page.waitForTimeout(1500);
 
 // Digita o CPF do cliente na busca
 await page.getByPlaceholder('Pesquisar').fill(cpf);
-await page.waitForTimeout(1500);
+await page.waitForTimeout(2000);
 
 // Clica no resultado correto
 const clienteOption = page.locator('div[data-testid="card-title"]', { hasText: cpf });
