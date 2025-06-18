@@ -80,23 +80,27 @@ log(`📄 Dados extraídos: AIT=${ait} | Órgão=${orgao} | Prazo=${prazo}`);
 // 👤 Selecionando cliente...
 log('👤 Selecionando cliente...');
 
-// Abre o modal de seleção de cliente
-const botaoCriarCliente = await page
+// --- Abre o modal de seleção de cliente ---
+const botaoCriarCliente = page
   .locator('div:has-text("Clientes") >> button:has-text("Criar registro")')
   .first();
+await botaoCriarCliente.waitFor({ state: 'visible', timeout: 15_000 });
 await botaoCriarCliente.click();
 
-// Aguarda o input de busca
-await page.waitForSelector('input[placeholder*="Pesquisar"]', { timeout: 15000 });
+// --- Aguarda o campo de pesquisa aparecer ---
 const clienteInput = page.locator('input[placeholder*="Pesquisar"]');
+await clienteInput.waitFor({ state: 'visible', timeout: 15_000 });
 
-// Preenche o CPF dinamicamente vindo dos logs
+// --- Preenche o CPF vindo dos logs e dá um tempinho pro filtro ---
 await clienteInput.fill(cpf);
-await page.waitForTimeout(1500);
+await page.waitForTimeout(1_500);
 
-// Aguarda e clica no card que contém exatamente o CPF
-const clienteCard = page.locator(`div:has-text("${cpf}")`).first();
-await clienteCard.waitFor({ state: 'visible', timeout: 15000 });
+// --- Seleciona SEMPRE o primeiro card cujo atributo é exatamente o CPF ---
+const clienteCard = page
+  .locator(`div[data-selector-card-title="${cpf}"]`)
+  .first();
+await clienteCard.waitFor({ state: 'visible', timeout: 15_000 });
+await clienteCard.scrollIntoViewIfNeeded();
 await clienteCard.click({ force: true });
 
 log(`✅ Cliente ${cpf} selecionado`);
