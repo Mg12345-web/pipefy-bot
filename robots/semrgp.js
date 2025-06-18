@@ -77,58 +77,85 @@ log(`📄 Dados extraídos: AIT=${ait} | Órgão=${orgao} | Prazo=${prazo}`);
     await page.locator('span:text("Create new card")').first().click();
     await page.waitForTimeout(10000);
 
-// Cliente
+// 👤 Selecionando cliente...
 log('👤 Selecionando cliente...');
 
-// Clica no botão correto para abrir o campo de seleção do cliente
-const botaoCriarCliente = page.locator('div:has-text("Clientes") >> button:has-text("Criar registro")').first();
+// Abre o modal de seleção de cliente
+const botaoCriarCliente = await page
+  .locator('div:has-text("Clientes") >> button:has-text("Criar registro")')
+  .first();
 await botaoCriarCliente.click();
-await page.waitForTimeout(1000);
 
 // Aguarda o input de busca
-const clienteInput = page.locator('input[placeholder="Pesquisar"]');
-await clienteInput.waitFor({ timeout: 15000 });
+await page.waitForSelector('input[placeholder*="Pesquisar"]', { timeout: 15000 });
+const clienteInput = page.locator('input[placeholder*="Pesquisar"]');
 
-// Preenche o CPF
+// Preenche o CPF dinamicamente vindo dos logs
 await clienteInput.fill(cpf);
-await page.waitForTimeout(10000); // deixa carregar os resultados
+await page.waitForTimeout(1500);
 
-// 1) Espera até que o CPF exato apareça na lista
-const opcaoCpf = page.getByText(cpf, { exact: true });
-await opcaoCpf.waitFor({ timeout: 15000 });
-
-// 2) Clica diretamente nesse elemento de texto (ou no card que o contém)
-await opcaoCpf.click({ force: true });
-
-await page.getByText('*Cliente', { exact: true }).click();
-await page.waitForTimeout(10000);
-await page.keyboard.press('PageDown');
-await page.waitForTimeout(1000);
+// Aguarda e clica no card que contém exatamente o CPF
+const clienteCard = page.locator(`div:has-text("${cpf}")`).first();
+await clienteCard.waitFor({ state: 'visible', timeout: 15000 });
+await clienteCard.click({ force: true });
 
 log(`✅ Cliente ${cpf} selecionado`);
 
-log('🚗 Selecionando CRLV...');
+// Fecha o dropdown clicando no próprio label de "Clientes"
+await page.locator('label:has-text("* Clientes")').first().click();
+await page.waitForTimeout(1000);
 
-// encontra o <label> com “Veículo (CRLV)” e, a partir dele, o botão “Criar registro”
-const container = page.locator('label:has-text("Veículo (CRLV)")').locator('..');
-const botaoCRLV = container.getByRole('button', { name: 'Criar registro' });
+// Scroll para garantir que a seção CRLV fique visível
+await page.keyboard.press('PageDown');
+await page.waitForTimeout(1000);
 
-await botaoCRLV.waitFor({ state: 'visible', timeout: 10000 });
-await botaoCRLV.click();
+// ✅ Etapa: Selecionar botão "Criar registro" do CRLV dinâmico
+log(`🚗 Selecionando CRLV ${placa}...`);
+const botoesCriar = await page.locator('text=Criar registro');
+const total = await botoesCriar.count();
+log(`🧩 Encontrados ${total} botões 'Criar registro'`);
 
-// espera o input de busca aparecer e preenche a placa
-const crlvInput = page.locator('input[placeholder="Pesquisar"]');
-await crlvInput.waitFor({ timeout: 10000 });
-await crlvInput.fill(placa);
-await page.waitForTimeout(1500);
+if (total >= 2) {
+  const botaoCRLV = botoesCriar.nth(1); // geralmente o segundo é o do CRLV
+  const box = await botaoCRLV.boundingBox();
 
-// seleciona o card com a placa
-await page.getByText(placa).first().click();
+  if (box && box.width > 0 && box.height > 0) {
+    await botaoCRLV.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(500);
+    await botaoCRLV.click({ force: true });
+    log('✅ Botão "Criar registro" do CRLV clicado com sucesso');
+  } else {
+    throw new Error('❌ Botão do CRLV invisível ou mal renderizado!');
+  }
+} else {
+  throw new Error('❌ Botão de CRLV não encontrado!');
+}
 
-log(`✅ CRLV ${placa} selecionado com sucesso`);
+// ✅ Etapa: Preencher e selecionar o CRLV
+try {
+  await page.waitForSelector('input[placeholder*="Pesquisar"]', { timeout: 15000 });
+  await page.locator('input[placeholder*="Pesquisar"]').fill(placa);
+  await page.waitForTimeout(1500);
 
+  // usa o atributo data-selector-card-title para garantir unicidade
+  const opcaoCRLV = page.locator(`[data-selector-card-title="${placa}"]`).first();
+  await opcaoCRLV.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(500);
+  await opcaoCRLV.click({ force: true });
 
-  // Preenchimento
+  log(`✅ CRLV ${placa} selecionado com sucesso`);
+} catch (e) {
+  log('❌ Campo de pesquisa do CRLV não apareceu ou falhou');
+  // snapshot de erro
+  const erroPath = path.resolve(__dirname, '../../prints/print_crlv_erro.jpg');
+  if (!fs.existsSync(path.dirname(erroPath))) {
+    fs.mkdirSync(path.dirname(erroPath), { recursive: true });
+  }
+  await page.screenshot({ path: erroPath, fullPage: true });
+  throw e;
+}
+
+    // Preenchimento
     const inputs = await page.locator('input[placeholder="Digite aqui ..."]');
     if (ait) { await inputs.nth(0).fill(ait); log('✅ AIT preenchido'); }
     if (orgao) { await inputs.nth(1).fill(orgao); log('✅ Órgão preenchido'); }
