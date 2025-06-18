@@ -97,7 +97,7 @@ let tarefa = {};
       dados['Estado de Emplacamento'] = (crlvDados.estadoEmplacamento || crlvDados['Estado de Emplacamento'] || crlvDados.estado || '').toUpperCase();
     }
 
-    dados['Nome Completo'] = dados['Nome Completo'] || dados.nome || '';
+    dados['Nome Completo'] = dados['Nome Completo'] || dados.nomecompleto || '';
     dados['CPF'] = dados['CPF'] || dados['CPF OU CNPJ'] || dados.cpf || '';
     dados['Estado Civil'] = dados['Estado Civil'] || dados.estado_civil || '';
     dados['Profissão'] = dados['Profissão'] || dados.profissao || '';
