@@ -8,13 +8,13 @@ async function runClientRobot(req, res) {
   const dados = req.body?.dados || {};
   const arquivos = req.files || {};
 
-  const nomecompleto = dados['Nome Completo'] || dados.nome_completo || '';
-  const cpf = dados.cpf || dados['CPF'] || dados['CPF OU CNPJ'] || '';
-  const estadoCivil = dados['Estado Civil'] || '';
-  const profissao = dados['Profissão'] || dados.profissao || '';
-  const email = dados.Email || '';
-  const telefone = dados['Número de telefone'] || '';
-  const endereçocompleto = dados['Endereço Completo'] || '';
+  const nome = dados['Nome Completo'] || dados.nome_completo || dados.nomecompleto || '';
+const cpf = dados['CPF'] || dados['CPF OU CNPJ'] || dados.cpf || '';
+const estadoCivil = dados['Estado Civil'] || dados.estado_civil || '';
+const profissao = dados['Profissão'] || dados.profissao || dados['profissão'] || '';
+const email = dados.Email || '';
+const telefone = dados['Número de telefone'] || '';
+const enderecoCompleto = dados['Endereço Completo'] || '';
 
   const log = msg => {
     console.log(msg);
@@ -22,7 +22,17 @@ async function runClientRobot(req, res) {
   };
 
   console.log('📤 Preenchendo formulário com os dados:');
-  console.log({ nomecompleto, cpf, estadoCivil, profissao, email, telefone, endereçocompleto });
+  console.log({ nome, cpf, estadoCivil, profissao, email, telefone, enderecoCompleto });
+
+const campos = [
+  ['Nome Completo', nome],
+  ['CPF OU CNPJ', cpf],
+  ['Estado Civil Atual', estadoCivil],
+  ['Profissão', profissao],
+  ['Email', email],
+  ['Número de telefone', telefone],
+  ['Endereço Completo', enderecoCompleto]
+];
   
   res?.setHeader?.('Content-Type', 'text/html; charset=utf-8');
   res?.write?.('<pre>🤖 Iniciando robô de CLIENTES...\n');
