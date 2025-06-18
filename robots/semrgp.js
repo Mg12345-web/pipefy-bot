@@ -101,43 +101,26 @@ await clienteTexto.waitFor({ timeout: 15000 });
 const clienteCard = clienteTexto.locator('..').locator('..');
 await clienteCard.click({ force: true });
 
-// Força o campo de pesquisa a perder o foco, fechando o seletor
-await page.evaluate(() => {
-  const input = document.querySelector('input[placeholder="Pesquisar"]');
-  if (input) input.blur();
-});
-await page.waitForTimeout(1000);
-
 log(`✅ Cliente ${cpf} selecionado`);
 
-    // CRLV
-    log('🚗 Selecionando CRLV...');
-    
-// Força o campo de pesquisa a perder o foco, fechando o seletor
-await page.evaluate(() => {
-  const input = document.querySelector('input[placeholder="Pesquisar"]');
-  if (input) input.blur();
-});
+// fecha o dropdown de cliente clicando no próprio cabeçalho de CRLV (dentro do modal)
+await page.locator('div:has-text("Veículo (CRLV)")').first().click();
+await page.waitForTimeout(500);
 
-log(`✅ Cliente ${cpf} selecionado`);
-
-// espera o listbox de cliente sair do DOM
-await page.waitForSelector('div[role="listbox"]', { state: 'detached', timeout: 5000 });
-  
-// CRLV
 log('🚗 Selecionando CRLV...');
-// Clica direto no segundo "Criar registro" (índice 1)
-const botaoCRLV = await page.locator('text=Criar registro').nth(1);
-await botaoCRLV.scrollIntoViewIfNeeded();
-await botaoCRLV.click();
-await page.waitForTimeout(1000);
 
-// Preenche o campo de busca do CRLV
-// (use o placeholder que funcionar no seu app; no antigo era "cards pelo título")
-await page.locator('input[placeholder*="cards pelo título"]').fill(placa);
+// clica no “Criar registro” dentro do container Veículo (CRLV)
+const botaoCRLV = page.locator('div:has-text("Veículo (CRLV)") >> button:has-text("Criar registro")').first();
+await botaoCRLV.waitFor({ state: 'visible', timeout: 10000 });
+await botaoCRLV.click();
+
+// espera o input de busca aparecer e preenche a placa
+const crlvInput = page.locator('input[placeholder="Pesquisar"]');
+await crlvInput.waitFor({ timeout: 10000 });
+await crlvInput.fill(placa);
 await page.waitForTimeout(1500);
 
-// Seleciona o card da placa
+// seleciona o card com a placa
 await page.getByText(placa, { exact: false }).first().click();
 
 log(`✅ CRLV ${placa} selecionado com sucesso`);
