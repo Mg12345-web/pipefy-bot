@@ -104,7 +104,7 @@ await clienteCard.click({ force: true });
 log(`✅ Cliente ${cpf} selecionado`);
 
 // Clique no cabeçalho do formulário, onde está "Sem RGP"
-await page.locator('div', { hasText: '* Clientes' }).first().click();
+await page.locator('label', { hasText: '* Clientes' }).first().click();
 await page.waitForTimeout(10000);
 
     // CRLV
