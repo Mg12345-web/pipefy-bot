@@ -81,7 +81,7 @@ log(`📄 Dados extraídos: AIT=${ait} | Órgão=${orgao} | Prazo=${prazo}`);
 log('👤 Selecionando cliente...');
 
 // Clica no botão correto para abrir o campo de seleção do cliente
-const botaoCriarCliente = page.locator('div:has-text("*Cliente") >> button:has-text("Criar registro")').first();
+const botaoCriarCliente = page.locator('div:has-text("*Clientes") >> button:has-text("Criar registro")').first();
 await botaoCriarCliente.click();
 await page.waitForTimeout(1000);
 
