@@ -65,17 +65,17 @@ log(`📄 Dados extraídos: AIT=${ait} | Órgão=${orgao} | Prazo=${prazo}`);
 
     log('📂 Acessando Pipe Sem RGP...');
     await page.getByText('Sem RGP', { exact: true }).click();
-    await page.waitForTimeout(3000);
+    await page.waitForTimeout(10000);
 
     const botaoPipe = page.locator('text=Entrar no pipe');
     if (await botaoPipe.count() > 0) {
       await botaoPipe.first().click();
-      await page.waitForTimeout(3000);
+      await page.waitForTimeout(10000);
     }
 
     log('🆕 Criando novo card...');
     await page.locator('span:text("Create new card")').first().click();
-    await page.waitForTimeout(3000);
+    await page.waitForTimeout(10000);
 
 // Cliente
 log('👤 Selecionando cliente...');
