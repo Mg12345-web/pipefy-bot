@@ -86,17 +86,17 @@ await botoesCriarCliente[0].click(); // sempre o primeiro é o do campo Clientes
 
 // Aguarda campo de busca
 const clienteInput = page.locator('input[placeholder="Pesquisar"]');
-await clienteInput.waitFor({ timeout: 10000 });
+await clienteInput.waitFor({ timeout: 15000 });
 
 // Preenche o CPF
 await clienteInput.fill(cpf);
-await page.waitForTimeout(1500);
+await page.waitForTimeout(15000);
 
 // Clica no card do cliente dentro do popup
 const popup = page.locator('div[role="dialog"]');
 const clienteCard = popup.locator('div[data-testid="card-title"]', { hasText: cpf });
 
-await clienteCard.first().waitFor({ timeout: 10000 });
+await clienteCard.first().waitFor({ timeout: 15000 });
 await clienteCard.first().click({ force: true });
 
 log(`✅ Cliente ${cpf} selecionado`);
