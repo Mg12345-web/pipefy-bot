@@ -63,112 +63,175 @@ log(`📄 Dados extraídos: AIT=${ait} | Órgão=${orgao} | Prazo=${prazo}`);
 
     await loginPipefy(page, log);
 
-    // 📂 Acessando diretamente o formulário público do Sem RGP
-log('📂 Acessando formulário público Sem RGP...');
-await page.goto(
-  'https://app.pipefy.com/organizations/301364637/interfaces/9e30a2d5-652a-4590-85c5-f254756c9692/pages/bcf9976f-0e7a-4606-ab2c-8cca4bb1680c'
-  + '?form=78b8b5ff-5f9c-46fa-9251-228f2a21ab4a&origin=public+form'
-);
-await page.waitForLoadState('networkidle');
+log('📂 Acessando Pipe Sem RGP...');
+    await page.getByText('Sem RGP', { exact: true }).click();
+    await page.waitForTimeout(10000);
 
-log('👤 Selecionando cliente...');
-// 1) Abre o conector de cliente
-await page
-  .getByTestId('element-startform-78b8b5ff-5f9c-46fa-9251-228f2a21ab4a-Connector-68050cba-bc72-4fbc-b00d-3f62b8fa6a96')
-  .getByTestId('star-form-connection-button')
-  .click();
+    const botaoPipe = page.locator('text=Entrar no pipe');
+    if (await botaoPipe.count() > 0) {
+      await botaoPipe.first().click();
+      await page.waitForTimeout(10000);
+    }
 
-// 2) Preenche o CPF e aguarda resultados
-await page.getByRole('textbox', { name: 'Pesquisar' }).fill(cpf);
-await page.waitForTimeout(1_500);
+    async function abrirNovoCardPreCadastro(page, log = console.log) {
+  log('📂 Abrindo novo card em "Pré-cadastro"...');
+  const botaoNovoCard = page
+    .getByTestId('phase-328258743-container')
+    .getByTestId('new-card-button');
 
-// 3) Clica sempre no primeiro card exato
-const cardCli = page
-  .locator('div[data-testid^="connected-card-box"]')
-  .filter({ hasText: cpf })
-  .first();
-await cardCli.waitFor({ state: 'visible', timeout: 15000 });
-await cardCli.click({ force: true });
-log(`✅ Cliente ${cpf} selecionado`);
-
-// 🚗 Selecionando CRLV...
-log('🚗 Selecionando CRLV...');
-// 1) Abre o conector de CRLV
-await page
-  .getByTestId('element-startform-78b8b5ff-5f9c-46fa-9251-228f2a21ab4a-Connector-abc0d7e3-6e0f-4afd-91b6-dd453eead783')
-  .getByTestId('star-form-connection-button')
-  .click();
-
-// 2) Preenche a placa e aguarda resultados
-await page.getByRole('textbox', { name: 'Pesquisar' }).fill(placa);
-await page.waitForTimeout(1_500);
-
-// 3) Clica sempre no primeiro card exato
-const cardCRLV = page
-  .locator('div[data-testid^="connected-card-box"]')
-  .filter({ hasText: placa })
-  .first();
-await cardCRLV.waitFor({ state: 'visible', timeout: 15000 });
-await cardCRLV.click({ force: true });
-log(`✅ CRLV ${placa} selecionado com sucesso`);
-
-    // — AIT
-if (ait) {
-  const aitInput = page.getByLabel('AIT');
-  await aitInput.waitFor({ state: 'visible', timeout: 15_000 });
-  await aitInput.fill(ait);
-  log('✅ AIT preenchido');
+  await botaoNovoCard.click();
+  log('✅ Novo card criado com sucesso.');
 }
-
-// — Órgão
-if (orgao) {
-  const orgInput = page.getByLabel('Órgão');
-  await orgInput.waitFor({ state: 'visible', timeout: 15_000 });
-  await orgInput.fill(orgao);
-  log('✅ Órgão preenchido');
-}
-
-// — Prazo para Protocolo (cada parte tem um data-testid)
-log('🕒 Preenchendo "Prazo para Protocolo"...');
-await page.getByTestId('day-input').fill(String(df.day));
-await page.getByTestId('month-input').fill(String(df.month));
-await page.getByTestId('year-input').fill(String(df.year));
-await page.getByTestId('hour-input').fill(String(df.hour));
-await page.getByTestId('minute-input').fill(String(df.minute));
-log('✅ Prazo para Protocolo preenchido');
     
-    let val = ['','','','','']; // padrão
-    try {
-      const dt = new Date(prazo);
-      if (!isNaN(dt)) {
-        val = [
-          String(dt.getDate()).padStart(2, '0'),
-          String(dt.getMonth() + 1).padStart(2, '0'),
-          String(dt.getFullYear()),
-          '08', '00'
-        ];
-      } else {
-        log('⚠️ Data inválida no campo "prazo". Usando valor padrão.');
-      }
-    } catch (err) {
-      log('⚠️ Erro ao interpretar data de prazo. Usando valor padrão.');
-    }
+async function selecionarCliente(page, cpf, log = console.log) {
+  log('👤 Acessando seção de clientes...');
 
-    for (let i = 0; i < df.length; i++) {
-      const el = await page.locator(df[i]).first();
-      await el.click();
-      await page.keyboard.type(val[i], { delay: 100 });
-    }
-    log('✅ Prazo preenchido');
+  // 1. Clica na aba "Clientes"
+  await page.getByText('Clientes').click();
 
-    // Upload
-    log('📎 Anexando arquivo...');
-    const botaoUpload = await page.locator('button[data-testid="attachments-dropzone-button"]').last();
-    await botaoUpload.scrollIntoViewIfNeeded();
-    const [fileChooser] = await Promise.all([page.waitForEvent('filechooser'), botaoUpload.click()]);
-    await fileChooser.setFiles(caminhoPDF);
-    await page.waitForTimeout(3000);
-    log('📎 Autuação anexada');
+  // 2. Clica no botão de conexão
+  await page.getByTestId('star-form-connection-button').first().click();
+
+  // 3. Preenche o campo de pesquisa com o CPF
+  await page.getByRole('textbox', { name: 'Pesquisar' }).fill(cpf);
+  await page.waitForTimeout(10000); // tempo para os resultados carregarem
+
+  // 4. Seleciona o card que contém o CPF informado
+  const card = page
+    .locator('div[data-testid^="connected-card-box"]')
+    .filter({ hasText: cpf })
+    .first();
+
+  await card.waitFor({ state: 'visible', timeout: 15000 });
+  await card.click({ force: true });
+
+  // 5. Garante que volta para a tela principal do conector
+  await page.getByText('Clientes').click();
+
+  log(`✅ Cliente ${cpf} selecionado com sucesso`);
+}
+
+async function selecionarCRLV(page, placa, log = console.log) {
+  log('🚗 Selecionando CRLV...');
+
+  // 1. Acessa a seção "Veículo (CRLV)"
+  await page.getByText('Veículo (CRLV)').click();
+
+  // 2. Clica no botão de conexão (é o segundo botão no fluxo)
+  await page.getByTestId('star-form-connection-button').nth(1).click();
+
+  // 3. Preenche a placa no campo de pesquisa
+  await page.getByRole('textbox', { name: 'Pesquisar' }).fill(placa);
+  await page.waitForTimeout(1500); // espera carregamento dos resultados
+
+  // 4. Seleciona o card que contém a placa
+  const card = page
+    .locator('div[data-testid^="connected-card-box"]')
+    .filter({ hasText: placa })
+    .first();
+
+  await card.waitFor({ state: 'visible', timeout: 15000 });
+  await card.click({ force: true });
+
+  // 5. Retorna à tela principal do conector
+  await page.getByText('Veículo (CRLV)').click();
+
+  log(`✅ CRLV da placa ${placa} selecionado com sucesso`);
+}
+async function preencherAIT(page, ait, log = console.log) {
+  if (!ait) {
+    log('⚠️ Nenhum número de AIT fornecido. Pulando etapa.');
+    return;
+  }
+
+  log('📝 Preenchendo campo AIT...');
+
+  // 1. Clica no label para garantir foco
+  await page.getByTestId('phase-fields').getByText('AIT').click();
+
+  // 2. Clica no input
+  const inputAIT = page.getByRole('textbox', { name: 'AIT' });
+  await inputAIT.click();
+
+  // 3. Preenche o número
+  await inputAIT.fill(ait);
+
+  log(`✅ AIT preenchido: ${ait}`);
+}
+    
+async function preencherOrgao(page, orgao, log = console.log) {
+  if (!orgao) {
+    log('⚠️ Nenhum órgão fornecido. Pulando etapa.');
+    return;
+  }
+
+  log('🏛️ Preenchendo campo Órgão...');
+
+  // 1. Clica no label para focar
+  await page.getByTestId('phase-fields').getByText('Órgão').click();
+
+  // 2. Preenche o valor no campo
+  await page.getByRole('textbox', { name: 'Órgão' }).fill(orgao);
+
+  log(`✅ Órgão preenchido: ${orgao}`);
+}
+
+async function preencherPrazoParaProtocoloComTeclado(page, prazo, log = console.log) {
+  log('🗓️ Preenchendo "Prazo para Protocolo"...');
+
+  let dia = '01', mes = '01', ano = '2025';
+  const hora = '00';
+  const minuto = '00';
+
+  try {
+    const dt = new Date(prazo);
+    if (!isNaN(dt)) {
+      dia = String(dt.getDate()).padStart(2, '0');
+      mes = String(dt.getMonth() + 1).padStart(2, '0');
+      ano = String(dt.getFullYear());
+    } else {
+      log('⚠️ Data inválida recebida. Usando valores padrão.');
+    }
+  } catch {
+    log('⚠️ Erro ao interpretar a data. Usando valores padrão.');
+  }
+
+  await page.getByText('Prazo para Protocolo').click();
+  await page.waitForTimeout(200);
+
+  await page.getByTestId('day-input').click();
+  await page.keyboard.type(dia, { delay: 100 });
+
+  await page.keyboard.press('Tab');
+  await page.keyboard.type(mes, { delay: 100 });
+
+  await page.keyboard.press('Tab');
+  await page.keyboard.type(ano, { delay: 100 });
+
+  await page.keyboard.press('Tab');
+  await page.keyboard.type(hora, { delay: 100 });
+
+  await page.keyboard.press('Tab');
+  await page.keyboard.type(minuto, { delay: 100 });
+
+  log(`✅ Prazo preenchido: ${dia}/${mes}/${ano} às ${hora}:${minuto}`);
+}
+   async function anexarAutuacao(page, caminhoPDF, log = console.log) {
+  log('📎 Anexando arquivo da autuação...');
+
+  const botaoUpload = await page.locator('button[data-testid="attachments-dropzone-button"]').last();
+  await botaoUpload.scrollIntoViewIfNeeded();
+
+  const [fileChooser] = await Promise.all([
+    page.waitForEvent('filechooser'),
+    botaoUpload.click()
+  ]);
+
+  await fileChooser.setFiles(caminhoPDF);
+  await page.waitForTimeout(3000);
+
+  log(`✅ Autuação anexada: ${caminhoPDF}`);
+}
 
     // Finalizar
     log('🚀 Finalizando card...');
