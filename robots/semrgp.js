@@ -144,7 +144,6 @@ await page.getByTestId('year-input').fill(String(df.year));
 await page.getByTestId('hour-input').fill(String(df.hour));
 await page.getByTestId('minute-input').fill(String(df.minute));
 log('✅ Prazo para Protocolo preenchido');
-    ];
     
     let val = ['','','','','']; // padrão
     try {
