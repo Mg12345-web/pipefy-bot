@@ -185,14 +185,6 @@ async function preencherOrgao(page, orgao, log = console.log) {
   log(`✅ Órgão preenchido: ${orgao}`);
 }
 
-    function normalizarDataOraculo(dataBR) {
-  if (!dataBR || typeof dataBR !== 'string') return '';
-  const partes = dataBR.split('/');
-  if (partes.length !== 3) return '';
-  const [dia, mes, ano] = partes;
-  return `${ano}-${mes}-${dia}`; // Formato ISO
-}
-
 async function preencherPrazoParaProtocoloComTeclado(page, prazo, log = console.log) {
   log('🗓️ Preenchendo "Prazo para Protocolo"...');
 
@@ -207,10 +199,7 @@ async function preencherPrazoParaProtocoloComTeclado(page, prazo, log = console.
   let valores = ['01', '01', '2025', '00', '00'];
 
   try {
-    // 🆕 Normaliza a data antes de interpretar
-    const prazoNormalizado = normalizarDataOraculo(prazo);
-    const dt = new Date(prazoNormalizado);
-
+    const dt = new Date(prazo); // <- o prazo já está no formato ISO
     if (!isNaN(dt)) {
       valores = [
         String(dt.getDate()).padStart(2, '0'),
