@@ -83,22 +83,22 @@ log('👤 Selecionando cliente...');
 const botaoCriarCliente = page
   .locator('div:has-text("Clientes") >> button:has-text("Criar registro")')
   .first();
-await botaoCriarCliente.waitFor({ state: 'visible', timeout: 15_000 });
+await botaoCriarCliente.waitFor({ state: 'visible', timeout: 15000 });
 await botaoCriarCliente.click();
 
 // --- Aguarda o campo de pesquisa aparecer ---
 const clienteInput = page.locator('input[placeholder*="Pesquisar"]');
-await clienteInput.waitFor({ state: 'visible', timeout: 15_000 });
+await clienteInput.waitFor({ state: 'visible', timeout: 15000 });
 
 // --- Preenche o CPF vindo dos logs e dá um tempinho pro filtro ---
 await clienteInput.fill(cpf);
-await page.waitForTimeout(1_500);
+await page.waitForTimeout(15000);
 
 // --- Seleciona SEMPRE o primeiro card cujo atributo é exatamente o CPF ---
 const clienteCard = page
   .locator(`div[data-selector-card-title="${cpf}"]`)
   .first();
-await clienteCard.waitFor({ state: 'visible', timeout: 15_000 });
+await clienteCard.waitFor({ state: 'visible', timeout: 15000 });
 await clienteCard.scrollIntoViewIfNeeded();
 await clienteCard.click({ force: true });
 
