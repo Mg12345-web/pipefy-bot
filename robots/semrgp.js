@@ -205,10 +205,12 @@ async function preencherPrazoParaProtocoloComTeclado(page, prazo, log = console.
     log('⚠️ Erro ao interpretar a data. Usando valores padrão.');
   }
 
-  await page.getByText('Prazo para Protocolo').click();
-  await page.waitForTimeout(200);
+  // 1. Espera os campos estarem visíveis
+  const diaInput = page.getByTestId('day-input');
+  await diaInput.waitFor({ state: 'visible', timeout: 5000 });
 
-  await page.getByTestId('day-input').click();
+  // 2. Foca e digita em cada campo
+  await diaInput.click();
   await page.keyboard.type(dia, { delay: 100 });
 
   await page.keyboard.press('Tab');
