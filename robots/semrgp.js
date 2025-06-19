@@ -104,7 +104,7 @@ await clienteCard.click({ force: true });
 
 log(`✅ Cliente ${cpf} selecionado`);
 
-await page.mouse.click(10, 10);
+await page.locator('label:has-text("Veículo (CRLV)")').first().click({ force: true });
 await page.waitForTimeout(500);
 
 // Scroll para garantir que a seção CRLV fique visível
