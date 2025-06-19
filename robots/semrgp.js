@@ -112,19 +112,38 @@ await cardCRLV.waitFor({ state: 'visible', timeout: 15000 });
 await cardCRLV.click({ force: true });
 log(`✅ CRLV ${placa} selecionado com sucesso`);
 
-    // Preenchimento
-    const inputs = await page.locator('input[placeholder="Digite aqui ..."]');
-    if (ait) { await inputs.nth(0).fill(ait); log('✅ AIT preenchido'); }
-    if (orgao) { await inputs.nth(1).fill(orgao); log('✅ Órgão preenchido'); }
+    // — AIT
+if (ait) {
+  const aitInput = page.getByLabel('AIT');
+  await aitInput.waitFor({ state: 'visible', timeout: 15_000 });
+  await aitInput.fill(ait);
+  log('✅ AIT preenchido');
+}
 
-    // Prazo
-    log('📆 Preenchendo campo "Prazo para Protocolo"...');
-    const df = [
-      '[data-testid="day-input"]',
-      '[data-testid="month-input"]',
-      '[data-testid="year-input"]',
-      '[data-testid="hour-input"]',
-      '[data-testid="minute-input"]'
+// — Órgão
+if (orgao) {
+  const orgInput = page.getByLabel('Órgão');
+  await orgInput.waitFor({ state: 'visible', timeout: 15_000 });
+  await orgInput.fill(orgao);
+  log('✅ Órgão preenchido');
+}
+
+// — Observação (se houver)
+if (obs) {
+  const obsInput = page.getByLabel('Observação');
+  await obsInput.waitFor({ state: 'visible', timeout: 15_000 });
+  await obsInput.fill(obs);
+  log('✅ Observação preenchida');
+}
+
+// — Prazo para Protocolo (cada parte tem um data-testid)
+log('🕒 Preenchendo "Prazo para Protocolo"...');
+await page.getByTestId('day-input').fill(String(df.day));
+await page.getByTestId('month-input').fill(String(df.month));
+await page.getByTestId('year-input').fill(String(df.year));
+await page.getByTestId('hour-input').fill(String(df.hour));
+await page.getByTestId('minute-input').fill(String(df.minute));
+log('✅ Prazo para Protocolo preenchido');
     ];
     
     let val = ['','','','','']; // padrão
