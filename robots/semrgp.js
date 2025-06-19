@@ -185,48 +185,57 @@ async function preencherOrgao(page, orgao, log = console.log) {
   log(`✅ Órgão preenchido: ${orgao}`);
 }
 
+    function normalizarDataOraculo(dataBR) {
+  if (!dataBR || typeof dataBR !== 'string') return '';
+  const partes = dataBR.split('/');
+  if (partes.length !== 3) return '';
+  const [dia, mes, ano] = partes;
+  return `${ano}-${mes}-${dia}`; // Formato ISO
+}
+
 async function preencherPrazoParaProtocoloComTeclado(page, prazo, log = console.log) {
   log('🗓️ Preenchendo "Prazo para Protocolo"...');
 
-  let dia = '01', mes = '01', ano = '2025';
-  const hora = '00';
-  const minuto = '00';
+  const campos = [
+    '[data-testid="day-input"]',
+    '[data-testid="month-input"]',
+    '[data-testid="year-input"]',
+    '[data-testid="hour-input"]',
+    '[data-testid="minute-input"]'
+  ];
+
+  let valores = ['01', '01', '2025', '00', '00'];
 
   try {
-    const dt = new Date(prazo);
+    // 🆕 Normaliza a data antes de interpretar
+    const prazoNormalizado = normalizarDataOraculo(prazo);
+    const dt = new Date(prazoNormalizado);
+
     if (!isNaN(dt)) {
-      dia = String(dt.getDate()).padStart(2, '0');
-      mes = String(dt.getMonth() + 1).padStart(2, '0');
-      ano = String(dt.getFullYear());
+      valores = [
+        String(dt.getDate()).padStart(2, '0'),
+        String(dt.getMonth() + 1).padStart(2, '0'),
+        String(dt.getFullYear()),
+        '00',
+        '00'
+      ];
     } else {
-      log('⚠️ Data inválida recebida. Usando valores padrão.');
+      log('⚠️ Data inválida. Usando valores padrão.');
     }
-  } catch {
-    log('⚠️ Erro ao interpretar a data. Usando valores padrão.');
+  } catch (err) {
+    log('⚠️ Erro ao interpretar data. Usando padrão.');
   }
 
-  // 1. Espera os campos estarem visíveis
-  const diaInput = page.getByTestId('day-input');
-  await diaInput.waitFor({ state: 'visible', timeout: 5000 });
+  for (let i = 0; i < campos.length; i++) {
+    const el = await page.locator(campos[i]).first();
+    await el.waitFor({ state: 'visible', timeout: 5000 });
+    await el.click();
+    await page.keyboard.type(valores[i], { delay: 100 });
+  }
 
-  // 2. Foca e digita em cada campo
-  await diaInput.click();
-  await page.keyboard.type(dia, { delay: 100 });
-
-  await page.keyboard.press('Tab');
-  await page.keyboard.type(mes, { delay: 100 });
-
-  await page.keyboard.press('Tab');
-  await page.keyboard.type(ano, { delay: 100 });
-
-  await page.keyboard.press('Tab');
-  await page.keyboard.type(hora, { delay: 100 });
-
-  await page.keyboard.press('Tab');
-  await page.keyboard.type(minuto, { delay: 100 });
-
-  log(`✅ Prazo preenchido: ${dia}/${mes}/${ano} às ${hora}:${minuto}`);
+  log(`✅ Prazo preenchido: ${valores.slice(0, 3).join('/')} às ${valores[3]}:${valores[4]}`);
 }
+
    async function anexarAutuacao(page, caminhoPDF, log = console.log) {
   log('📎 Anexando arquivo da autuação...');
 
