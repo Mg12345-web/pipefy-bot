@@ -63,73 +63,49 @@ log(`📄 Dados extraídos: AIT=${ait} | Órgão=${orgao} | Prazo=${prazo}`);
 
     await loginPipefy(page, log);
 
-    log('📂 Acessando Pipe Sem RGP...');
-    await page.getByText('Sem RGP', { exact: true }).click();
-    await page.waitForTimeout(10000);
+    // 📂 Acessando diretamente o formulário público do Sem RGP
+log('📂 Acessando formulário público Sem RGP...');
+await page.goto(
+  'https://app.pipefy.com/organizations/301364637/interfaces/9e30a2d5-652a-4590-85c5-f254756c9692/pages/bcf9976f-0e7a-4606-ab2c-8cca4bb1680c'
+  + '?form=78b8b5ff-5f9c-46fa-9251-228f2a21ab4a&origin=public+form'
+);
+await page.waitForLoadState('networkidle');
 
-    const botaoPipe = page.locator('text=Entrar no pipe');
-    if (await botaoPipe.count() > 0) {
-      await botaoPipe.first().click();
-      await page.waitForTimeout(10000);
-    }
-
-    log('🆕 Criando novo card...');
-    await page.locator('span:text("Create new card")').first().click();
-    await page.waitForTimeout(10000);
-
+// 👤 Selecionando cliente...
 log('👤 Selecionando cliente...');
+// 1) Abre o conector de cliente
+await page
+  .getByTestId('element-startform-78b8b5ff-5f9c-46fa-9251-228f2a21ab4a-Connector-68050cba-bc72-4fbc-b00d-3f62b8fa6a96')
+  .getByTestId('star-form-connection-button')
+  .click();
 
-// 1) Abre o modal de seleção de cliente
-const btnCriarCliente = page.locator('div:has-text("Clientes") button:has-text("Criar registro")').first();
-await btnCriarCliente.waitFor({ state: 'visible', timeout: 15000 });
-await btnCriarCliente.click();
+// 2) Preenche o CPF e aguarda resultados
+await page.getByRole('textbox', { name: 'Pesquisar' }).fill(cpf);
+await page.waitForTimeout(1_500);
 
-// 2) Aguarda o campo de pesquisa aparecer
-const inputPesquisaCli = page.locator('input[placeholder*="Pesquisar"]');
-await inputPesquisaCli.waitFor({ state: 'visible', timeout: 15000 });
-
-// 3) Preenche o CPF vindo dos logs e dá um tempinho para o filtro
-await inputPesquisaCli.fill(cpf);
-await page.waitForTimeout(15000);
-
-// 4) Seleciona sempre o primeiro card cujo data-selector-card-title seja exatamente o CPF
+// 3) Clica sempre no primeiro card exato
 const cardCli = page.locator(`[data-selector-card-title="${cpf}"]`).first();
-await cardCli.waitFor({ state: 'visible', timeout: 15000 });
+await cardCli.waitFor({ state: 'visible', timeout: 15_000 });
 await cardCli.click({ force: true });
 log(`✅ Cliente ${cpf} selecionado`);
 
-// 5) Fecha o dropdown clicando fora (no título do formulário)
-await page.click('text=Sem RGP', { timeout: 10000 });
-await page.waitForTimeout(500);
-
-// --- Preparação para CRLV ---
-// Garante que a seção "Veículo (CRLV)" esteja visível
-await page.locator('label:has-text("Veículo (CRLV)")').scrollIntoViewIfNeeded();
-await page.waitForTimeout(10000);
-
-// --- Seleção do CRLV ---
+// 🚗 Selecionando CRLV...
 log('🚗 Selecionando CRLV...');
+// 1) Abre o conector de CRLV
+await page
+  .getByTestId('element-startform-78b8b5ff-5f9c-46fa-9251-228f2a21ab4a-Connector-abc0d7e3-6e0f-4afd-91b6-dd453eead783')
+  .getByTestId('star-form-connection-button')
+  .click();
 
-// 1) Clica no segundo botão "Criar registro" (o primeiro é de Cliente)
-const botoesCriar = page.locator('button:has-text("Criar registro")');
-await botoesCriar.first().waitFor({ state: 'visible', timeout: 15000 });
-const btnCriarCRLV = botoesCriar.nth(1);
-await btnCriarCRLV.click();
-
-// 2) Aguarda o campo de pesquisa aparecer
-const inputPesquisaCRLV = page.locator('input[placeholder*="Pesquisar"]');
-await inputPesquisaCRLV.waitFor({ state: 'visible', timeout: 15000 });
-
-// 3) Preenche a placa vinda dos logs e aguarda resultados
-await inputPesquisaCRLV.fill(placa);
+// 2) Preenche a placa e aguarda resultados
+await page.getByRole('textbox', { name: 'Pesquisar' }).fill(placa);
 await page.waitForTimeout(1_500);
 
-// 4) Seleciona sempre o primeiro card cujo data-selector-card-title seja exatamente a placa
+// 3) Clica sempre no primeiro card exato
 const cardCRLV = page.locator(`[data-selector-card-title="${placa}"]`).first();
-await cardCRLV.waitFor({ state: 'visible', timeout: 15000 });
+await cardCRLV.waitFor({ state: 'visible', timeout: 15_000 });
 await cardCRLV.click({ force: true });
-
-log(`✅ CRLV ${placa} selecionado`);
+log(`✅ CRLV ${placa} selecionado com sucesso`);
 
     // Preenchimento
     const inputs = await page.locator('input[placeholder="Digite aqui ..."]');
