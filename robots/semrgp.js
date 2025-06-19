@@ -79,62 +79,55 @@ log(`📄 Dados extraídos: AIT=${ait} | Órgão=${orgao} | Prazo=${prazo}`);
 
 log('👤 Selecionando cliente...');
 
-// --- Abre o modal de seleção de cliente ---
-const botaoCriarCliente = page
-  .locator('div:has-text("Clientes") >> button:has-text("Criar registro")')
-  .first();
-await botaoCriarCliente.waitFor({ state: 'visible', timeout: 15000 });
-await botaoCriarCliente.click();
+// 1) Abre o modal de seleção de cliente
+const btnCriarCliente = page.locator('div:has-text("Clientes") button:has-text("Criar registro")').first();
+await btnCriarCliente.waitFor({ state: 'visible', timeout: 15000 });
+await btnCriarCliente.click();
 
-// --- Aguarda o campo de pesquisa aparecer ---
-const clienteInput = page.locator('input[placeholder*="Pesquisar"]');
-await clienteInput.waitFor({ state: 'visible', timeout: 15000 });
+// 2) Aguarda o campo de pesquisa aparecer
+const inputPesquisaCli = page.locator('input[placeholder*="Pesquisar"]');
+await inputPesquisaCli.waitFor({ state: 'visible', timeout: 15000 });
 
-// --- Preenche o CPF vindo dos logs e dá um tempinho pro filtro ---
-await clienteInput.fill(cpf);
+// 3) Preenche o CPF vindo dos logs e dá um tempinho para o filtro
+await inputPesquisaCli.fill(cpf);
 await page.waitForTimeout(15000);
 
-// --- Seleciona SEMPRE o primeiro card cujo atributo é exatamente o CPF ---
-const clienteCard = page
-  .locator(`div[data-selector-card-title="${cpf}"]`)
-  .first();
-await clienteCard.waitFor({ state: 'visible', timeout: 15000 });
-await clienteCard.scrollIntoViewIfNeeded();
-await clienteCard.click({ force: true });
-
+// 4) Seleciona sempre o primeiro card cujo data-selector-card-title seja exatamente o CPF
+const cardCli = page.locator(`[data-selector-card-title="${cpf}"]`).first();
+await cardCli.waitFor({ state: 'visible', timeout: 15000 });
+await cardCli.click({ force: true });
 log(`✅ Cliente ${cpf} selecionado`);
 
-await page.locator('label:has-text("Veículo (CRLV)")').first().click({ force: true });
+// 5) Fecha o dropdown clicando fora (no título do formulário)
+await page.click('text=Sem RGP', { timeout: 10000 });
 await page.waitForTimeout(500);
 
-// Scroll para garantir que a seção CRLV fique visível
-await page.keyboard.press('PageDown');
-await page.waitForTimeout(1000);
+// --- Preparação para CRLV ---
+// Garante que a seção "Veículo (CRLV)" esteja visível
+await page.locator('label:has-text("Veículo (CRLV)")').scrollIntoViewIfNeeded();
+await page.waitForTimeout(10000);
 
- // CRLV
-    log('🚗 Selecionando CRLV...');
+// --- Seleção do CRLV ---
+log('🚗 Selecionando CRLV...');
 
-// --- Abre o modal de seleção do CRLV (2º botão "Criar registro") ---
+// 1) Clica no segundo botão "Criar registro" (o primeiro é de Cliente)
 const botoesCriar = page.locator('button:has-text("Criar registro")');
-const botaoCriarCRLV = botoesCriar.nth(1);
-await botaoCriarCRLV.waitFor({ state: 'visible', timeout: 15_000 });
-await botaoCriarCRLV.click();
+await botoesCriar.first().waitFor({ state: 'visible', timeout: 15000 });
+const btnCriarCRLV = botoesCriar.nth(1);
+await btnCriarCRLV.click();
 
-// --- Aguarda o campo de pesquisa aparecer ---
-const crlvInput = page.locator('input[placeholder*="Pesquisar"]');
-await crlvInput.waitFor({ state: 'visible', timeout: 15_000 });
+// 2) Aguarda o campo de pesquisa aparecer
+const inputPesquisaCRLV = page.locator('input[placeholder*="Pesquisar"]');
+await inputPesquisaCRLV.waitFor({ state: 'visible', timeout: 15000 });
 
-// --- Preenche a placa vinda dos logs e dá um tempinho pro filtro ---
-await crlvInput.fill(placa);
+// 3) Preenche a placa vinda dos logs e aguarda resultados
+await inputPesquisaCRLV.fill(placa);
 await page.waitForTimeout(1_500);
 
-// --- Seleciona SEMPRE o primeiro card cujo atributo data-selector-card-title seja exatamente a placa ---
-const crlvCard = page
-  .locator(`div[data-selector-card-title="${placa}"]`)
-  .first();
-await crlvCard.waitFor({ state: 'visible', timeout: 15_000 });
-await crlvCard.scrollIntoViewIfNeeded();
-await crlvCard.click({ force: true });
+// 4) Seleciona sempre o primeiro card cujo data-selector-card-title seja exatamente a placa
+const cardCRLV = page.locator(`[data-selector-card-title="${placa}"]`).first();
+await cardCRLV.waitFor({ state: 'visible', timeout: 15000 });
+await cardCRLV.click({ force: true });
 
 log(`✅ CRLV ${placa} selecionado`);
 
