@@ -77,7 +77,6 @@ log(`📄 Dados extraídos: AIT=${ait} | Órgão=${orgao} | Prazo=${prazo}`);
     await page.locator('span:text("Create new card")').first().click();
     await page.waitForTimeout(10000);
 
-// 👤 Selecionando cliente...
 log('👤 Selecionando cliente...');
 
 // --- Abre o modal de seleção de cliente ---
@@ -112,28 +111,32 @@ await page.waitForTimeout(500);
 await page.keyboard.press('PageDown');
 await page.waitForTimeout(1000);
 
-// ✅ Etapa: Selecionar botão "Criar registro" do CRLV dinâmico
  // CRLV
     log('🚗 Selecionando CRLV...');
-    const campoEstavel = page.locator('input[placeholder*="Pesquisar"]').first();
-    await campoEstavel.scrollIntoViewIfNeeded();
-    await campoEstavel.click();
-    await page.waitForTimeout(10000);
-    await page.keyboard.press('PageDown');
-    await page.waitForTimeout(10000);
 
-    const botoesCriar = await page.locator('text=Criar registro');
-    if ((await botoesCriar.count()) >= 2) {
-      const botaoCRLV = botoesCriar.nth(1);
-      const box = await botaoCRLV.boundingBox();
-      if (!box || box.width === 0) throw new Error('❌ Botão CRLV invisível!');
-      await botaoCRLV.scrollIntoViewIfNeeded();
-      await page.waitForTimeout(10000);
-      await botaoCRLV.click();
-      log('✅ Botão CRLV clicado');
-    } else {
-      throw new Error('❌ Botão CRLV não encontrado');
-    }
+// --- Abre o modal de seleção do CRLV (2º botão "Criar registro") ---
+const botoesCriar = page.locator('button:has-text("Criar registro")');
+const botaoCriarCRLV = botoesCriar.nth(1);
+await botaoCriarCRLV.waitFor({ state: 'visible', timeout: 15_000 });
+await botaoCriarCRLV.click();
+
+// --- Aguarda o campo de pesquisa aparecer ---
+const crlvInput = page.locator('input[placeholder*="Pesquisar"]');
+await crlvInput.waitFor({ state: 'visible', timeout: 15_000 });
+
+// --- Preenche a placa vinda dos logs e dá um tempinho pro filtro ---
+await crlvInput.fill(placa);
+await page.waitForTimeout(1_500);
+
+// --- Seleciona SEMPRE o primeiro card cujo atributo data-selector-card-title seja exatamente a placa ---
+const crlvCard = page
+  .locator(`div[data-selector-card-title="${placa}"]`)
+  .first();
+await crlvCard.waitFor({ state: 'visible', timeout: 15_000 });
+await crlvCard.scrollIntoViewIfNeeded();
+await crlvCard.click({ force: true });
+
+log(`✅ CRLV ${placa} selecionado`);
 
     // Preenchimento
     const inputs = await page.locator('input[placeholder="Digite aqui ..."]');
