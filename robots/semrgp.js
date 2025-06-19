@@ -71,7 +71,6 @@ await page.goto(
 );
 await page.waitForLoadState('networkidle');
 
-// 👤 Selecionando cliente...
 log('👤 Selecionando cliente...');
 // 1) Abre o conector de cliente
 await page
@@ -84,8 +83,11 @@ await page.getByRole('textbox', { name: 'Pesquisar' }).fill(cpf);
 await page.waitForTimeout(1_500);
 
 // 3) Clica sempre no primeiro card exato
-const cardCli = page.locator(`[data-selector-card-title="${cpf}"]`).first();
-await cardCli.waitFor({ state: 'visible', timeout: 15_000 });
+const cardCli = page
+  .locator('div[data-testid^="connected-card-box"]')
+  .filter({ hasText: cpf })
+  .first();
+await cardCli.waitFor({ state: 'visible', timeout: 15000 });
 await cardCli.click({ force: true });
 log(`✅ Cliente ${cpf} selecionado`);
 
@@ -102,8 +104,11 @@ await page.getByRole('textbox', { name: 'Pesquisar' }).fill(placa);
 await page.waitForTimeout(1_500);
 
 // 3) Clica sempre no primeiro card exato
-const cardCRLV = page.locator(`[data-selector-card-title="${placa}"]`).first();
-await cardCRLV.waitFor({ state: 'visible', timeout: 15_000 });
+const cardCRLV = page
+  .locator('div[data-testid^="connected-card-box"]')
+  .filter({ hasText: placa })
+  .first();
+await cardCRLV.waitFor({ state: 'visible', timeout: 15000 });
 await cardCRLV.click({ force: true });
 log(`✅ CRLV ${placa} selecionado com sucesso`);
 
