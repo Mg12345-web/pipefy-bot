@@ -73,6 +73,15 @@ log('📂 Acessando Pipe Sem RGP...');
       await page.waitForTimeout(10000);
     }
 
+// Executar o preenchimento completo do card
+await abrirNovoCardPreCadastro(page, log);
+await selecionarCliente(page, cpf, log);
+await selecionarCRLV(page, placa, log);
+await preencherAIT(page, ait, log);
+await preencherOrgao(page, orgao, log);
+await preencherPrazoParaProtocoloComTeclado(page, prazo, log);
+await anexarAutuacao(page, caminhoPDF, log);
+
     async function abrirNovoCardPreCadastro(page, log = console.log) {
   log('📂 Abrindo novo card em "Pré-cadastro"...');
   const botaoNovoCard = page
