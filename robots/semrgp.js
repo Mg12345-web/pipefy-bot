@@ -128,14 +128,6 @@ if (orgao) {
   log('✅ Órgão preenchido');
 }
 
-// — Observação (se houver)
-if (obs) {
-  const obsInput = page.getByLabel('Observação');
-  await obsInput.waitFor({ state: 'visible', timeout: 15_000 });
-  await obsInput.fill(obs);
-  log('✅ Observação preenchida');
-}
-
 // — Prazo para Protocolo (cada parte tem um data-testid)
 log('🕒 Preenchendo "Prazo para Protocolo"...');
 await page.getByTestId('day-input').fill(String(df.day));
