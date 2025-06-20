@@ -7,30 +7,47 @@ const { runSemRgpRobot } = require('./semrgp');
 
 let fila = [];
 let emExecucao = false;
+const clientesProcessados = new Set();
+const placasProcessadas = new Set();
 
 function addToQueue(tarefa) {
   console.log('📦 Tarefa recebida no addToQueue:', JSON.stringify(tarefa, null, 2));
-  fila.push(tarefa);
-  if (tarefa.tipoServico)
-    console.log(`📥 Tarefa adicionada à fila. Total na fila: ${fila.length}`);
+
+  const autuacoesValidas = (tarefa.autuacoes || []).filter(a => a.arquivo && a.tipo);
+
+  if (autuacoesValidas.length > 1) {
+    console.log(`📑 Dividindo em ${autuacoesValidas.length} tarefas individuais...`);
+    autuacoesValidas.forEach(autuacao => {
+      const tarefaIndividual = {
+        ...tarefa,
+        autuacoes: [autuacao],
+        tipoServico: autuacao.tipo
+      };
+      fila.push(tarefaIndividual);
+    });
+  } else {
+    fila.push(tarefa);
+  }
+
+  console.log(`📥 Tarefa(s) adicionada(s) à fila. Total agora: ${fila.length}`);
 }
 
 function startQueue() {
   setInterval(() => {
-  if (emExecucao || fila.length === 0) return;
+    if (emExecucao || fila.length === 0) return;
 
-  console.log(`⏳ Verificando fila... emExecucao: ${emExecucao} | Tarefas pendentes: ${fila.length}`);
+    console.log(`⏳ Verificando fila... emExecucao: ${emExecucao} | Tarefas pendentes: ${fila.length}`);
 
-  const tarefa = fila.shift();
-  emExecucao = true;
+    const tarefa = fila.shift();
+    emExecucao = true;
 
-  console.log('🚀 Iniciando tarefa da fila...');
-  processarTarefa(tarefa)
-    .catch(err => console.error('❌ Erro ao processar tarefa:', err))
-    .finally(() => {
-      emExecucao = false;
-    });
-}, 3000);
+    console.log('🚀 Iniciando tarefa da fila...');
+    processarTarefa(tarefa)
+      .catch(err => console.error('❌ Erro ao processar tarefa:', err))
+      .finally(() => {
+        emExecucao = false;
+      });
+  }, 3000);
 }
 
 async function processarTarefa(tarefa) {
@@ -44,96 +61,62 @@ async function processarTarefa(tarefa) {
 
   console.log('📤 Dados do cliente recebidos:', req.body.dados);
 
-  // 🧠 CLIENTES
-  try {
-    console.log('\n📌 Executando robô de CLIENTES...');
-    await runClientRobot(req, fakeRes);
-    await aguardarEstabilizacao('CLIENTES');
-  } catch (err) {
-    console.error('❌ Erro no robô de CLIENTES:', err.message);
-  }
+  const cpf = tarefa.dados?.cpf?.replace(/\D/g, '');
+  const placa = tarefa.dados?.placa?.replace(/[^A-Z0-9]/gi, '').toUpperCase();
 
-  // 🚗 CRLV
-  try {
-    console.log('\n📌 Executando robô de CRLV...');
-    await runCrlvRobot(req, fakeRes);
-    await aguardarEstabilizacao('CRLV');
-  } catch (err) {
-    console.error('❌ Erro no robô de CRLV:', err.message);
-  }
-
-  // 🔄 Normaliza autuações
-  const autuacoesValidas = (tarefa.autuacoes || []).filter(a => a.arquivo && a.tipo);
-
-  // ✅ Log do tipo de serviço para debug
-  console.log('🧾 Tipo de serviço:', tarefa.tipoServico);
-
-   // RGP ou Sem RGP baseado em tipoServico
-  if (tarefa.tipoServico) {
-    const tipo = tarefa.tipoServico;
-const ait = tarefa.dados.numeroAIT || '0000000';
-const orgao = tarefa.dados.orgaoAutuador || 'SPTRANS';
-
-const fakeReq = {
-  files: {
-    autuacoes: (tarefa.autuacoes || []).map(a => ({ path: a.arquivo }))
-  },
-  body: {
-    ait,
-    orgao,
-    autuacoes: tarefa.autuacoes,
-    dados: tarefa.dados
-  }
-};
-
+  if (cpf && !clientesProcessados.has(cpf)) {
     try {
-      if (tipo === 'RGP') {
-        console.log('\n\u{1F4CC} Executando rob\u00f4 de RGP (tipo global)...');
-        await runRgpRobot(fakeReq, fakeRes);
-        await aguardarEstabilizacao('RGP');
-      } else if (tipo === 'Sem RGP') {
-        console.log('\n\u{1F4CC} Executando rob\u00f4 de Sem RGP (tipo global)...');
-        await runSemRgpRobot(fakeReq, fakeRes);
-        await aguardarEstabilizacao('Sem RGP');
-      }
+      console.log('\n📌 Executando robô de CLIENTES...');
+      await runClientRobot(req, fakeRes);
+      await aguardarEstabilizacao('CLIENTES');
     } catch (err) {
-      console.error(`\u274C Erro no rob\u00f4 de ${tipo}: ${err.message}`);
+      console.error('❌ Erro no robô de CLIENTES:', err.message);
     }
+
+    clientesProcessados.add(cpf);
+  } else {
+    console.log(`⏭️ Cliente ${cpf || 'desconhecido'} já foi processado. Pulando CLIENTES.`);
   }
 
-  // Autua\u00e7\u00f5es individuais
-  const autuacoesFiltradas = (tarefa.autuacoes || []).filter(a => a.arquivo && a.tipo);
-  for (const autuacao of autuacoesValidas) {
-    const tipo = autuacao.tipo;
-    const ait = autuacao.ait || tarefa.dados.numeroAIT || '';
-    const orgao = autuacao.orgao || tarefa.dados.orgaoAutuador || '';
-
-    if (!ait || !orgao) {
-      console.warn(`\u26A0\uFE0F Dados incompletos para autua\u00e7\u00e3o ${tipo}. Pulando execu\u00e7\u00e3o.`);
-      continue;
-    }
-
-    const fakeReq = {
-      files: { autuacoes: [{ path: autuacao.arquivo }] },
-      body: { ait, orgao, dados: tarefa.dados }
-    };
-
+  if (placa && !placasProcessadas.has(placa)) {
     try {
-      if (tipo === 'RGP') {
-        console.log('\n\u{1F4CC} Executando rob\u00f4 de RGP (individual)...');
-        await runRgpRobot(fakeReq, fakeRes);
-        await aguardarEstabilizacao('RGP');
-      } else if (tipo === 'Sem RGP') {
-        console.log('\n\u{1F4CC} Executando rob\u00f4 de Sem RGP (individual)...');
-        await runSemRgpRobot(fakeReq, fakeRes);
-        await aguardarEstabilizacao('Sem RGP');
-      }
+      console.log('\n📌 Executando robô de CRLV...');
+      await runCrlvRobot(req, fakeRes);
+      await aguardarEstabilizacao('CRLV');
     } catch (err) {
-      console.error(`\u274C Erro no rob\u00f4 individual de ${tipo}: ${err.message}`);
+      console.error('❌ Erro no robô de CRLV:', err.message);
     }
+
+    placasProcessadas.add(placa);
+  } else {
+    console.log(`⏭️ Placa ${placa || 'desconhecida'} já foi processada. Pulando CRLV.`);
   }
 
-  console.log('\n\u2705 Tarefa finalizada.');
+  const tipo = tarefa.tipoServico;
+  const autuacao = tarefa.autuacoes?.[0];
+  const ait = autuacao?.ait || tarefa.dados.numeroAIT || '0000000';
+  const orgao = autuacao?.orgao || tarefa.dados.orgaoAutuador || 'SPTRANS';
+
+  const fakeReq = {
+    files: { autuacoes: [{ path: autuacao.arquivo }] },
+    body: { ait, orgao, dados: tarefa.dados }
+  };
+
+  try {
+    if (tipo === 'RGP') {
+      console.log('\n📌 Executando robô de RGP...');
+      await runRgpRobot(fakeReq, fakeRes);
+      await aguardarEstabilizacao('RGP');
+    } else if (tipo === 'Sem RGP') {
+      console.log('\n📌 Executando robô de Sem RGP...');
+      await runSemRgpRobot(fakeReq, fakeRes);
+      await aguardarEstabilizacao('Sem RGP');
+    }
+  } catch (err) {
+    console.error(`❌ Erro no robô de ${tipo}: ${err.message}`);
+  }
+
+  console.log('\n✅ Tarefa finalizada.');
 }
 
 function criarRespostaSimples() {
@@ -145,9 +128,9 @@ function criarRespostaSimples() {
 }
 
 async function aguardarEstabilizacao(contexto) {
-  console.log(`\u23F3 Aguardando 60 segundos ap\u00f3s o rob\u00f4 de ${contexto}...`);
-  await new Promise(resolve => setTimeout(resolve, 60000));
-  console.log(`\u2705 Tempo de estabiliza\u00e7\u00e3o conclu\u00eddo para ${contexto}.\n`);
+  console.log(`⏳ Aguardando 60 segundos após o robô de ${contexto}...`);
+  await new Promise(resolve => setTimeout(resolve, 30000));
+  console.log(`✅ Tempo de estabilização concluído para ${contexto}.\n`);
 }
 
 module.exports = { addToQueue, startQueue };
