@@ -93,6 +93,9 @@ for (const nome of camposPrazo) {
   const cpfBruto = tarefa.dados?.cpf || tarefa.dados?.["cpf"];
 const placaBruta = tarefa.dados?.placa || tarefa.dados?.["placa"];
 
+const cpfBruto = tarefa.dados?.cpf || tarefa.dados?.["cpf"] || tarefa.dados?.["CPF"];
+const placaBruta = tarefa.dados?.placa || tarefa.dados?.["placa"] || tarefa.dados?.["Placa"];
+
 const cpf = cpfBruto ? cpfBruto.replace(/\D/g, '') : '';
 const placa = placaBruta ? placaBruta.replace(/[^A-Z0-9]/gi, '').toUpperCase() : '';
 
