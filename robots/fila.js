@@ -57,11 +57,21 @@ async function processarTarefa(tarefa) {
       dadosNormalizados[chave.toLowerCase()] = tarefa.dados[chave];
     }
     // Ajusta campos derivados
-    if (dadosNormalizados["prazo para protocolo"]) {
-  const prazoValor = dadosNormalizados["prazo para protocolo"];
-  dadosNormalizados.prazo = prazoValor;
-  dadosNormalizados.prazoProtocolo = prazoValor;
-  dadosNormalizados.prazo_protocolo = prazoValor;
+    const camposPrazo = [
+  'prazo para protocolo',
+  'prazoprotocolo',
+  'prazo_protocolo',
+  'prazo'
+];
+
+for (const nome of camposPrazo) {
+  if (dadosNormalizados[nome]) {
+    const prazoValor = dadosNormalizados[nome];
+    dadosNormalizados.prazo = prazoValor;
+    dadosNormalizados.prazoProtocolo = prazoValor;
+    dadosNormalizados.prazo_protocolo = prazoValor;
+    break;
+  }
 }
     tarefa.dados = dadosNormalizados;
   }
