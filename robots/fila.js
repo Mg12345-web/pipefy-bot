@@ -78,14 +78,20 @@ async function processarTarefa(tarefa) {
     console.log(`⏭️ Cliente ${cpf || 'desconhecido'} já foi processado. Pulando CLIENTES.`);
   }
 
-  if (placa && !placasProcessadas.has(placa)) {
-    try {
-      console.log('\n📌 Executando robô de CRLV...');
-      await runCrlvRobot(req, fakeRes);
-      await aguardarEstabilizacao('CRLV');
-    } catch (err) {
-      console.error('❌ Erro no robô de CRLV:', err.message);
-    }
+  if (!placa) {
+  console.warn(`⚠️ Nenhuma placa informada. Pulando CRLV.`);
+} else if (!placasProcessadas.has(placa)) {
+  try {
+    console.log('\\n📌 Executando robô de CRLV...');
+    await runCrlvRobot(req, fakeRes);
+    await aguardarEstabilizacao('CRLV');
+  } catch (err) {
+    console.error('❌ Erro no robô de CRLV:', err.message);
+  }
+  placasProcessadas.add(placa);
+} else {
+  console.log(`⏭️ Placa ${placa} já foi processada. Pulando CRLV.`);
+}
 
     placasProcessadas.add(placa);
   } else {
