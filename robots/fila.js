@@ -56,10 +56,13 @@ async function processarTarefa(tarefa) {
     for (const chave in tarefa.dados) {
       dadosNormalizados[chave.toLowerCase()] = tarefa.dados[chave];
     }
+    // Ajusta campos derivados
+    if (dadosNormalizados["prazo para protocolo"]) {
+      dadosNormalizados.prazo = dadosNormalizados["prazo para protocolo"];
+    }
     tarefa.dados = dadosNormalizados;
   }
 
-  // Compatibiliza tipoServico com campo 'robo', se necessário
   if (!tarefa.tipoServico && tarefa.robo) {
     tarefa.tipoServico = tarefa.robo;
   }
@@ -113,16 +116,16 @@ async function processarTarefa(tarefa) {
   const orgao = autuacao?.orgao || tarefa.dados.orgaoautuador || 'SPTRANS';
 
   if (!autuacao?.arquivo) {
-  console.warn(`⚠️ Nenhum arquivo encontrado para a autuação. Pulando execução do robô ${tipo?.toUpperCase()}.`);
-  return;
-}
+    console.warn(`⚠️ Nenhum arquivo encontrado para a autuação. Pulando execução do robô ${tipo?.toUpperCase()}.`);
+    return;
+  }
 
-const fakeReq = {
-  files: {
-    autuacoes: [{ path: autuacao.arquivo }]
-  },
-  body: { ait, orgao, dados: tarefa.dados }
-};
+  const fakeReq = {
+    files: {
+      autuacoes: [{ path: autuacao.arquivo }]
+    },
+    body: { ait, orgao, dados: tarefa.dados }
+  };
 
   try {
     if (tipo === 'rgp') {
