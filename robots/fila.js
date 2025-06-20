@@ -58,8 +58,11 @@ async function processarTarefa(tarefa) {
     }
     // Ajusta campos derivados
     if (dadosNormalizados["prazo para protocolo"]) {
-      dadosNormalizados.prazo = dadosNormalizados["prazo para protocolo"];
-    }
+  const prazoValor = dadosNormalizados["prazo para protocolo"];
+  dadosNormalizados.prazo = prazoValor;
+  dadosNormalizados.prazoProtocolo = prazoValor;
+  dadosNormalizados.prazo_protocolo = prazoValor;
+}
     tarefa.dados = dadosNormalizados;
   }
 
