@@ -93,11 +93,6 @@ async function processarTarefa(tarefa) {
   console.log(`⏭️ Placa ${placa} já foi processada. Pulando CRLV.`);
 }
 
-    placasProcessadas.add(placa);
-  } else {
-    console.log(`⏭️ Placa ${placa || 'desconhecida'} já foi processada. Pulando CRLV.`);
-  }
-
   const tipo = tarefa.tipoServico;
   const autuacao = tarefa.autuacoes?.[0];
   const ait = autuacao?.ait || tarefa.dados.numeroAIT || '0000000';
