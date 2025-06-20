@@ -6,12 +6,12 @@ const LOCK_PATH = path.join(os.tmpdir(), 'pipefy_robo.lock');
 
 function acquireLock() {
   try {
-    const lockFd = fs.openSync(LOCK_PATH, 'wx'); 
-    fs.writeFileSync(lockFd, String(process.pid)); 
+    const lockFd = fs.openSync(LOCK_PATH, 'wx');
+    fs.writeFileSync(lockFd, String(process.pid));
     fs.closeSync(lockFd);
     return true;
   } catch {
-    return false; 
+    return false;
   }
 }
 
@@ -25,8 +25,22 @@ function releaseLock() {
   }
 }
 
+// ➕ Captura erros não tratados
+process.on('uncaughtException', (err) => {
+  console.error('❌ Erro não tratado:', err);
+  releaseLock();
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Rejeição não tratada:', reason);
+  releaseLock();
+  process.exit(1);
+});
+
+// ➕ Garantir que sempre libere o lock
 process.on('exit', releaseLock);
-process.on('SIGINT', () => { releaseLock(); process.exit(); }); // Ctrl+C
-process.on('SIGTERM', () => { releaseLock(); process.exit(); }); // kill
+process.on('SIGINT', () => { releaseLock(); process.exit(); }); 
+process.on('SIGTERM', () => { releaseLock(); process.exit(); });
 
 module.exports = { acquireLock, releaseLock, LOCK_PATH };
