@@ -59,6 +59,11 @@ async function processarTarefa(tarefa) {
     tarefa.dados = dadosNormalizados;
   }
 
+  // Compatibiliza tipoServico com campo 'robo', se necessário
+  if (!tarefa.tipoServico && tarefa.robo) {
+    tarefa.tipoServico = tarefa.robo;
+  }
+
   const fakeRes = criarRespostaSimples();
 
   const req = {
