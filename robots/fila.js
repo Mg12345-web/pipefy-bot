@@ -80,8 +80,11 @@ async function processarTarefa(tarefa) {
 
   console.log('📤 Dados do cliente recebidos:', req.body.dados);
 
-  const cpf = tarefa.dados?.cpf?.replace(/\D/g, '');
-  const placa = tarefa.dados?.placa?.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+  const cpfBruto = tarefa.dados?.cpf || tarefa.dados?.["cpf"];
+const placaBruta = tarefa.dados?.placa || tarefa.dados?.["placa"];
+
+const cpf = cpfBruto ? cpfBruto.replace(/\D/g, '') : '';
+const placa = placaBruta ? placaBruta.replace(/[^A-Z0-9]/gi, '').toUpperCase() : '';
 
   if (cpf && !clientesProcessados.has(cpf)) {
     try {
