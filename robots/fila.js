@@ -51,7 +51,6 @@ function startQueue() {
 }
 
 async function processarTarefa(tarefa) {
-  // Normaliza as chaves do objeto 'dados' para lowercase
   if (tarefa.dados) {
     const dadosNormalizados = {};
     for (const chave in tarefa.dados) {
@@ -86,40 +85,44 @@ async function processarTarefa(tarefa) {
     console.log(`⏭️ Cliente ${cpf || 'desconhecido'} já foi processado. Pulando CLIENTES.`);
   }
 
-  if (!placa) {
-    console.warn(`⚠️ Nenhuma placa informada. Pulando CRLV.`);
-  } else if (!placasProcessadas.has(placa)) {
-    try {
+  try {
+    if (!placa) {
+      console.warn(`⚠️ Nenhuma placa informada. Pulando CRLV.`);
+    } else if (!placasProcessadas.has(placa)) {
       console.log('\n📌 Executando robô de CRLV...');
       await runCrlvRobot(req, fakeRes);
       await aguardarEstabilizacao('CRLV');
-    } catch (err) {
-      console.error('❌ Erro no robô de CRLV:', err.message);
+      placasProcessadas.add(placa);
+    } else {
+      console.log(`⏭️ Placa ${placa} já foi processada. Pulando CRLV.`);
     }
-    placasProcessadas.add(placa);
-  } else {
-    console.log(`⏭️ Placa ${placa} já foi processada. Pulando CRLV.`);
+  } catch (err) {
+    console.error('❌ Erro no robô de CRLV:', err.message);
   }
 
-  const tipo = tarefa.tipoServico;
+  const tipoOriginal = tarefa.tipoServico?.toLowerCase().trim();
+  const tipo = tipoOriginal === 'semrgp' ? 'sem rgp' : tipoOriginal;
+
   const autuacao = tarefa.autuacoes?.[0];
   const ait = autuacao?.ait || tarefa.dados.numeroait || '0000000';
   const orgao = autuacao?.orgao || tarefa.dados.orgaoautuador || 'SPTRANS';
 
   const fakeReq = {
-    files: { autuacoes: [{ path: autuacao.arquivo }] },
+    files: { autuacoes: autuacao?.arquivo ? [{ path: autuacao.arquivo }] : [] },
     body: { ait, orgao, dados: tarefa.dados }
   };
 
   try {
-    if (tipo === 'RGP') {
+    if (tipo === 'rgp') {
       console.log('\n📌 Executando robô de RGP...');
       await runRgpRobot(fakeReq, fakeRes);
       await aguardarEstabilizacao('RGP');
-    } else if (tipo === 'Sem RGP') {
+    } else if (tipo === 'sem rgp') {
       console.log('\n📌 Executando robô de Sem RGP...');
       await runSemRgpRobot(fakeReq, fakeRes);
       await aguardarEstabilizacao('Sem RGP');
+    } else {
+      console.warn(`⚠️ Tipo de serviço '${tipo}' não reconhecido. Nenhum robô executado.`);
     }
   } catch (err) {
     console.error(`❌ Erro no robô de ${tipo}: ${err.message}`);
