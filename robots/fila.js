@@ -112,10 +112,17 @@ async function processarTarefa(tarefa) {
   const ait = autuacao?.ait || tarefa.dados.numeroait || '0000000';
   const orgao = autuacao?.orgao || tarefa.dados.orgaoautuador || 'SPTRANS';
 
-  const fakeReq = {
-    files: { autuacoes: autuacao?.arquivo ? [{ path: autuacao.arquivo }] : [] },
-    body: { ait, orgao, dados: tarefa.dados }
-  };
+  if (!autuacao?.arquivo) {
+  console.warn(`⚠️ Nenhum arquivo encontrado para a autuação. Pulando execução do robô ${tipo?.toUpperCase()}.`);
+  return;
+}
+
+const fakeReq = {
+  files: {
+    autuacoes: [{ path: autuacao.arquivo }]
+  },
+  body: { ait, orgao, dados: tarefa.dados }
+};
 
   try {
     if (tipo === 'rgp') {
