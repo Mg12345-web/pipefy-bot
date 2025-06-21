@@ -18,6 +18,7 @@ async function interpretarImagemComGptVision(caminhoImagem, tipoDocumento = 'ger
 Você está lendo um CRLV (Certificado de Registro e Licenciamento de Veículo).
 
 ⚠️ Extraia **apenas a placa atual do veículo**. Ignore completamente campos como "placa anterior", "PLACA ANTERIOR / UF" ou qualquer coisa semelhante.
+Extraia **apenas CÓDIGO RENAVAM**. Ignore completamente campos como "NÚMERO DO CRV", "CÓDIGO DE SEGURANÇA DO CLA" ou qualquer coisa semelhante.
 
 Retorne exatamente neste formato JSON:
 {
