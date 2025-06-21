@@ -41,11 +41,20 @@ function startQueue() {
 async function processarTarefa(tarefa) {
   const fakeRes = criarRespostaSimples();
 
+  const pastaDoCliente = tarefa.idCliente
+    ? path.join(__dirname, '..', 'temp', tarefa.idCliente)
+    : path.join(__dirname, '..', 'temp', 'geral');
+
+  fs.mkdirSync(pastaDoCliente, { recursive: true });
+  console.log('📁 Pasta do cliente isolada:', pastaDoCliente);
+
   const req = {
     query: { observacao: 'Cadastro via site' },
     body: tarefa,
     files: tarefa.arquivos
   };
+
+  req.body.tempPath = pastaDoCliente;
 
   console.log('📤 Dados do cliente recebidos:', req.body.dados);
 
