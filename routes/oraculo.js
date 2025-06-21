@@ -153,7 +153,8 @@ async function handleOraculo(req, res) {
     tempPath: pastaTemp,
     timestamp: Date.now(),
     robo: i === 0 ? 'RGP' : 'Sem RGP',
-    ultimaTarefa: ultimaAutuacao
+    ultimaTarefa: ultimaAutuacao,
+    idCliente: idCliente
   };
 
   console.log(`📤 Enviando tarefa ${i + 1}/${autuacoes.length}:`, JSON.stringify(tarefaAutuacao, null, 2));
@@ -193,7 +194,8 @@ async function handleOraculo(req, res) {
       dados,
       tipoServico: servico,
       tempPath: pastaTemp,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      tarefa.idCliente = idCliente;
     };
 
     const robos = [];
