@@ -117,42 +117,78 @@ if (!cpf || !placa) {
   return res.status(400).send({ status: 'erro', mensagem: 'CPF ou Placa ausente' });
 }
 
-console.log('🔍 Autuações recebidas (sem filtro):', autuacoes);
-console.log('✅ Chegou após autuações, preparando tarefa...');
+// 🔧 Cria pasta temporária para o cliente (evita sobreposição entre requisições)
+const idCliente = `${cpf.replace(/\D/g, '')}_${Date.now()}`;
+const pastaTemp = path.join(__dirname, '..', 'temp', idCliente);
+fs.mkdirSync(pastaTemp, { recursive: true });
 
-// Se não houver autuações (ex: modo individual), tenta pegar direto do req.body
-const autuacaoPrincipal = (autuacoes.length ? autuacoes[0] : {
+if (autuacoes.length > 1) {
+  console.log('📚 Múltiplas autuações detectadas. Gerando tarefas separadas...');
+  for (let i = 0; i < autuacoes.length; i++) {
+    const autuacao = autuacoes[i];
+    const dadosAutuacao = {
+      ...dados,
+      AIT: autuacao.ait || '',
+      'Órgão Autuador': autuacao.orgao || '',
+      'Prazo para Protocolo': autuacao.prazo || '',
+    };
+
+    const tarefaAutuacao = {
+      email,
+      telefone,
+      arquivos: i === 0 ? arquivos : {}, // arquivos só na primeira autuação
+      autuacoes: [autuacao],
+      dados: dadosAutuacao,
+      tipoServico: servico,
+      tempPath: pastaTemp,
+      timestamp: Date.now(),
+      robo: i === 0 ? 'RGP' : 'Sem RGP',
+    };
+
+    console.log('📤 Tarefa enfileirada:', JSON.stringify(tarefaAutuacao, null, 2));
+    addToQueue(tarefaAutuacao);
+  }
+
+  res.send({
+    status: 'ok',
+    mensagem: 'Tarefas separadas enfileiradas com sucesso',
+    dadosExtraidos: { ...dados }
+  });
+
+  fs.writeFileSync('./logs/ultimo-oraculo.json', JSON.stringify({ dadosExtraidos: { ...dados, aits: autuacoes.map(a => a.ait) } }, null, 2));
+  return;
+}
+
+// 🔁 Caso tenha apenas UMA autuação, segue o fluxo padrão
+const autuacaoPrincipal = autuacoes[0] || {
   ait: req.body.ait,
   orgao: req.body.orgao,
   prazo: req.body.prazo
-}) || {};
+};
 
 dados['AIT'] = autuacaoPrincipal.ait || '';
 dados['Órgão Autuador'] = autuacaoPrincipal.orgao || '';
 dados['Prazo para Protocolo'] = autuacaoPrincipal.prazo || '';
 
-
-tarefa = {
+let tarefa = {
   email,
   telefone,
   arquivos,
   autuacoes,
   dados,
   tipoServico: servico,
+  tempPath: pastaTemp,
   timestamp: Date.now()
 };
 
-// Ativação condicional de robôs com base no tipo de serviço
-    const robos = [];
+// Identifica o robô
+const tipoServicoNormalizado = (servico || '').trim().toLowerCase();
+const robos = [];
 
 if (tipoServicoNormalizado === 'rgp') robos.push('RGP');
 if (tipoServicoNormalizado === 'sem rgp') robos.push('Sem RGP');
 
-console.log('🤖 Robôs atribuídos:', robos);
-
 if (robos.length === 0) {
-  console.warn('⚠️ Nenhum robô atribuído. Serviço não reconhecido:', tipoServicoNormalizado);
-  // FORÇA ENVIO DE TESTE:
   tarefa.robo = 'Sem RGP';
   console.log('🚨 Enviando tarefa manualmente com robô forçado:', tarefa.robo);
   addToQueue(tarefa);
@@ -164,24 +200,10 @@ if (robos.length === 0) {
   }
 }
 
-    res.send({
-      status: 'ok',
-      mensagem: 'Oráculo processado com sucesso',
-      dadosExtraidos: { ...dados }
-    });
+res.send({
+  status: 'ok',
+  mensagem: 'Oráculo processado com sucesso',
+  dadosExtraidos: { ...dados }
+});
 
-    fs.writeFileSync('./logs/ultimo-oraculo.json', JSON.stringify({ dadosExtraidos: { ...dados, aits } }, null, 2));
-
-  } catch (err) {
-    console.error('❌ Oráculo erro:', err.message);
-    res.status(500).send({ status: 'erro', mensagem: err.message });
-
-    try {
-      fs.writeFileSync(`./logs/oraculo_${Date.now()}.json`, JSON.stringify(tarefa, null, 2));
-    } catch (logErr) {
-      console.error('⚠️ Falha ao salvar log do oráculo:', logErr.message);
-    }
-  }
-}
-
-module.exports = { handleOraculo };
+fs.writeFileSync('./logs/ultimo-oraculo.json', JSON.stringify({ dadosExtraidos: { ...dados, aits: autuacoes.map(a => a.ait) } }, null, 2));
