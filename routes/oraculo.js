@@ -125,38 +125,45 @@ async function handleOraculo(req, res) {
       console.log('📚 Múltiplas autuações detectadas. Gerando tarefas separadas com atraso entre elas...');
 
       for (let i = 0; i < autuacoes.length; i++) {
-        const autuacao = autuacoes[i];
-        const ultimaAutuacao = i === autuacoes.length - 1;
+  const autuacao = autuacoes[i];
+  const ultimaAutuacao = i === autuacoes.length - 1;
 
-        const dadosAutuacao = {
-          ...dados,
-          AIT: autuacao.ait || '',
-          'Órgão Autuador': autuacao.orgao || '',
-          'Prazo para Protocolo': autuacao.prazo || '',
-        };
-
-        const tarefaAutuacao = {
-          email,
-          telefone,
-          arquivos: i === 0 ? arquivos : {},
-          autuacoes: [autuacao],
-          dados: dadosAutuacao,
-          tipoServico: servico,
-          tempPath: pastaTemp,
-          timestamp: Date.now(),
-          robo: i === 0 ? 'RGP' : 'Sem RGP',
-          ultimaTarefa: ultimaAutuacao
-        };
-
-        console.log(`📤 Enviando tarefa ${i + 1}/${autuacoes.length}:`, JSON.stringify(tarefaAutuacao, null, 2));
-        addToQueue(tarefaAutuacao);
-
-        if (!ultimaAutuacao) {
-          console.log('⏳ Aguardando 5 minutos antes da próxima tarefa...');
-          await delay(5 * 60 * 1000);
-        }
+  const dadosAutuacao = i === 0
+    ? {
+        ...dados,
+        AIT: autuacao.ait || '',
+        'Órgão Autuador': autuacao.orgao || '',
+        'Prazo para Protocolo': autuacao.prazo || '',
       }
+    : {
+        CPF: dados['CPF'],
+        Placa: dados['Placa'],
+        AIT: autuacao.ait || '',
+        'Órgão Autuador': autuacao.orgao || '',
+        'Prazo para Protocolo': autuacao.prazo || '',
+      };
 
+  const tarefaAutuacao = {
+    email,
+    telefone,
+    arquivos: i === 0 ? arquivos : {},
+    autuacoes: [autuacao],
+    dados: dadosAutuacao,
+    tipoServico: servico,
+    tempPath: pastaTemp,
+    timestamp: Date.now(),
+    robo: i === 0 ? 'RGP' : 'Sem RGP',
+    ultimaTarefa: ultimaAutuacao
+  };
+
+  console.log(`📤 Enviando tarefa ${i + 1}/${autuacoes.length}:`, JSON.stringify(tarefaAutuacao, null, 2));
+  addToQueue(tarefaAutuacao);
+
+  if (!ultimaAutuacao) {
+    console.log('⏳ Aguardando 5 minutos antes da próxima tarefa...');
+    await delay(5 * 60 * 1000);
+  }
+}
       res.send({
         status: 'ok',
         mensagem: 'Tarefas enfileiradas com espaçamento de 5 minutos',
