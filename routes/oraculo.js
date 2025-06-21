@@ -125,29 +125,30 @@ fs.mkdirSync(pastaTemp, { recursive: true });
 if (autuacoes.length > 1) {
   console.log('📚 Múltiplas autuações detectadas. Gerando tarefas separadas...');
   for (let i = 0; i < autuacoes.length; i++) {
-    const autuacao = autuacoes[i];
-    const dadosAutuacao = {
-      ...dados,
-      AIT: autuacao.ait || '',
-      'Órgão Autuador': autuacao.orgao || '',
-      'Prazo para Protocolo': autuacao.prazo || '',
-    };
+  const autuacao = autuacoes[i];
+  const dadosAutuacao = {
+    ...dados,
+    AIT: autuacao.ait || '',
+    'Órgão Autuador': autuacao.orgao || '',
+    'Prazo para Protocolo': autuacao.prazo || '',
+  };
 
-    const tarefaAutuacao = {
-      email,
-      telefone,
-      arquivos: i === 0 ? arquivos : {}, // arquivos só na primeira autuação
-      autuacoes: [autuacao],
-      dados: dadosAutuacao,
-      tipoServico: servico,
-      tempPath: pastaTemp,
-      timestamp: Date.now(),
-      robo: i === 0 ? 'RGP' : 'Sem RGP',
-    };
+  const tarefaAutuacao = {
+    email,
+    telefone,
+    arquivos: i === 0 ? arquivos : {}, // arquivos só na primeira autuação
+    autuacoes: [autuacao],
+    dados: dadosAutuacao,
+    tipoServico: servico,
+    tempPath: pastaTemp,
+    timestamp: Date.now(),
+    robo: i === 0 ? 'RGP' : 'Sem RGP',
+    ultimaTarefa: i === autuacoes.length - 1 // ✅ aqui está o segredo
+  };
 
-    console.log('📤 Tarefa enfileirada:', JSON.stringify(tarefaAutuacao, null, 2));
-    addToQueue(tarefaAutuacao);
-  }
+  console.log('📤 Tarefa enfileirada:', JSON.stringify(tarefaAutuacao, null, 2));
+  addToQueue(tarefaAutuacao);
+}
 
   res.send({
     status: 'ok',
