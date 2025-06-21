@@ -200,17 +200,21 @@ async function handleOraculo(req, res) {
     if (tipoServicoNormalizado === 'rgp') robos.push('RGP');
     if (tipoServicoNormalizado === 'sem rgp') robos.push('Sem RGP');
 
-    if (robos.length === 0) {
-      tarefa.robo = 'Sem RGP';
-      console.log('🚨 Enviando tarefa manualmente com robô forçado:', tarefa.robo);
-      addToQueue(tarefa);
-    } else {
-      for (const robo of robos) {
-        const tarefaFinal = { ...tarefa, robo };
-        console.log('📤 Tarefa enviada ao robô:', JSON.stringify(tarefaFinal, null, 2));
-        addToQueue(tarefaFinal);
-      }
-    }
+    // Aguarda 5 minutos antes de enviar a tarefa (mesmo que seja uma só)
+console.log('⏳ Aguardando 5 minutos antes de enviar tarefa única...');
+await delay(5 * 60 * 1000);
+
+if (robos.length === 0) {
+  tarefa.robo = 'Sem RGP';
+  console.log('🚨 Enviando tarefa manualmente com robô forçado:', tarefa.robo);
+  addToQueue(tarefa);
+} else {
+  for (const robo of robos) {
+    const tarefaFinal = { ...tarefa, robo };
+    console.log('📤 Tarefa enviada ao robô:', JSON.stringify(tarefaFinal, null, 2));
+    addToQueue(tarefaFinal);
+  }
+}
 
     res.send({
       status: 'ok',
