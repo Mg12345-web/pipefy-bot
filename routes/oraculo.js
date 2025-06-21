@@ -187,16 +187,16 @@ async function handleOraculo(req, res) {
     dados['Prazo para Protocolo'] = autuacaoPrincipal.prazo || '';
 
     tarefa = {
-      email,
-      telefone,
-      arquivos,
-      autuacoes,
-      dados,
-      tipoServico: servico,
-      tempPath: pastaTemp,
-      timestamp: Date.now(),
-      tarefa.idCliente = idCliente;
-    };
+  email,
+  telefone,
+  arquivos,
+  autuacoes,
+  dados,
+  tipoServico: servico,
+  tempPath: pastaTemp,
+  timestamp: Date.now(),
+  idCliente
+};
 
     const robos = [];
     if (tipoServicoNormalizado === 'rgp') robos.push('RGP');
