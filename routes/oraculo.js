@@ -5,12 +5,15 @@ const { interpretarImagemComGptVision } = require('../utils/gptVision');
 const { extrairAitsDosArquivos } = require('../utils/extrairAitsDosArquivos');
 const { addToQueue } = require('../robots/fila');
 
+// ✅ Função de delay
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+
 async function handleOraculo(req, res) {
   const { email, telefone, servico } = req.body;
-const tipoServicoNormalizado = (servico || '').trim().toLowerCase();
-const arquivos = {};
-let autuacoes = [];
-let tarefa = {};
+  const tipoServicoNormalizado = (servico || '').trim().toLowerCase();
+  const arquivos = {};
+  let autuacoes = [];
+  let tarefa = {};
 
   // Copia dados manuais
   let dados = { ...req.body.dados };
@@ -20,41 +23,39 @@ let tarefa = {};
   console.log('📥 req.body:', JSON.stringify(req.body, null, 2));
   console.log('📎 req.files:', req.files?.map(f => f.originalname));
 
-  // Captura todos os campos de autuações (ait, orgao, tipo, prazo etc.)
+  // Captura autuações
   if (Array.isArray(req.body.autuacoes)) {
-  autuacoes = req.body.autuacoes.map((a) => ({ ...a }));
-} else {
-  Object.keys(req.body).forEach(key => {
-    const match = key.match(/autuacoes\[(\d+)\]\[(.+?)\]/);
-    if (match) {
-      const idx = +match[1];
-      const prop = match[2];
-      autuacoes[idx] = autuacoes[idx] || {};
-      autuacoes[idx][prop] = req.body[key];
-    }
-  });
-}
+    autuacoes = req.body.autuacoes.map((a) => ({ ...a }));
+  } else {
+    Object.keys(req.body).forEach(key => {
+      const match = key.match(/autuacoes\[(\d+)\]\[(.+?)\]/);
+      if (match) {
+        const idx = +match[1];
+        const prop = match[2];
+        autuacoes[idx] = autuacoes[idx] || {};
+        autuacoes[idx][prop] = req.body[key];
+      }
+    });
+  }
 
-  // 🔁 Preenche tipo com base no serviço, se estiver faltando
   autuacoes.forEach(a => {
     if (!a.tipo && servico) {
       a.tipo = servico;
     }
   });
 
-  // 🔧 Associa corretamente os arquivos a cada autuação
-    for (const file of req.files || []) {
-      const field = file.fieldname;
-      const match = field.match(/autuacoes\[(\d+)\]\[arquivo\]/);
-      if (match) {
-        const idx = +match[1];
-        autuacoes[idx] = autuacoes[idx] || {};
-        autuacoes[idx].arquivo = file.path;
-      } else {
-        arquivos[field] = arquivos[field] || [];
-        arquivos[field].push(file);
-      }
+  for (const file of req.files || []) {
+    const field = file.fieldname;
+    const match = field.match(/autuacoes\[(\d+)\]\[arquivo\]/);
+    if (match) {
+      const idx = +match[1];
+      autuacoes[idx] = autuacoes[idx] || {};
+      autuacoes[idx].arquivo = file.path;
+    } else {
+      arquivos[field] = arquivos[field] || [];
+      arquivos[field].push(file);
     }
+  }
 
   const procuracao = req.files?.find(f => f.fieldname === 'procuracao')?.path;
   const crlv = req.files?.find(f => f.fieldname === 'crlv')?.path;
@@ -106,105 +107,116 @@ let tarefa = {};
       dados['Endereço Completo'] = `${dados.logradouro}, ${dados.numero} - ${dados.bairro} - ${dados.cidade}/${dados.estado || ''}`;
     }
 
-    // 🛠️ Garante que 'Placa' esteja nos dados, mesmo se vier fora do objeto 'dados'
-dados['Placa'] = dados['Placa'] || req.body.placa || req.body.Placa || '';
+    dados['Placa'] = dados['Placa'] || req.body.placa || req.body.Placa || '';
 
-const cpf = dados['CPF'];
-const placa = dados['Placa'];
+    const cpf = dados['CPF'];
+    const placa = dados['Placa'];
 
-if (!cpf || !placa) {
-  console.warn('⚠️ CPF ou Placa ausente. Encerrando sem enviar à fila.');
-  return res.status(400).send({ status: 'erro', mensagem: 'CPF ou Placa ausente' });
-}
+    if (!cpf || !placa) {
+      console.warn('⚠️ CPF ou Placa ausente. Encerrando sem enviar à fila.');
+      return res.status(400).send({ status: 'erro', mensagem: 'CPF ou Placa ausente' });
+    }
 
-// 🔧 Cria pasta temporária para o cliente (evita sobreposição entre requisições)
-const idCliente = `${cpf.replace(/\D/g, '')}_${Date.now()}`;
-const pastaTemp = path.join(__dirname, '..', 'temp', idCliente);
-fs.mkdirSync(pastaTemp, { recursive: true });
+    const idCliente = `${cpf.replace(/\D/g, '')}_${Date.now()}`;
+    const pastaTemp = path.join(__dirname, '..', 'temp', idCliente);
+    fs.mkdirSync(pastaTemp, { recursive: true });
 
-if (autuacoes.length > 1) {
-  console.log('📚 Múltiplas autuações detectadas. Gerando tarefas separadas...');
-  for (let i = 0; i < autuacoes.length; i++) {
-  const autuacao = autuacoes[i];
-  const dadosAutuacao = {
-    ...dados,
-    AIT: autuacao.ait || '',
-    'Órgão Autuador': autuacao.orgao || '',
-    'Prazo para Protocolo': autuacao.prazo || '',
-  };
+    if (autuacoes.length > 1) {
+      console.log('📚 Múltiplas autuações detectadas. Gerando tarefas separadas com atraso entre elas...');
 
-  const tarefaAutuacao = {
-    email,
-    telefone,
-    arquivos: i === 0 ? arquivos : {}, // arquivos só na primeira autuação
-    autuacoes: [autuacao],
-    dados: dadosAutuacao,
-    tipoServico: servico,
-    tempPath: pastaTemp,
-    timestamp: Date.now(),
-    robo: i === 0 ? 'RGP' : 'Sem RGP',
-    ultimaTarefa: i === autuacoes.length - 1 // ✅ aqui está o segredo
-  };
+      for (let i = 0; i < autuacoes.length; i++) {
+        const autuacao = autuacoes[i];
+        const ultimaAutuacao = i === autuacoes.length - 1;
 
-  console.log('📤 Tarefa enfileirada:', JSON.stringify(tarefaAutuacao, null, 2));
-  addToQueue(tarefaAutuacao);
-}
+        const dadosAutuacao = {
+          ...dados,
+          AIT: autuacao.ait || '',
+          'Órgão Autuador': autuacao.orgao || '',
+          'Prazo para Protocolo': autuacao.prazo || '',
+        };
 
-  res.send({
-    status: 'ok',
-    mensagem: 'Tarefas separadas enfileiradas com sucesso',
-    dadosExtraidos: { ...dados }
-  });
+        const tarefaAutuacao = {
+          email,
+          telefone,
+          arquivos: i === 0 ? arquivos : {},
+          autuacoes: [autuacao],
+          dados: dadosAutuacao,
+          tipoServico: servico,
+          tempPath: pastaTemp,
+          timestamp: Date.now(),
+          robo: i === 0 ? 'RGP' : 'Sem RGP',
+          ultimaTarefa: ultimaAutuacao
+        };
 
-  fs.writeFileSync('./logs/ultimo-oraculo.json', JSON.stringify({ dadosExtraidos: { ...dados, aits: autuacoes.map(a => a.ait) } }, null, 2));
-  return;
-}
+        console.log(`📤 Enviando tarefa ${i + 1}/${autuacoes.length}:`, JSON.stringify(tarefaAutuacao, null, 2));
+        addToQueue(tarefaAutuacao);
 
-// 🔁 Caso tenha apenas UMA autuação, segue o fluxo padrão
-const autuacaoPrincipal = autuacoes[0] || {
-  ait: req.body.ait,
-  orgao: req.body.orgao,
-  prazo: req.body.prazo
-};
+        if (!ultimaAutuacao) {
+          console.log('⏳ Aguardando 5 minutos antes da próxima tarefa...');
+          await delay(5 * 60 * 1000);
+        }
+      }
 
-dados['AIT'] = autuacaoPrincipal.ait || '';
-dados['Órgão Autuador'] = autuacaoPrincipal.orgao || '';
-dados['Prazo para Protocolo'] = autuacaoPrincipal.prazo || '';
+      res.send({
+        status: 'ok',
+        mensagem: 'Tarefas enfileiradas com espaçamento de 5 minutos',
+        dadosExtraidos: { ...dados }
+      });
 
-let tarefa = {
-  email,
-  telefone,
-  arquivos,
-  autuacoes,
-  dados,
-  tipoServico: servico,
-  tempPath: pastaTemp,
-  timestamp: Date.now()
-};
+      fs.writeFileSync('./logs/ultimo-oraculo.json', JSON.stringify({ dadosExtraidos: { ...dados, aits: autuacoes.map(a => a.ait) } }, null, 2));
+      return;
+    }
 
-// Identifica o robô
-const tipoServicoNormalizado = (servico || '').trim().toLowerCase();
-const robos = [];
+    // Caso tenha só uma autuação
+    const autuacaoPrincipal = autuacoes[0] || {
+      ait: req.body.ait,
+      orgao: req.body.orgao,
+      prazo: req.body.prazo
+    };
 
-if (tipoServicoNormalizado === 'rgp') robos.push('RGP');
-if (tipoServicoNormalizado === 'sem rgp') robos.push('Sem RGP');
+    dados['AIT'] = autuacaoPrincipal.ait || '';
+    dados['Órgão Autuador'] = autuacaoPrincipal.orgao || '';
+    dados['Prazo para Protocolo'] = autuacaoPrincipal.prazo || '';
 
-if (robos.length === 0) {
-  tarefa.robo = 'Sem RGP';
-  console.log('🚨 Enviando tarefa manualmente com robô forçado:', tarefa.robo);
-  addToQueue(tarefa);
-} else {
-  for (const robo of robos) {
-    const tarefaFinal = { ...tarefa, robo };
-    console.log('📤 Tarefa enviada ao robô:', JSON.stringify(tarefaFinal, null, 2));
-    addToQueue(tarefaFinal);
+    tarefa = {
+      email,
+      telefone,
+      arquivos,
+      autuacoes,
+      dados,
+      tipoServico: servico,
+      tempPath: pastaTemp,
+      timestamp: Date.now()
+    };
+
+    const robos = [];
+    if (tipoServicoNormalizado === 'rgp') robos.push('RGP');
+    if (tipoServicoNormalizado === 'sem rgp') robos.push('Sem RGP');
+
+    if (robos.length === 0) {
+      tarefa.robo = 'Sem RGP';
+      console.log('🚨 Enviando tarefa manualmente com robô forçado:', tarefa.robo);
+      addToQueue(tarefa);
+    } else {
+      for (const robo of robos) {
+        const tarefaFinal = { ...tarefa, robo };
+        console.log('📤 Tarefa enviada ao robô:', JSON.stringify(tarefaFinal, null, 2));
+        addToQueue(tarefaFinal);
+      }
+    }
+
+    res.send({
+      status: 'ok',
+      mensagem: 'Oráculo processado com sucesso',
+      dadosExtraidos: { ...dados }
+    });
+
+    fs.writeFileSync('./logs/ultimo-oraculo.json', JSON.stringify({ dadosExtraidos: { ...dados, aits: autuacoes.map(a => a.ait) } }, null, 2));
+
+  } catch (err) {
+    console.error('❌ Oráculo erro:', err.message);
+    res.status(500).send({ status: 'erro', mensagem: err.message });
   }
 }
 
-res.send({
-  status: 'ok',
-  mensagem: 'Oráculo processado com sucesso',
-  dadosExtraidos: { ...dados }
-});
-
-fs.writeFileSync('./logs/ultimo-oraculo.json', JSON.stringify({ dadosExtraidos: { ...dados, aits: autuacoes.map(a => a.ait) } }, null, 2));
+module.exports = { handleOraculo };
