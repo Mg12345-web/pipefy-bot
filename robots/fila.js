@@ -41,9 +41,23 @@ function startQueue() {
 async function processarTarefa(tarefa) {
   const fakeRes = criarRespostaSimples();
 
-  const pastaDoCliente = tarefa.idCliente
-    ? path.join(__dirname, '..', 'temp', tarefa.idCliente)
-    : path.join(__dirname, '..', 'temp', 'geral');
+  const pastaDoCliente = path.join(__dirname, '..', 'temp', `tarefa_${Date.now()}`);
+fs.mkdirSync(pastaDoCliente, { recursive: true });
+console.log('📁 Pasta temporária criada para a tarefa:', pastaDoCliente);
+
+// Copiar os arquivos de autuação para a pasta da tarefa
+if (tarefa.autuacoes && tarefa.autuacoes.length) {
+  for (const autuacao of tarefa.autuacoes) {
+    const origem = autuacao.arquivo;
+    const destino = path.join(pastaDoCliente, path.basename(origem));
+    try {
+      fs.copyFileSync(origem, destino);
+      autuacao.arquivo = destino;
+    } catch (e) {
+      console.warn(`⚠️ Erro ao copiar arquivo de autuação: ${origem} → ${destino}`, e.message);
+    }
+  }
+}
 
   fs.mkdirSync(pastaDoCliente, { recursive: true });
   console.log('📁 Pasta do cliente isolada:', pastaDoCliente);
