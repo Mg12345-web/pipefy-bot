@@ -279,7 +279,8 @@ async function preencherPrazoParaProtocoloComTeclado(page, prazo, log = console.
     if (browser) await browser.close();
     res.end('</pre><h3 style="color:red">❌ Erro no robô Sem RGP.</h3>');
   } finally {
-    if (fs.existsSync(caminhoPDF)) fs.unlinkSync(caminhoPDF);
+    if (req.body?.ultimaTarefa && fs.existsSync(caminhoPDF)) {
+    fs.unlinkSync(caminhoPDF);
     releaseLock();
   }
 }
