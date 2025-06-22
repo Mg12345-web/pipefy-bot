@@ -93,7 +93,7 @@ if (tarefa.autuacoes && tarefa.autuacoes.length) {
   console.log('🧾 Tipo de serviço:', tarefa.tipoServico);
 
   if (tarefa.tipoServico) {
-    const tipo = tarefa.tipoServico;
+    const tipo = (tarefa.tipoServico || '').trim().toLowerCase();
     const ait = tarefa.dados.numeroAIT || '0000000';
     const orgao = tarefa.dados.orgaoAutuador || 'SPTRANS';
 
