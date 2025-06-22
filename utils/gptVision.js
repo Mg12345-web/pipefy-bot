@@ -8,6 +8,7 @@ const openai = new OpenAI({
 
 async function interpretarImagemComGptVision(caminhoImagem, tipoDocumento = 'geral') {
   const imagemBase64 = fs.readFileSync(path.resolve(caminhoImagem), { encoding: 'base64' });
+  await new Promise(resolve => setTimeout(resolve, 15000));
 
   let prompt = '';
   switch (tipoDocumento) {
