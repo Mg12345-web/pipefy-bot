@@ -18,6 +18,9 @@ async function handleOraculo(req, res) {
   let autuacoes = [];
   let tarefa = {};
 
+  if (!req.body.placa && req.body.dados?.Placa) {
+  req.body.placa = req.body.dados.Placa;
+}
     if (tipoServicoNormalizado === 'processo administrativo') {
     const numeroProcesso = req.body.numeroProcesso;
     const orgao = req.body.orgao;
