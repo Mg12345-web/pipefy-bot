@@ -98,16 +98,23 @@ if (tarefa.autuacoes && tarefa.autuacoes.length) {
     const orgao = tarefa.dados.orgaoAutuador || 'SPTRANS';
 
         if (tipo === 'processo administrativo') {
-      console.log('\n📍 Executando robô de Processo Administrativo...');
-      try {
-        await runProcessoAdministrativoRobot(req, fakeRes);
-        await aguardarEstabilizacao('Processo Administrativo');
-      } catch (err) {
-        console.error('❌ Erro no robô de Processo Administrativo:', err.message);
-      }
-      return; // Encerra aqui, pois processo administrativo é único
-    }
+        console.log('\n📍 Executando robô de Processo Administrativo...');
 
+  // ✅ Ajustar req.body com os dados corretos
+  req.body.cpf = tarefa.dados.CPF;
+  req.body.numeroProcesso = tarefa.dados['Número do Processo'];
+  req.body.orgao = tarefa.dados['Órgão'];
+  req.body.prazo = tarefa.dados['Prazo para Protocolo'];
+  req.body.documento = tarefa.arquivos?.documento?.[0];
+
+  try {
+    await runProcessoAdministrativoRobot(req, fakeRes);
+    await aguardarEstabilizacao('Processo Administrativo');
+  } catch (err) {
+    console.error('❌ Erro no robô de Processo Administrativo:', err.message);
+  }
+  return; // Encerra aqui, pois processo administrativo é único
+}
     const fakeReq = {
       files: {
         autuacoes: (tarefa.autuacoes || []).map(a => ({ path: a.arquivo }))
