@@ -51,7 +51,8 @@ async function runProcessoAdministrativo(req, res) {
     return res.end('</pre>');
   }
 
-  const { cpf, numeroProcesso, orgao, prazo, documento } = req.body;
+  const { cpf, numeroProcesso, orgao, prazo } = req.body;
+  const documento = (req.files?.documento || [])[0];
   const caminhoPDF = documento?.path || '';
 
   if (!cpf || !numeroProcesso || !orgao || !prazo || !caminhoPDF) {
