@@ -16,10 +16,10 @@ async function handleOraculo(req, res) {
   let tarefa = {};
 
     if (tipoServicoNormalizado === 'processo administrativo') {
-    const { cpf, numeroProcesso, orgao, prazo } = req.body;
+    const { CPF, numeroProcesso, orgao, prazo, placa } = req.body;
     const documento = req.files?.find(f => f.fieldname === 'documento');
 
-    if (!cpf || !numeroProcesso || !orgao || !prazo || !documento) {
+    if (!CPF || !numeroProcesso || !orgao || !prazo || !Placa || !documento) {
       return res.status(400).send({ status: 'erro', mensagem: 'Campos obrigatórios ausentes para processo administrativo' });
     }
 
@@ -31,7 +31,8 @@ async function handleOraculo(req, res) {
       CPF: cpf,
       'Número do Processo': numeroProcesso,
       'Órgão': orgao,
-      'Prazo para Protocolo': prazo
+      'Prazo para Protocolo': prazo,
+      'Placa': placa
     };
 
     const tarefa = {
@@ -151,8 +152,8 @@ async function handleOraculo(req, res) {
 
     dados['Placa'] = dados['Placa'] || req.body.placa || req.body.Placa || '';
 
-    dados['CPF'] = dados['CPF'] || req.body.cpf || '';
-    dados['Placa'] = dados['Placa'] || req.body.placa || '';
+    const cpf = dados['CPF'];
+    const placa = dados['Placa'];
 
     if (!cpf || !placa) {
       console.warn('⚠️ CPF ou Placa ausente. Encerrando sem enviar à fila.');
