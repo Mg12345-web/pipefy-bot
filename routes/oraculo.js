@@ -9,10 +9,11 @@ const { addToQueue } = require('../robots/fila');
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 async function handleOraculo(req, res) {
-  const { email, telefone, servico } = req.body;
+  const { email, telefone } = req.body;
+  const servico = req.body.tipo_servico || req.body.servico || '';
   req.body.cpf = req.body.cpf || req.body.CPF || '';
   req.body.placa = req.body.placa || req.body.Placa || '';
-  const tipoServicoNormalizado = (servico || '').trim().toLowerCase();
+  const tipoServicoNormalizado = servico.trim().toLowerCase();
   const arquivos = {};
   let autuacoes = [];
   let tarefa = {};
@@ -49,7 +50,7 @@ async function handleOraculo(req, res) {
       tempPath: pastaTemp,
       timestamp: Date.now(),
       idCliente,
-      robo: 'Processo Administrativo'
+      robo: 'processo_administrativo'
     };
 
     console.log('📤 Enviando tarefa processo administrativo:', JSON.stringify(tarefa, null, 2));
@@ -166,7 +167,7 @@ async function handleOraculo(req, res) {
       return res.status(400).send({ status: 'erro', mensagem: 'CPF ou Placa ausente' });
     }
 
-    const idCliente = `${cpf.replace(/\D/g, '')}_${Date.now()}`;
+    const idCliente = `${req.body.cpf.replace(/\D/g, '')}_${Date.now()}`;
     const pastaTemp = path.join(__dirname, '..', 'temp', idCliente);
     fs.mkdirSync(pastaTemp, { recursive: true });
 
