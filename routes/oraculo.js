@@ -18,7 +18,11 @@ async function handleOraculo(req, res) {
   let autuacoes = [];
   let tarefa = {};
 
-  if (!req.body.placa && req.body.dados?.Placa) {
+  if (!req.body.cpf && req.body.dados?.CPF) {
+  req.body.cpf = req.body.dados.CPF;
+}
+
+if (!req.body.placa && req.body.dados?.Placa) {
   req.body.placa = req.body.dados.Placa;
 }
     if (tipoServicoNormalizado === 'processo administrativo') {
