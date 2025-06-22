@@ -58,10 +58,6 @@ log(JSON.stringify({ cpf, numeroProcesso, orgao, prazo, caminhoPDF }, null, 2));
     return res.end('</pre>');
   }
 
-  const { cpf, numeroProcesso, orgao, prazo } = req.body;
-  const documento = (req.files?.documento || [])[0];
-  const caminhoPDF = documento?.path || '';
-
   if (!cpf || !numeroProcesso || !orgao || !prazo || !caminhoPDF) {
     log('❌ Dados incompletos recebidos. Verifique os campos obrigatórios.');
     releaseLock();
