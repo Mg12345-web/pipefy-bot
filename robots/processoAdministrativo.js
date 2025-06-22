@@ -5,10 +5,46 @@ const fs = require('fs');
 const { acquireLock, releaseLock } = require('../utils/lock');
 const { loginPipefy } = require('../utils/auth');
 
+async function preencherPrazoParaProtocoloComTeclado(page, prazo, log = console.log) {
+  log('🗓️ Preenchendo "Prazo para Protocolo"...');
+  const campos = [
+    '[data-testid="day-input"]',
+    '[data-testid="month-input"]',
+    '[data-testid="year-input"]',
+    '[data-testid="hour-input"]',
+    '[data-testid="minute-input"]'
+  ];
+
+  let valores = ['01', '01', '2025', '00', '00'];
+
+  try {
+    const dt = new Date(prazo);
+    if (!isNaN(dt)) {
+      valores = [
+        String(dt.getDate()).padStart(2, '0'),
+        String(dt.getMonth() + 1).padStart(2, '0'),
+        String(dt.getFullYear()),
+        '00',
+        '00'
+      ];
+    }
+  } catch (err) {
+    log('⚠️ Erro ao interpretar data. Usando padrão.');
+  }
+
+  for (let i = 0; i < campos.length; i++) {
+    const el = await page.locator(campos[i]).first();
+    await el.waitFor({ state: 'visible', timeout: 5000 });
+    await el.click();
+    await page.keyboard.type(valores[i], { delay: 100 });
+  }
+
+  log(`✅ Prazo preenchido: ${valores.slice(0, 3).join('/')} às ${valores[3]}:${valores[4]}`);
+}
+
 async function runProcessoAdministrativo(req, res) {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.write('<pre>⏳ Iniciando robô Processo Administrativo...
-');
+  res.write('<pre>⏳ Iniciando robô Processo Administrativo...\n');
   const log = msg => { res.write(msg + '\n'); console.log(msg); };
 
   if (!acquireLock()) {
@@ -42,15 +78,18 @@ async function runProcessoAdministrativo(req, res) {
     await page.getByTestId('star-form-connection-button').click();
     await page.getByRole('textbox', { name: 'Pesquisar' }).fill(cpf);
     await page.getByRole('textbox', { name: 'Pesquisar' }).click();
-
     await page.waitForTimeout(2000);
-    await page.getByTestId(/connected-card-box/i).first().click();
+
+    const card = page.locator('div[data-testid^="connected-card-box"]').filter({ hasText: cpf }).first();
+    await card.waitFor({ state: 'visible', timeout: 10000 });
+    await card.click();
     await page.getByText('* Cliente').click();
 
     log('📝 Preenchendo dados do processo...');
     await page.getByRole('textbox', { name: '* Número do processo' }).fill(numeroProcesso);
     await page.getByRole('textbox', { name: '* Órgão' }).fill(orgao);
-    await page.getByTestId('day-input').fill(prazo);
+
+    await preencherPrazoParaProtocoloComTeclado(page, prazo, log);
 
     log('📎 Anexando documento...');
     const [fileChooser] = await Promise.all([
@@ -60,7 +99,10 @@ async function runProcessoAdministrativo(req, res) {
     await fileChooser.setFiles(caminhoPDF);
     await page.waitForTimeout(3000);
 
-    await page.getByTestId('start-form-click-on-button').click();
+    const botaoEnviar = await page.getByTestId('start-form-click-on-button');
+    await botaoEnviar.scrollIntoViewIfNeeded();
+    await botaoEnviar.click();
+
     log('✅ Processo Administrativo criado com sucesso.');
 
     await browser.close();
