@@ -10,6 +10,8 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 async function handleOraculo(req, res) {
   const { email, telefone, servico } = req.body;
+  req.body.cpf = req.body.cpf || req.body.CPF || '';
+  req.body.placa = req.body.placa || req.body.Placa || '';
   const tipoServicoNormalizado = (servico || '').trim().toLowerCase();
   const arquivos = {};
   let autuacoes = [];
