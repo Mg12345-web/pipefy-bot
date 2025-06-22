@@ -43,8 +43,15 @@ async function preencherPrazoParaProtocoloComTeclado(page, prazo, log = console.
 
 async function runProcessoAdministrativo(req, res) {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.write('<pre>⏳ Iniciando robô Processo Administrativo...\n');
-  const log = msg => { res.write(msg + '\n'); console.log(msg); };
+res.write('<pre>⏳ Iniciando robô Processo Administrativo...\n');
+const log = msg => { res.write(msg + '\n'); console.log(msg); };
+
+const { cpf, numeroProcesso, orgao, prazo } = req.body;
+const documento = (req.files?.documento || [])[0];
+const caminhoPDF = documento?.path || '';
+
+log('📤 Dados recebidos:');
+log(JSON.stringify({ cpf, numeroProcesso, orgao, prazo, caminhoPDF }, null, 2));
 
   if (!acquireLock()) {
     log('⛔ Robô já está em execução.');
