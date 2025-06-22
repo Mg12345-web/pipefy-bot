@@ -151,8 +151,8 @@ async function handleOraculo(req, res) {
 
     dados['Placa'] = dados['Placa'] || req.body.placa || req.body.Placa || '';
 
-    const cpf = dados['CPF'];
-    const placa = dados['Placa'];
+    dados['CPF'] = dados['CPF'] || req.body.cpf || '';
+    dados['Placa'] = dados['Placa'] || req.body.placa || '';
 
     if (!cpf || !placa) {
       console.warn('⚠️ CPF ou Placa ausente. Encerrando sem enviar à fila.');
