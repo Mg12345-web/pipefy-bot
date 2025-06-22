@@ -27,7 +27,7 @@ async function handleOraculo(req, res) {
     return res.status(400).send({ status: 'erro', mensagem: 'Campos obrigatórios ausentes para processo administrativo' });
   }
 
-    const idCliente = `${cpf.replace(/\D/g, '')}_${Date.now()}`;
+    const idCliente = `${req.body.cpf.replace(/\D/g, '')}_${Date.now()}`;
     const pastaTemp = path.join(__dirname, '..', 'temp', idCliente);
     fs.mkdirSync(pastaTemp, { recursive: true });
 
@@ -63,9 +63,11 @@ async function handleOraculo(req, res) {
   }
 
   // Copia dados manuais
-  let dados = { ...req.body.dados };
-  dados['Placa'] = req.body.placa || req.body.Placa;
-  let aits = [];
+  let dados = {
+  ...req.body.dados,
+  CPF: req.body.cpf,
+  Placa: req.body.placa
+};
 
   console.log('📥 req.body:', JSON.stringify(req.body, null, 2));
   console.log('📎 req.files:', req.files?.map(f => f.originalname));
