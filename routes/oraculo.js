@@ -18,7 +18,9 @@ async function handleOraculo(req, res) {
   let tarefa = {};
 
     if (tipoServicoNormalizado === 'processo administrativo') {
-    const { cpf, numeroProcesso, orgao, prazo, placa } = req.body;
+    const numeroProcesso = req.body.numeroProcesso;
+    const orgao = req.body.orgao;
+    const prazo = req.body.prazo;
     const documento = req.files?.find(f => f.fieldname === 'documento');
 
      if (!req.body.cpf || !numeroProcesso || !orgao || !prazo || !req.body.placa || !documento) {
