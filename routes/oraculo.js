@@ -15,6 +15,48 @@ async function handleOraculo(req, res) {
   let autuacoes = [];
   let tarefa = {};
 
+    if (tipoServicoNormalizado === 'processo administrativo') {
+    const { cpf, numeroProcesso, orgao, prazo } = req.body;
+    const documento = req.files?.find(f => f.fieldname === 'documento');
+
+    if (!cpf || !numeroProcesso || !orgao || !prazo || !documento) {
+      return res.status(400).send({ status: 'erro', mensagem: 'Campos obrigatórios ausentes para processo administrativo' });
+    }
+
+    const idCliente = `${cpf.replace(/\D/g, '')}_${Date.now()}`;
+    const pastaTemp = path.join(__dirname, '..', 'temp', idCliente);
+    fs.mkdirSync(pastaTemp, { recursive: true });
+
+    const dados = {
+      CPF: cpf,
+      'Número do Processo': numeroProcesso,
+      'Órgão': orgao,
+      'Prazo para Protocolo': prazo
+    };
+
+    const tarefa = {
+      email,
+      telefone,
+      arquivos: { documento: [documento] },
+      autuacoes: [],
+      dados,
+      tipoServico: servico,
+      tempPath: pastaTemp,
+      timestamp: Date.now(),
+      idCliente,
+      robo: 'Processo Administrativo'
+    };
+
+    console.log('📤 Enviando tarefa processo administrativo:', JSON.stringify(tarefa, null, 2));
+    addToQueue(tarefa);
+
+    return res.send({
+      status: 'ok',
+      mensagem: 'Tarefa de processo administrativo enviada',
+      dadosExtraidos: dados
+    });
+  }
+
   // Copia dados manuais
   let dados = { ...req.body.dados };
   dados['Placa'] = req.body.placa || req.body.Placa;
