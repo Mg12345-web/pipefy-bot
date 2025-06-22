@@ -16,10 +16,10 @@ async function handleOraculo(req, res) {
   let tarefa = {};
 
     if (tipoServicoNormalizado === 'processo administrativo') {
-    const { CPF, numeroProcesso, orgao, prazo, placa } = req.body;
+    const { cpf, numeroProcesso, orgao, prazo, placa } = req.body;
     const documento = req.files?.find(f => f.fieldname === 'documento');
 
-    if (!CPF || !numeroProcesso || !orgao || !prazo || !Placa || !documento) {
+   if (!cpf || !numeroProcesso || !orgao || !prazo || !placa || !documento) {
       return res.status(400).send({ status: 'erro', mensagem: 'Campos obrigatórios ausentes para processo administrativo' });
     }
 
