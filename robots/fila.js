@@ -4,6 +4,7 @@ const { runClientRobot } = require('./client');
 const { runCrlvRobot } = require('./crlv');
 const { runRgpRobot } = require('./rgp');
 const { runSemRgpRobot } = require('./semrgp');
+const { runProcessoAdministrativoRobot } = require('./processoAdministrativo');
 
 let fila = [];
 let emExecucao = false;
@@ -95,6 +96,17 @@ if (tarefa.autuacoes && tarefa.autuacoes.length) {
     const tipo = tarefa.tipoServico;
     const ait = tarefa.dados.numeroAIT || '0000000';
     const orgao = tarefa.dados.orgaoAutuador || 'SPTRANS';
+
+        if (tipo === 'processo administrativo') {
+      console.log('\n📍 Executando robô de Processo Administrativo...');
+      try {
+        await runProcessoAdministrativoRobot(req, fakeRes);
+        await aguardarEstabilizacao('Processo Administrativo');
+      } catch (err) {
+        console.error('❌ Erro no robô de Processo Administrativo:', err.message);
+      }
+      return; // Encerra aqui, pois processo administrativo é único
+    }
 
     const fakeReq = {
       files: {
