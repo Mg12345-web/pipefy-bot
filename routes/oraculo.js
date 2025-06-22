@@ -21,21 +21,21 @@ async function handleOraculo(req, res) {
     const { cpf, numeroProcesso, orgao, prazo, placa } = req.body;
     const documento = req.files?.find(f => f.fieldname === 'documento');
 
-   if (!cpf || !numeroProcesso || !orgao || !prazo || !placa || !documento) {
-      return res.status(400).send({ status: 'erro', mensagem: 'Campos obrigatórios ausentes para processo administrativo' });
-    }
+     if (!req.body.cpf || !numeroProcesso || !orgao || !prazo || !req.body.placa || !documento) {
+    return res.status(400).send({ status: 'erro', mensagem: 'Campos obrigatórios ausentes para processo administrativo' });
+  }
 
     const idCliente = `${cpf.replace(/\D/g, '')}_${Date.now()}`;
     const pastaTemp = path.join(__dirname, '..', 'temp', idCliente);
     fs.mkdirSync(pastaTemp, { recursive: true });
 
-    const dados = {
-      CPF: cpf,
-      'Número do Processo': numeroProcesso,
-      'Órgão': orgao,
-      'Prazo para Protocolo': prazo,
-      'Placa': placa
-    };
+      const dados = {
+    CPF: req.body.cpf,
+    'Número do Processo': numeroProcesso,
+    'Órgão': orgao,
+    'Prazo para Protocolo': prazo,
+    'Placa': req.body.placa
+  };
 
     const tarefa = {
       email,
