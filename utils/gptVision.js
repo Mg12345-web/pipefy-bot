@@ -15,21 +15,25 @@ async function interpretarImagemComGptVision(caminhoImagem, tipoDocumento = 'ger
       break;
     case 'crlv':
   prompt = `
-Você está lendo um CRLV (Certificado de Registro e Licenciamento de Veículo).
+Você está lendo um documento oficial chamado CRLV (Certificado de Registro e Licenciamento de Veículo), emitido pelo DETRAN.
 
-⚠️ Extraia **apenas a placa atual do veículo**. Ignore completamente campos como "placa anterior", "PLACA ANTERIOR / UF" ou qualquer coisa semelhante.
-Extraia **apenas CÓDIGO RENAVAM**. Ignore completamente campos como "NÚMERO DO CRV", "CÓDIGO DE SEGURANÇA DO CLA" ou qualquer coisa semelhante.
+Sua tarefa é extrair **exatamente e apenas** os seguintes dados principais:
 
-Retorne exatamente neste formato JSON:
+1. "Placa" → ⚠️ Atenção: use apenas a placa **atual** (ignorar campos como "PLACA ANTERIOR / UF").
+2. "Renavam" → ⚠️ Atenção: é um número de 11 dígitos que geralmente aparece perto do topo com a palavra "CÓDIGO RENAVAM". **Não confunda com CRV ou código de segurança.**
+3. "Chassi" → ⚠️ Um número longo que geralmente aparece junto com "CHASSI". Não confundir com número do motor.
+4. "Estado de Emplacamento" → ⚠️ É a sigla do estado (ex: AL, SP, MG) vinculada à placa.
+
+Retorne exatamente neste formato JSON (sem explicações extras):
 {
   "Placa": "",
-  "chassi": "",
-  "renavam": "",
-  "estadoEmplacamento": ""
+  "Chassi": "",
+  "Renavam": "",
+  "Estado de Emplacamento": ""
 }
 `.trim();
   break;
-    case 'autuacao':
+case 'autuacao':
       prompt = `Extraia da notificação de autuação: órgão autuador, número da AIT, placa, data da infração. Retorne em JSON.`;
       break;
     default:
