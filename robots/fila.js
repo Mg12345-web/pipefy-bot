@@ -26,9 +26,16 @@ function startQueue() {
     emExecucao = true;
 
     try {
-      console.log('🚀 Iniciando tarefa da fila...');
-      await processarTarefa(tarefa);
-    } catch (err) {
+  console.log('🚀 Iniciando tarefa da fila...');
+
+  const tipo = (tarefa.tipoServico || '').trim().toLowerCase();
+  if (tipo === 'processo administrativo') {
+    console.log('⏳ Aguardando 5 minutos antes de iniciar Processo Administrativo...');
+    await new Promise(resolve => setTimeout(resolve, 5 * 60 * 1000));
+  }
+
+  await processarTarefa(tarefa);
+} catch (err) {
       console.error('❌ Erro ao processar tarefa:', err.message);
     } finally {
       console.log('⏱️ Aguardando 5 minutos antes de iniciar próxima tarefa...');
