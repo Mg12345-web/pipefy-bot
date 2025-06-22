@@ -7,40 +7,37 @@ const openai = new OpenAI({
 });
 
 async function interpretarImagemComGptVision(caminhoImagem, tipoDocumento = 'geral') {
-  let prompt = '';
+  const imagemBase64 = fs.readFileSync(path.resolve(caminhoImagem), { encoding: 'base64' });
 
+  let prompt = '';
   switch (tipoDocumento) {
     case 'procuracao':
       prompt = `Extraia os seguintes dados da procuração: nome completo, CPF, CNH, profissão, estado civil, endereço completo (rua, número, bairro, cidade, estado, CEP). Retorne em JSON.`;
       break;
+
     case 'crlv':
-  prompt = `
-Você está lendo um documento oficial chamado CRLV (Certificado de Registro e Licenciamento de Veículo), emitido pelo DETRAN.
+      prompt = `Você está lendo um documento oficial chamado CRLV.
 
-Sua tarefa é extrair **exatamente e apenas** os seguintes dados principais:
+⚠️ IMPORTANTE:
+- Ignore campos como "placa anterior".
+- Use apenas os dados visíveis em destaque no documento.
 
-1. "Placa" → ⚠️ Atenção: use apenas a placa **atual** (ignorar campos como "PLACA ANTERIOR / UF").
-2. "Renavam" → ⚠️ Atenção: é um número de 11 dígitos que geralmente aparece perto do topo com a palavra "CÓDIGO RENAVAM". **Não confunda com CRV ou código de segurança.**
-3. "Chassi" → ⚠️ Um número longo que geralmente aparece junto com "CHASSI". Não confundir com número do motor.
-4. "Estado de Emplacamento" → ⚠️ É a sigla do estado (ex: AL, SP, MG) vinculada à placa.
-
-Retorne exatamente neste formato JSON (sem explicações extras):
+Extraia os seguintes dados e retorne em JSON:
 {
-  "Placa": "",
-  "Chassi": "",
-  "Renavam": "",
-  "Estado de Emplacamento": ""
-}
-`.trim();
-  break;
-case 'autuacao':
+  "Placa": "",                // Ex: QPI2C37
+  "Renavam": "",              // Ex: 01167871593
+  "Chassi": "",               // Ex: 9C6RM0920J0004479
+  "Estado de Emplacamento": "" // Ex: RJ
+}`.trim();
+      break;
+
+    case 'autuacao':
       prompt = `Extraia da notificação de autuação: órgão autuador, número da AIT, placa, data da infração. Retorne em JSON.`;
       break;
+
     default:
       prompt = `Extraia os dados relevantes deste documento de trânsito e devolva em JSON.`;
   }
-
-  const imagemBase64 = fs.readFileSync(path.resolve(caminhoImagem), { encoding: 'base64' });
 
   const response = await openai.chat.completions.create({
     model: 'gpt-4o',
@@ -66,31 +63,30 @@ case 'autuacao':
   });
 
   let conteudo = response.choices[0].message.content?.trim();
-
-  // Remove blocos de markdown tipo ```json
   conteudo = conteudo.replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
 
   try {
-    let dados = JSON.parse(conteudo);
+    const dados = JSON.parse(conteudo);
 
-    // Padronização dos nomes dos campos
+    // Padronização
     if (dados.nome) dados['Nome Completo'] = dados.nome;
     if (dados.placa) dados['Placa'] = dados.placa.toUpperCase();
     if (dados.chassi) dados['Chassi'] = dados.chassi.toUpperCase();
     if (dados.renavam) dados['Renavam'] = dados.renavam;
-    if (dados.estado || dados.estadoEmplacamento)
-      dados['Estado de Emplacamento'] = (dados.estado || dados.estadoEmplacamento).toUpperCase();
+    if (dados.estado || dados.estadoEmplacamento || dados['Estado de Emplacamento']) {
+      dados['Estado de Emplacamento'] = (dados.estado || dados.estadoEmplacamento || dados['Estado de Emplacamento']).toUpperCase();
+    }
 
     return dados;
   } catch (e) {
     console.error('❌ Retorno não é um JSON válido:', conteudo);
 
-    // Fallback: extrair campos com regex
+    // Fallback via regex
     const fallback = {};
     const matchPlaca = conteudo.match(/placa\s*[:=]?\s*["']?([A-Z0-9\-]{5,8})["']?/i);
     const matchChassi = conteudo.match(/chassi\s*[:=]?\s*["']?([\w\d]{8,})["']?/i);
-    const matchRenavam = conteudo.match(/renavam\s*[:=]?\s*["']?([\d]{8,})["']?/i);
-    const matchEstado = conteudo.match(/estado\s*[:=]?\s*["']?([A-Z]{2})["']?/i);
+    const matchRenavam = conteudo.match(/renavam\s*[:=]?\s*["']?(\d{8,})["']?/i);
+    const matchEstado = conteudo.match(/(?:local|estado).*?([A-Z]{2})/i);
 
     if (matchPlaca) fallback['Placa'] = matchPlaca[1].toUpperCase();
     if (matchChassi) fallback['Chassi'] = matchChassi[1].toUpperCase();
