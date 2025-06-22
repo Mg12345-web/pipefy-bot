@@ -130,4 +130,130 @@ async function runRgpRobot(req, res) {
   }
 }
 
+// Funções auxiliares
+
+async function abrirNovoCardPreCadastro(page, log = console.log) {
+  log('📂 Abrindo novo card em "Pré-cadastro"...');
+  const botaoNovoCard = page
+    .getByTestId('phase-328258743-container')
+    .getByTestId('new-card-button');
+
+  await botaoNovoCard.click();
+  log('✅ Novo card criado com sucesso.');
+}
+
+async function selecionarCliente(page, cpf, log = console.log) {
+  log('👤 Acessando seção de clientes...');
+  await page.getByText('Clientes').click();
+  await page.getByTestId('star-form-connection-button').first().click();
+  await page.getByRole('textbox', { name: 'Pesquisar' }).fill(cpf);
+  await page.waitForTimeout(10000);
+
+  const card = page
+    .locator('div[data-testid^="connected-card-box"]')
+    .filter({ hasText: cpf })
+    .first();
+
+  await card.waitFor({ state: 'visible', timeout: 15000 });
+  await card.click({ force: true });
+  await page.getByText('Clientes').click();
+  log(`✅ Cliente ${cpf} selecionado com sucesso`);
+}
+
+async function selecionarCRLV(page, placa, log = console.log) {
+  log('🚗 Selecionando CRLV...');
+  await page.getByText('Veículo (CRLV)').click();
+  await page.getByTestId('star-form-connection-button').nth(1).click();
+  await page.getByRole('textbox', { name: 'Pesquisar' }).fill(placa);
+  await page.waitForTimeout(1500);
+
+  const card = page
+    .locator('div[data-testid^="connected-card-box"]')
+    .filter({ hasText: placa })
+    .first();
+
+  await card.waitFor({ state: 'visible', timeout: 15000 });
+  await card.click({ force: true });
+  await page.getByText('Veículo (CRLV)').click();
+  log(`✅ CRLV da placa ${placa} selecionado com sucesso`);
+}
+
+async function preencherAIT(page, ait, log = console.log) {
+  if (!ait) {
+    log('⚠️ Nenhum número de AIT fornecido. Pulando etapa.');
+    return;
+  }
+
+  log('📝 Preenchendo campo AIT...');
+  await page.getByTestId('phase-fields').getByText('AIT').click();
+  const inputAIT = page.getByRole('textbox', { name: 'AIT' });
+  await inputAIT.click();
+  await inputAIT.fill(ait);
+  log(`✅ AIT preenchido: ${ait}`);
+}
+
+async function preencherOrgao(page, orgao, log = console.log) {
+  if (!orgao) {
+    log('⚠️ Nenhum órgão fornecido. Pulando etapa.');
+    return;
+  }
+
+  log('🏛️ Preenchendo campo Órgão...');
+  await page.getByTestId('phase-fields').getByText('Órgão').click();
+  await page.getByRole('textbox', { name: 'Órgão' }).fill(orgao);
+  log(`✅ Órgão preenchido: ${orgao}`);
+}
+
+async function preencherPrazoParaProtocoloComTeclado(page, prazo, log = console.log) {
+  log('🗓️ Preenchendo "Prazo para Protocolo"...');
+  const campos = [
+    '[data-testid="day-input"]',
+    '[data-testid="month-input"]',
+    '[data-testid="year-input"]',
+    '[data-testid="hour-input"]',
+    '[data-testid="minute-input"]'
+  ];
+
+  let valores = ['01', '01', '2025', '00', '00'];
+  try {
+    const dt = new Date(prazo);
+    if (!isNaN(dt)) {
+      valores = [
+        String(dt.getDate()).padStart(2, '0'),
+        String(dt.getMonth() + 1).padStart(2, '0'),
+        String(dt.getFullYear()),
+        '00',
+        '00'
+      ];
+    }
+  } catch (err) {
+    log('⚠️ Erro ao interpretar data. Usando padrão.');
+  }
+
+  for (let i = 0; i < campos.length; i++) {
+    const el = await page.locator(campos[i]).first();
+    await el.waitFor({ state: 'visible', timeout: 5000 });
+    await el.click();
+    await page.keyboard.type(valores[i], { delay: 100 });
+  }
+
+  log(`✅ Prazo preenchido: ${valores.slice(0, 3).join('/')} às ${valores[3]}:${valores[4]}`);
+}
+
+async function anexarAutuacao(page, caminhoPDF, log = console.log) {
+  log('📎 Anexando arquivo da autuação...');
+  const botaoUpload = await page.locator('button[data-testid="attachments-dropzone-button"]').last();
+  await botaoUpload.scrollIntoViewIfNeeded();
+
+  const [fileChooser] = await Promise.all([
+    page.waitForEvent('filechooser'),
+    botaoUpload.click()
+  ]);
+
+  await fileChooser.setFiles(caminhoPDF);
+  await page.waitForTimeout(3000);
+
+  log(`✅ Autuação anexada: ${caminhoPDF}`);
+}
+
 module.exports = { runRgpRobot };
