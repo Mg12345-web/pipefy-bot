@@ -117,4 +117,4 @@ async function runProcessoAdministrativo(req, res) {
   }
 }
 
-module.exports = { runProcessoAdministrativo };
+module.exports = { runProcessoAdministrativoRobot: runProcessoAdministrativo };
