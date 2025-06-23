@@ -35,7 +35,7 @@ if (!req.body.placa && req.body.dados?.Placa) {
     return res.status(400).send({ status: 'erro', mensagem: 'Campos obrigatórios ausentes para processo administrativo' });
   }
 
-    const idCliente = ${req.body.cpf.replace(/\D/g, '')}_${Date.now()};
+    const idCliente = `${req.body.cpf.replace(/\D/g, '')}_${Date.now()}`;
     const pastaTemp = path.join(__dirname, '..', 'temp', idCliente);
     fs.mkdirSync(pastaTemp, { recursive: true });
 
