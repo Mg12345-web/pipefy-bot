@@ -47,6 +47,11 @@ if (!req.body.placa && req.body.dados?.Placa) {
     'Placa': req.body.placa
   };
 
+      const documento  = req.files.find(f => f.fieldname === 'documento');
+      const cnh        = req.files.find(f => f.fieldname === 'cnh');
+      const procuracao = req.files.find(f => f.fieldname === 'procuracao');
+      const contrato   = req.files.find(f => f.fieldname === 'contrato');
+
     const tarefa = {
       email,
       telefone,
