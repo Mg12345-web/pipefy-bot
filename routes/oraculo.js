@@ -48,18 +48,21 @@ if (!req.body.placa && req.body.dados?.Placa) {
   };
 
       const documento  = req.files.find(f => f.fieldname === 'documento');
-      const cnh        = req.files.find(f => f.fieldname === 'cnh');
-      const procuracao = req.files.find(f => f.fieldname === 'procuracao');
-      const contrato   = req.files.find(f => f.fieldname === 'contrato');
+    const cnh         = req.files.find(f => f.fieldname === 'cnh');
+    const procuracao  = req.files.find(f => f.fieldname === 'procuracao');
+    const contrato    = req.files.find(f => f.fieldname === 'contrato');
+
+    // aí sim sua validação:
+    if (!req.body.cpf || !numeroProcesso || !orgao || !prazo 
+        || !req.body.placa || !documento || !cnh 
+        || !procuracao || !contrato) {
+      return res.status(400).send({ status:'erro', mensagem:'Campos ausentes' });
+    }
 
     const tarefa = {
       email,
       telefone,
-      arquivos: {
-      documento,
-      cnh,
-      procuracao,
-      contrato,
+      arquivos: { documento, cnh, procuracao, contrato },
     }, 
       autuacoes: [],
       dados,
