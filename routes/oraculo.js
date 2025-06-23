@@ -29,27 +29,13 @@ if (!req.body.placa && req.body.dados?.Placa) {
     const numeroProcesso = req.body.numeroProcesso;
     const orgao = req.body.orgao;
     const prazo = req.body.prazo;
-    const cnhFile       = req.files?.cnh?.[0];
-const procuraFile   = req.files?.procuracao?.[0];
-const contratoFile  = req.files?.contrato?.[0];
-const documentoFile = req.files?.documento?.[0];
+    const documento = req.files?.find(f => f.fieldname === 'documento');
 
-// validação: exige pelo menos procuração e documento
-if (!req.body.cpf ||
-    !numeroProcesso ||
-    !orgao ||
-    !prazo ||
-    !req.body.placa ||
-    !procuraFile ||
-    !documentoFile
-) {
-  return res.status(400).send({
-    status: 'erro',
-    mensagem: 'Faltando CPF, Procuração ou Documento para processo administrativo'
-  });
-}
+     if (!req.body.cpf || !numeroProcesso || !orgao || !prazo || !req.body.placa || !documento) {
+    return res.status(400).send({ status: 'erro', mensagem: 'Campos obrigatórios ausentes para processo administrativo' });
+  }
 
-    const idCliente = `${req.body.cpf.replace(/\D/g, '')}_${Date.now()}`;
+    const idCliente = ${req.body.cpf.replace(/\D/g, '')}_${Date.now()};
     const pastaTemp = path.join(__dirname, '..', 'temp', idCliente);
     fs.mkdirSync(pastaTemp, { recursive: true });
 
@@ -61,31 +47,18 @@ if (!req.body.cpf ||
     'Placa': req.body.placa
   };
 
-    const arquivos = {
-  cnh:        cnhFile       ? [cnhFile]       : [],
-  procuracao: procuraFile   ? [procuraFile]   : [],
-  contrato:   contratoFile  ? [contratoFile]  : [],
-  documento:  [ documentoFile ]
-};
-
-const tarefa = {
-  email,
-  telefone,
-  arquivos,
-  autuacoes: [],
-  dados: {
-    CPF: req.body.cpf,
-    'Número do Processo': numeroProcesso,
-    Órgão: orgao,
-    'Prazo para Protocolo': prazo,
-    Placa: req.body.placa
-  },
-  tipoServico: servico,
-  tempPath: pastaTemp,
-  timestamp: Date.now(),
-  idCliente,
-  robo: 'processo_administrativo'
-};
+    const tarefa = {
+      email,
+      telefone,
+      arquivos: { documento: [documento] },
+      autuacoes: [],
+      dados,
+      tipoServico: servico,
+      tempPath: pastaTemp,
+      timestamp: Date.now(),
+      idCliente,
+      robo: 'processo_administrativo'
+    };
 
     console.log('📤 Enviando tarefa processo administrativo:', JSON.stringify(tarefa, null, 2));
     addToQueue(tarefa);
@@ -188,7 +161,7 @@ const tarefa = {
     dados['Profissão'] = dados['Profissão'] || dados.profissao || '';
 
     if (dados.logradouro && dados.numero && dados.bairro && dados.cidade) {
-      dados['Endereço Completo'] = `${dados.logradouro}, ${dados.numero} - ${dados.bairro} - ${dados.cidade}/${dados.estado || ''}`;
+      dados['Endereço Completo'] = ${dados.logradouro}, ${dados.numero} - ${dados.bairro} - ${dados.cidade}/${dados.estado || ''};
     }
 
     dados['Placa'] = dados['Placa'] || req.body.placa || req.body.Placa || '';
@@ -201,7 +174,7 @@ const tarefa = {
       return res.status(400).send({ status: 'erro', mensagem: 'CPF ou Placa ausente' });
     }
 
-    const idCliente = `${req.body.cpf.replace(/\D/g, '')}_${Date.now()}`;
+    const idCliente = ${req.body.cpf.replace(/\D/g, '')}_${Date.now()};
     const pastaTemp = path.join(__dirname, '..', 'temp', idCliente);
     fs.mkdirSync(pastaTemp, { recursive: true });
 
@@ -241,7 +214,7 @@ const tarefa = {
     idCliente: idCliente
   };
 
-  console.log(`📤 Enviando tarefa ${i + 1}/${autuacoes.length}:`, JSON.stringify(tarefaAutuacao, null, 2));
+  console.log(📤 Enviando tarefa ${i + 1}/${autuacoes.length}:, JSON.stringify(tarefaAutuacao, null, 2));
   addToQueue(tarefaAutuacao);
 
   if (!ultimaAutuacao) {
