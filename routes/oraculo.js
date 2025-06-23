@@ -29,11 +29,25 @@ if (!req.body.placa && req.body.dados?.Placa) {
     const numeroProcesso = req.body.numeroProcesso;
     const orgao = req.body.orgao;
     const prazo = req.body.prazo;
-    const documento = req.files?.find(f => f.fieldname === 'documento');
+    const cnhFile       = req.files?.cnh?.[0];
+const procuraFile   = req.files?.procuracao?.[0];
+const contratoFile  = req.files?.contrato?.[0];
+const documentoFile = req.files?.documento?.[0];
 
-     if (!req.body.cpf || !numeroProcesso || !orgao || !prazo || !req.body.placa || !documento) {
-    return res.status(400).send({ status: 'erro', mensagem: 'Campos obrigatórios ausentes para processo administrativo' });
-  }
+// validação: exige pelo menos procuração e documento
+if (!req.body.cpf ||
+    !numeroProcesso ||
+    !orgao ||
+    !prazo ||
+    !req.body.placa ||
+    !procuraFile ||
+    !documentoFile
+) {
+  return res.status(400).send({
+    status: 'erro',
+    mensagem: 'Faltando CPF, Procuração ou Documento para processo administrativo'
+  });
+}
 
     const idCliente = `${req.body.cpf.replace(/\D/g, '')}_${Date.now()}`;
     const pastaTemp = path.join(__dirname, '..', 'temp', idCliente);
@@ -47,18 +61,31 @@ if (!req.body.placa && req.body.dados?.Placa) {
     'Placa': req.body.placa
   };
 
-    const tarefa = {
-      email,
-      telefone,
-      arquivos: { documento: [documento] },
-      autuacoes: [],
-      dados,
-      tipoServico: servico,
-      tempPath: pastaTemp,
-      timestamp: Date.now(),
-      idCliente,
-      robo: 'processo_administrativo'
-    };
+    const arquivos = {
+  cnh:        cnhFile       ? [cnhFile]       : [],
+  procuracao: procuraFile   ? [procuraFile]   : [],
+  contrato:   contratoFile  ? [contratoFile]  : [],
+  documento:  [ documentoFile ]
+};
+
+const tarefa = {
+  email,
+  telefone,
+  arquivos,
+  autuacoes: [],
+  dados: {
+    CPF: req.body.cpf,
+    'Número do Processo': numeroProcesso,
+    Órgão: orgao,
+    'Prazo para Protocolo': prazo,
+    Placa: req.body.placa
+  },
+  tipoServico: servico,
+  tempPath: pastaTemp,
+  timestamp: Date.now(),
+  idCliente,
+  robo: 'processo_administrativo'
+};
 
     console.log('📤 Enviando tarefa processo administrativo:', JSON.stringify(tarefa, null, 2));
     addToQueue(tarefa);
