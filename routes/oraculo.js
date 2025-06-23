@@ -161,8 +161,8 @@ if (!req.body.placa && req.body.dados?.Placa) {
     dados['Profissão'] = dados['Profissão'] || dados.profissao || '';
 
     if (dados.logradouro && dados.numero && dados.bairro && dados.cidade) {
-      dados['Endereço Completo'] = ${dados.logradouro}, ${dados.numero} - ${dados.bairro} - ${dados.cidade}/${dados.estado || ''};
-    }
+  dados['Endereço Completo'] = `${dados.logradouro}, ${dados.numero} - ${dados.bairro} - ${dados.cidade}/${dados.estado || ''}`;
+}
 
     dados['Placa'] = dados['Placa'] || req.body.placa || req.body.Placa || '';
 
