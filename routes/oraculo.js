@@ -179,7 +179,7 @@ if (!req.body.placa && req.body.dados?.Placa) {
       return res.status(400).send({ status: 'erro', mensagem: 'CPF ou Placa ausente' });
     }
 
-    const idCliente = ${req.body.cpf.replace(/\D/g, '')}_${Date.now()};
+    const idCliente = `${req.body.cpf.replace(/\D/g, '')}_${Date.now()}`;
     const pastaTemp = path.join(__dirname, '..', 'temp', idCliente);
     fs.mkdirSync(pastaTemp, { recursive: true });
 
