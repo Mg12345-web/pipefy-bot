@@ -26,75 +26,49 @@ if (!req.body.placa && req.body.dados?.Placa) {
   req.body.placa = req.body.dados.Placa;
 }
     if (tipoServicoNormalizado === 'processo administrativo') {
-  // 1) Extrair campos textuais
-  const numeroProcesso = req.body.numeroProcesso;
-  const orgao          = req.body.orgao;
-  const prazo          = req.body.prazo;
-  const placa          = req.body.placa || '';
-  
-  // 2) Extrair todos os arquivos de uma vez
-  const documento  = req.files.find(f => f.fieldname === 'documento');
-  const cnh        = req.files.find(f => f.fieldname === 'cnh');
-  const procuracao = req.files.find(f => f.fieldname === 'procuracao');
-  const contrato   = req.files.find(f => f.fieldname === 'contrato');
+    const numeroProcesso = req.body.numeroProcesso;
+    const orgao = req.body.orgao;
+    const prazo = req.body.prazo;
+    const documento = req.files?.find(f => f.fieldname === 'documento');
 
-  // 3) Validação única de todos os campos obrigatórios
-  if (!req.body.cpf
-      || !numeroProcesso
-      || !orgao
-      || !prazo
-      || !placa
-      || !documento
-      || !cnh
-      || !procuracao
-      || !contrato) {
-    return res.status(400).send({
-      status: 'erro',
-      mensagem: 'Faltam campos obrigatórios: CPF, Processo, Órgão, Prazo, Placa e os 4 anexos.'
-    });
+     if (!req.body.cpf || !numeroProcesso || !orgao || !prazo || !req.body.placa || !documento) {
+    return res.status(400).send({ status: 'erro', mensagem: 'Campos obrigatórios ausentes para processo administrativo' });
   }
 
-  // 4) Gerar ID e criar pasta temporária
-  const idCliente = `${req.body.cpf.replace(/\D/g, '')}_${Date.now()}`;
-  const pastaTemp = path.join(__dirname, '..', 'temp', idCliente);
-  fs.mkdirSync(pastaTemp, { recursive: true });
+    const idCliente = ${req.body.cpf.replace(/\D/g, '')}_${Date.now()};
+    const pastaTemp = path.join(__dirname, '..', 'temp', idCliente);
+    fs.mkdirSync(pastaTemp, { recursive: true });
 
-  // 5) Montar dados que serão retornados/exibidos
-  const dados = {
+      const dados = {
     CPF: req.body.cpf,
     'Número do Processo': numeroProcesso,
     'Órgão': orgao,
     'Prazo para Protocolo': prazo,
-    'Placa': placa
+    'Placa': req.body.placa
   };
 
-  // 6) Construir e enviar a tarefa ao Oráculo
-  const tarefa = {
-    email,
-    telefone,
-    arquivos: { documento, cnh, procuracao, contrato },
-    autuacoes: [],
-    dados,
-    tipoServico: servico,
-    tempPath: pastaTemp,
-    timestamp: Date.now(),
-    idCliente,
-    robo: 'processo_administrativo'
-  };
+    const tarefa = {
+      email,
+      telefone,
+      arquivos: { documento: [documento] },
+      autuacoes: [],
+      dados,
+      tipoServico: servico,
+      tempPath: pastaTemp,
+      timestamp: Date.now(),
+      idCliente,
+      robo: 'processo_administrativo'
+    };
 
-  console.log(
-    '📤 Enviando tarefa processo administrativo:',
-    JSON.stringify(tarefa, null, 2)
-  );
-  addToQueue(tarefa);
+    console.log('📤 Enviando tarefa processo administrativo:', JSON.stringify(tarefa, null, 2));
+    addToQueue(tarefa);
 
-  // 7) Responder ao cliente HTTP
-  return res.send({
-    status: 'ok',
-    mensagem: 'Tarefa de processo administrativo enviada',
-    dadosExtraidos: dados
-  });
-}
+    return res.send({
+      status: 'ok',
+      mensagem: 'Tarefa de processo administrativo enviada',
+      dadosExtraidos: dados
+    });
+  }
 
   // Copia dados manuais
   let dados = {
@@ -187,8 +161,8 @@ if (!req.body.placa && req.body.dados?.Placa) {
     dados['Profissão'] = dados['Profissão'] || dados.profissao || '';
 
     if (dados.logradouro && dados.numero && dados.bairro && dados.cidade) {
-  dados['Endereço Completo'] = `${dados.logradouro}, ${dados.numero} - ${dados.bairro} - ${dados.cidade}/${dados.estado || ''}`;
-}
+      dados['Endereço Completo'] = ${dados.logradouro}, ${dados.numero} - ${dados.bairro} - ${dados.cidade}/${dados.estado || ''};
+    }
 
     dados['Placa'] = dados['Placa'] || req.body.placa || req.body.Placa || '';
 
@@ -200,7 +174,7 @@ if (!req.body.placa && req.body.dados?.Placa) {
       return res.status(400).send({ status: 'erro', mensagem: 'CPF ou Placa ausente' });
     }
 
-    const idCliente = `${req.body.cpf.replace(/\D/g, '')}_${Date.now()}`;
+    const idCliente = ${req.body.cpf.replace(/\D/g, '')}_${Date.now()};
     const pastaTemp = path.join(__dirname, '..', 'temp', idCliente);
     fs.mkdirSync(pastaTemp, { recursive: true });
 
