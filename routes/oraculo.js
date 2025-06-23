@@ -29,6 +29,10 @@ if (!req.body.placa && req.body.dados?.Placa) {
     const numeroProcesso = req.body.numeroProcesso;
     const orgao = req.body.orgao;
     const prazo = req.body.prazo;
+    const cnh = req.files?.find(f => f.fieldname === 'cnh');
+    const procuracao = req.files?.find(f => f.fieldname === 'procuracao');
+    const contrato = req.files?.find(f => f.fieldname === 'contrato');
+
     const documento = req.files?.find(f => f.fieldname === 'documento');
 
      if (!req.body.cpf || !numeroProcesso || !orgao || !prazo || !req.body.placa || !documento) {
@@ -50,7 +54,12 @@ if (!req.body.placa && req.body.dados?.Placa) {
     const tarefa = {
       email,
       telefone,
-      arquivos: { documento: [documento] },
+      arquivos: {
+        documento: documento ? [documento] : [],
+        cnh: cnh ? [cnh] : [],
+        procuracao: procuracao ? [procuracao] : [],
+        contrato: contrato ? [contrato] : []
+},
       autuacoes: [],
       dados,
       tipoServico: servico,
