@@ -69,7 +69,15 @@ if (procuracaoPath) {
     console.warn('⚠️ Falha ao extrair dados da procuração (processo administrativo):', err.message);
   }
 }
+      // Complementa com email e telefone
+dados.Email = email;
+dados['Número de telefone'] = telefone;
 
+// Complementa com endereço, se vier estruturado
+const endereco = req.body.endereco_completo || req.body.endereco || {};
+if (endereco.rua && endereco.número && endereco.bairro && endereco.cidade) {
+  dados['Endereço Completo'] = `${endereco.rua}, ${endereco.número} - ${endereco.bairro} - ${endereco.cidade}/${endereco.estado || ''}`;
+}
     const tarefa = {
       email,
       telefone,
