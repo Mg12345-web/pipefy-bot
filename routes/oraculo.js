@@ -54,7 +54,7 @@ if (!req.body.placa && req.body.dados?.Placa) {
       documento,
       cnh,
       procuracao,
-      contrato
+      contrato,
       autuacoes: [],
       dados,
       tipoServico: servico,
