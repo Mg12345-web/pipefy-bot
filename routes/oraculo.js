@@ -50,7 +50,11 @@ if (!req.body.placa && req.body.dados?.Placa) {
     const tarefa = {
       email,
       telefone,
-      arquivos: { documento: [documento] },
+      arquivos: {
+      documento,
+      cnh,
+      procuracao,
+      contrato
       autuacoes: [],
       dados,
       tipoServico: servico,
