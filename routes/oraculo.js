@@ -51,6 +51,25 @@ if (!req.body.placa && req.body.dados?.Placa) {
     'Placa': req.body.placa
   };
 
+      const procuracaoPath = procuracao?.path;
+
+if (procuracaoPath) {
+  try {
+    const ext = path.extname(procuracaoPath).toLowerCase();
+    if ([".jpg", ".jpeg", ".png"].includes(ext)) {
+      const dadosProc = await interpretarImagemComGptVision(procuracaoPath, 'procuracao');
+      Object.assign(dados, dadosProc);
+    } else {
+      const texto = await extractText(procuracaoPath);
+      const gptResponse = await interpretarTextoComGPT(texto, 'procuracao');
+      const dadosProc = JSON.parse(gptResponse);
+      Object.assign(dados, dadosProc);
+    }
+  } catch (err) {
+    console.warn('⚠️ Falha ao extrair dados da procuração (processo administrativo):', err.message);
+  }
+}
+
     const tarefa = {
       email,
       telefone,
