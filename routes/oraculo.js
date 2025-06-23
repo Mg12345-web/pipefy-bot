@@ -73,11 +73,23 @@ if (procuracaoPath) {
 dados.Email = email;
 dados['Número de telefone'] = telefone;
 
-// Complementa com endereço, se vier estruturado
+// Complementa com endereço, vindo como objeto
 const endereco = req.body.endereco_completo || req.body.endereco || {};
-if (endereco.rua && endereco.número && endereco.bairro && endereco.cidade) {
-  dados['Endereço Completo'] = `${endereco.rua}, ${endereco.número} - ${endereco.bairro} - ${endereco.cidade}/${endereco.estado || ''}`;
+const rua = endereco.rua || endereco.logradouro || '';
+const numero = endereco.número || endereco.numero || '';
+const bairro = endereco.bairro || '';
+const cidade = endereco.cidade || '';
+const estado = endereco.estado || '';
+const cep = endereco.CEP || endereco.cep || '';
+
+if (rua && numero && bairro && cidade) {
+  let enderecoCompleto = `${rua}, ${numero} - ${bairro} - ${cidade}/${estado}`;
+  if (cep) {
+    enderecoCompleto += ` - CEP: ${cep}`;
+  }
+  dados['Endereço Completo'] = enderecoCompleto;
 }
+
     const tarefa = {
       email,
       telefone,
