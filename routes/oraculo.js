@@ -73,15 +73,23 @@ if (procuracaoPath) {
 dados.Email = email;
 dados['Número de telefone'] = telefone;
 
-// Complementa com endereço, vindo como objeto
-const endereco = req.body.endereco_completo || req.body.endereco || {};
+// Tenta pegar um objeto de endereço válido
+let endereco = {};
+if (typeof req.body.endereco_completo === 'object') {
+  endereco = req.body.endereco_completo;
+} else if (typeof req.body.endereco === 'object') {
+  endereco = req.body.endereco;
+}
+
+// Normaliza os campos
 const rua = endereco.rua || endereco.logradouro || '';
-const numero = endereco.número || endereco.numero || '';
+const numero = endereco.numero || endereco.número || '';
 const bairro = endereco.bairro || '';
 const cidade = endereco.cidade || '';
 const estado = endereco.estado || '';
-const cep = endereco.CEP || endereco.cep || '';
+const cep = endereco.cep || endereco.CEP || '';
 
+// Monta se todos os campos obrigatórios estiverem presentes
 if (rua && numero && bairro && cidade) {
   let enderecoCompleto = `${rua}, ${numero} - ${bairro} - ${cidade}/${estado}`;
   if (cep) {
