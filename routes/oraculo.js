@@ -80,13 +80,10 @@ const numero = endereco.número || endereco.numero || '';
 const bairro = endereco.bairro || '';
 const cidade = endereco.cidade || '';
 const estado = endereco.estado || '';
-const cep = endereco.CEP || endereco.cep || '';
 
 if (rua && numero && bairro && cidade) {
   let enderecoCompleto = `${rua}, ${numero} - ${bairro} - ${cidade}/${estado}`;
-  if (cep) {
-    enderecoCompleto += ` - CEP: ${cep}`;
-  }
+}
   dados['Endereço Completo'] = enderecoCompleto;
 }
 
