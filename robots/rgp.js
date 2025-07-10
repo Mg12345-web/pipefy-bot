@@ -134,11 +134,16 @@ async function runRgpRobot(req, res) {
 
 async function abrirNovoCardPreCadastro(page, log = console.log) {
   log('📂 Abrindo novo card em "Pré-cadastro"...');
+
   const botaoNovoCard = page
-    .getByTestId('phase-328258629-container') 
+    .getByTestId('phase-328258629-container')
     .getByTestId('new-card-button');
 
+  await botaoNovoCard.waitFor({ state: 'visible', timeout: 20000 });
+  await botaoNovoCard.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(500);
   await botaoNovoCard.click();
+
   log('✅ Novo card criado com sucesso.');
 }
 
