@@ -138,7 +138,11 @@ async function abrirNovoCardPreCadastro(page, log = console.log) {
     .getByTestId('phase-328258743-container')
     .getByTestId('new-card-button');
 
+  await botaoNovoCard.waitFor({ state: 'visible', timeout: 20000 });
+  await botaoNovoCard.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(500);
   await botaoNovoCard.click();
+
   log('✅ Novo card criado com sucesso.');
 }
 
