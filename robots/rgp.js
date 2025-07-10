@@ -247,7 +247,7 @@ async function anexarAutuacao(page, caminhoPDF, log = console.log) {
 
   const [fileChooser] = await Promise.all([
     page.waitForEvent('filechooser'),
-    botaoUpload.click()
+    botaoUpload.click({ force: true })
   ]);
 
   await fileChooser.setFiles(caminhoPDF);
