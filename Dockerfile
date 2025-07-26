@@ -7,29 +7,29 @@ WORKDIR /app
 # Copia arquivos de dependência
 COPY package*.json ./
 
-# Instala dependências do sistema necessárias para OCR
+# Instala Tesseract e OCR em português
 RUN apt-get update && apt-get install -y \
   tesseract-ocr \
   tesseract-ocr-por \
   && rm -rf /var/lib/apt/lists/*
 
-# Instala dependências Node.js
+# Instala dependências do Node.js
 RUN npm install --omit=dev
 
-# Copia restante do código
+# Copia restante do projeto
 COPY . .
 
-# Cria pastas necessárias
+# Cria pastas utilizadas no projeto
 RUN mkdir -p /app/uploads /app/logs /app/prints
 
 # Instala navegadores do Playwright
-RUN npx playwright install --with-deps
+RUN npx playwright install
 
 # Define ambiente de produção
 ENV NODE_ENV=production
 
-# Expõe a porta do Express
+# Expõe a porta usada pelo Express
 EXPOSE 8080
 
-# Comando padrão de inicialização
+# Comando padrão
 CMD ["node", "index.js"]
