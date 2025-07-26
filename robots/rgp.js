@@ -149,7 +149,7 @@ async function abrirNovoCardPreCadastro(page, log = console.log) {
 
 async function selecionarCliente(page, cpf, log = console.log) {
   log('👤 Acessando seção de clientes...');
-  await page.getByLabel('* Clientes').click({ force: true });
+  await page.getByText('Clientes').nth(1).click();
   await page.getByTestId('star-form-connection-button').first().click();
   await page.getByRole('combobox', { name: 'Pesquisar' }).fill(cpf);
   await page.waitForTimeout(10000);
