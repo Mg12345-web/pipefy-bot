@@ -28,8 +28,8 @@ RUN npx playwright install
 # Define ambiente de produção
 ENV NODE_ENV=production
 
-# Expõe a porta usada pelo Express
+# Expõe a porta usada (informativo)
 EXPOSE 8080
 
-# Comando padrão
+# Inicia o servidor
 CMD ["node", "index.js"]
