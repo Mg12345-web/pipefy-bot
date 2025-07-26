@@ -149,11 +149,19 @@ async function abrirNovoCardPreCadastro(page, log = console.log) {
 
 async function selecionarCliente(page, cpf, log = console.log) {
   log('👤 Acessando seção de clientes...');
-  await page.getByText('Clientes').click();
-  await page.getByTestId('star-form-connection-button').first().click();
-  await page.getByRole('combobox', { name: 'Pesquisar' }).fill(cpf);
-  await page.waitForTimeout(10000);
 
+  // Clica no botão "Criar registro" do campo Clientes (primeiro da tela)
+  await page.getByText('Criar registro').nth(0).click();
+
+  // Aguarda o campo de pesquisa aparecer
+  const campoBusca = page.getByRole('combobox', { name: 'Pesquisar' });
+  await campoBusca.waitFor({ state: 'visible', timeout: 10000 });
+
+  // Digita o CPF
+  await campoBusca.fill(cpf);
+  await page.waitForTimeout(2000); // tempo para resultados carregarem
+
+  // Seleciona o card com o CPF correto
   const card = page
     .locator('div[data-testid^="connected-card-box"]')
     .filter({ hasText: cpf })
@@ -161,7 +169,7 @@ async function selecionarCliente(page, cpf, log = console.log) {
 
   await card.waitFor({ state: 'visible', timeout: 15000 });
   await card.click({ force: true });
-  await page.getByText('Clientes').click();
+
   log(`✅ Cliente ${cpf} selecionado com sucesso`);
 }
 
