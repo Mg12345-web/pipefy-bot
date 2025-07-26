@@ -149,11 +149,38 @@ async function abrirNovoCardPreCadastro(page, log = console.log) {
 
 async function selecionarCliente(page, cpf, log = console.log) {
   log('👤 Acessando seção de clientes...');
-  await page.getByText('Clientes').click();
-  await page.getByTestId('star-form-connection-button').first().click();
-  await page.getByRole('textbox', { name: 'Pesquisar' }).fill(cpf);
-  await page.waitForTimeout(10000);
 
+  try {
+    // Tentativa tradicional
+    await page.locator('label:has-text("* Clientes")')
+      .locator('..')
+      .getByTestId('star-form-connection-button')
+      .click();
+  } catch (e) {
+    log('⚠️ Falha ao localizar botão do cliente. Tentando com GPT...');
+
+    const seletor = await interpretarPaginaComGptVision(
+      page,
+      'Clique no botão "+ Criar registro" que está logo abaixo do campo "* Clientes" no formulário Sem RGP.'
+    );
+
+    if (seletor && seletor !== 'NÃO ENCONTRADO') {
+      await page.locator(seletor).click({ force: true });
+      log('✅ GPT encontrou o botão e clicou com sucesso.');
+    } else {
+      throw new Error('❌ GPT não conseguiu encontrar o botão de cliente.');
+    }
+  }
+
+  // Aguarda o campo de pesquisa
+  const campoBusca = page.getByRole('combobox', { name: 'Pesquisar' });
+  await campoBusca.waitFor({ state: 'visible', timeout: 10000 });
+
+  // Preenche o CPF
+  await campoBusca.fill(cpf);
+  await page.waitForTimeout(2000);
+
+  // Seleciona o card correspondente
   const card = page
     .locator('div[data-testid^="connected-card-box"]')
     .filter({ hasText: cpf })
@@ -161,7 +188,7 @@ async function selecionarCliente(page, cpf, log = console.log) {
 
   await card.waitFor({ state: 'visible', timeout: 15000 });
   await card.click({ force: true });
-  await page.getByText('Clientes').click();
+
   log(`✅ Cliente ${cpf} selecionado com sucesso`);
 }
 
