@@ -4,6 +4,7 @@ const fs = require('fs');
 const { acquireLock, releaseLock } = require('../utils/lock');
 const { loginPipefy } = require('../utils/auth');
 const { normalizarArquivo } = require('../utils/normalizarArquivo');
+const { interpretarPaginaComGptVision } = require('../utils/interpretadorPaginaGPT');
 
 async function runRgpRobot(req, res) {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -150,11 +151,24 @@ async function abrirNovoCardPreCadastro(page, log = console.log) {
 async function selecionarCliente(page, cpf, log = console.log) {
   log('👤 Acessando seção de clientes...');
 
-  // Clica apenas no botão "Criar registro" do campo "* Clientes"
-  await page.locator('label:has-text("* Clientes")')
-    .locator('..')
-    .getByTestId('star-form-connection-button')
-    .click();
+  try {
+    // Tentativa normal
+    await page.locator('label:has-text("* Clientes")')
+      .locator('..')
+      .getByTestId('star-form-connection-button')
+      .click();
+  } catch (e) {
+    log('⚠️ Falha ao localizar botão do cliente. Tentando com GPT...');
+
+    const seletor = await interpretarPaginaComGptVision(page, 'botão de Criar Registro no campo * Clientes');
+
+    if (seletor) {
+      await page.locator(seletor).click({ force: true });
+      log('✅ GPT encontrou o botão e clicou com sucesso.');
+    } else {
+      throw new Error('❌ GPT não conseguiu encontrar o botão de cliente.');
+    }
+  }
 
   // Aguarda o campo de pesquisa
   const campoBusca = page.getByRole('combobox', { name: 'Pesquisar' });
