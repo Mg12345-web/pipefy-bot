@@ -152,7 +152,7 @@ async function selecionarCliente(page, cpf, log = console.log) {
 
   try {
     // Tentativa tradicional
-    await page.locator('label:has-text("* Clientes")')
+    await page.locator('label:has-text("Clientes")')
       .locator('..')
       .getByTestId('star-form-connection-button')
       .click();
