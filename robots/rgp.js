@@ -152,7 +152,7 @@ async function selecionarCliente(page, cpf, log = console.log) {
   log('👤 Acessando seção de clientes...');
 
   try {
-    // Tentativa normal
+    // Tentativa tradicional
     await page.locator('label:has-text("* Clientes")')
       .locator('..')
       .getByTestId('star-form-connection-button')
@@ -160,9 +160,12 @@ async function selecionarCliente(page, cpf, log = console.log) {
   } catch (e) {
     log('⚠️ Falha ao localizar botão do cliente. Tentando com GPT...');
 
-    const seletor = await interpretarPaginaComGptVision(page, 'botão de Criar Registro no campo * Clientes');
+    const seletor = await interpretarPaginaComGptVision(
+      page,
+      'Clique no botão "+ Criar registro" que está logo abaixo do campo "* Clientes" no formulário RGP.'
+    );
 
-    if (seletor) {
+    if (seletor && seletor !== 'NÃO ENCONTRADO') {
       await page.locator(seletor).click({ force: true });
       log('✅ GPT encontrou o botão e clicou com sucesso.');
     } else {
