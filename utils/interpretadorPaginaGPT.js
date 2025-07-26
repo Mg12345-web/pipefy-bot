@@ -1,4 +1,3 @@
-
 const fs = require('fs');
 const path = require('path');
 const { OpenAI } = require('openai');
@@ -21,6 +20,7 @@ Você é um assistente visual de automação web. Analise a imagem abaixo e reto
 
 ⚠️ Regras:
 - Responda apenas com o seletor CSS ou Playwright.
+- Nunca use blocos de código como \`\`\`.
 - Nunca explique.
 - Seja o mais específico possível (ex: use [data-testid] ou nomes visíveis).
 
@@ -50,7 +50,19 @@ Se não encontrar nada, diga apenas: "NÃO ENCONTRADO".
     max_tokens: 500
   });
 
-  const seletor = response.choices[0].message.content?.trim();
+  let seletor = response.choices[0].message.content?.trim() || '';
+
+  // 🧹 Limpeza automática do seletor
+  seletor = seletor
+    .replace(/```(css)?/gi, '') // remove blocos de código
+    .replace(/[\r\n]/g, '')     // remove quebras de linha
+    .trim();
+
+  // 🛡️ Proteção: se vier vazio, trata como não encontrado
+  if (!seletor || seletor.toLowerCase().includes('não encontrado')) {
+    return 'NÃO ENCONTRADO';
+  }
+
   return seletor;
 }
 
