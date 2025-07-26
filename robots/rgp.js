@@ -169,8 +169,8 @@ async function selecionarCRLV(page, placa, log = console.log) {
   log('🚗 Selecionando CRLV...');
   await page.getByText('Veículo (CRLV)').click();
   await page.getByTestId('star-form-connection-button').nth(1).click();
-  await page.getByRole('textbox', { name: 'Pesquisar' }).fill(placa);
-  await page.waitForTimeout(1500);
+  await page.getByRole('combobox', { name: 'Pesquisar' }).fill(placa);
+  await page.waitForTimeout(10000);
 
   const card = page
     .locator('div[data-testid^="connected-card-box"]')
