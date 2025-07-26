@@ -151,7 +151,7 @@ async function selecionarCliente(page, cpf, log = console.log) {
   log('👤 Acessando seção de clientes...');
   await page.getByText('Clientes').click();
   await page.getByTestId('star-form-connection-button').first().click();
-  await page.locator('input[placeholder="Pesquisar"]').first().fill(cpf);
+  await page.getByRole('combobox', { name: 'Pesquisar' }).fill(cpf);
   await page.waitForTimeout(10000);
 
   const card = page
