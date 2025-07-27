@@ -158,7 +158,7 @@ async function selecionarCliente(page, cpf, log = console.log) {
 
     const seletor = await interpretarPaginaComGptVision(
       page,
-      'Botão "+ Criar registro" abaixo do campo "* Clientes"'
+      'Botão "+ Criar registro" abaixo do campo "Clientes"'
     );
 
     if (seletor && seletor !== 'NÃO ENCONTRADO') {
