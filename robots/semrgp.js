@@ -151,36 +151,34 @@ async function selecionarCliente(page, cpf, log = console.log) {
   log('👤 Acessando seção de clientes...');
 
   try {
-    // Tentativa tradicional
-    await page.locator('label:has-text("Clientes")')
-      .locator('..')
-      .getByTestId('star-form-connection-button')
-      .click();
+    // Tentativa com seletor mais genérico e confiável
+    await page.getByTestId('star-form-connection-button').first().click();
   } catch (e) {
     log('⚠️ Falha ao localizar botão do cliente. Tentando com GPT...');
 
     const seletor = await interpretarPaginaComGptVision(
       page,
-      'Clique no botão "+ Criar registro" que está logo abaixo do campo "* Clientes" no formulário Sem RGP.'
+      'Botão "+ Criar registro" abaixo do campo "* Clientes"'
     );
 
     if (seletor && seletor !== 'NÃO ENCONTRADO') {
-      await page.locator(seletor).click({ force: true });
-      log('✅ GPT encontrou o botão e clicou com sucesso.');
+      try {
+        await page.locator(seletor).click({ force: true });
+        log('✅ GPT encontrou o botão e clicou com sucesso.');
+      } catch {
+        throw new Error('❌ GPT localizou um seletor inválido. Não foi possível clicar.');
+      }
     } else {
       throw new Error('❌ GPT não conseguiu encontrar o botão de cliente.');
     }
   }
 
-  // Aguarda o campo de pesquisa
   const campoBusca = page.getByRole('combobox', { name: 'Pesquisar' });
   await campoBusca.waitFor({ state: 'visible', timeout: 10000 });
 
-  // Preenche o CPF
   await campoBusca.fill(cpf);
   await page.waitForTimeout(2000);
 
-  // Seleciona o card correspondente
   const card = page
     .locator('div[data-testid^="connected-card-box"]')
     .filter({ hasText: cpf })
