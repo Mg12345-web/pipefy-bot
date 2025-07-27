@@ -179,10 +179,7 @@ async function selecionarCliente(page, cpf, log = console.log) {
   await campoBusca.fill(cpf);
   await page.waitForTimeout(10000);
 
-  const card = page
-    .locator('div[data-testid^="connected-card-box"]')
-    .filter({ hasText: cpf })
-    .first();
+  const card = page.locator(`div:has-text("${cpf}")`).first();
 
   await card.waitFor({ state: 'visible', timeout: 15000 });
   await card.click({ force: true });
