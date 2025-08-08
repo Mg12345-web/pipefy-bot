@@ -12,6 +12,6 @@ jobs:
       - name: Restart Railway Service
         run: |
           curl -X POST "https://backboard.railway.app/graphql/v2" \
-            -H "Authorization: Bearer ${{ secrets.RAILWAY_API_KEY }}" \
+            -H "Authorization: Bearer aad87273-ca72-4dcb-ba33-92d742738e17" \
             -H "Content-Type: application/json" \
             -d '{"query": "mutation { serviceInstanceRedeploy(id: \"'"${{ secrets.RAILWAY_SERVICE_ID }}"'\" ) { id } }"}'
