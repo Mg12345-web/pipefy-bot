@@ -1,0 +1,17 @@
+name: Reset Railway Service Daily
+
+on:
+  schedule:
+    - cron: "50 10 * * *"  # 07:50 America/Sao_Paulo (UTC-3) => 10:50 UTC
+  workflow_dispatch:        # permite rodar manualmente
+
+jobs:
+  restart-service:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Restart Railway Service
+        run: |
+          curl -X POST "https://backboard.railway.app/graphql/v2" \
+            -H "Authorization: Bearer ${{ secrets.RAILWAY_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{"query": "mutation { serviceInstanceRedeploy(id: \"'"${{ secrets.RAILWAY_SERVICE_ID }}"'\" ) { id } }"}'
