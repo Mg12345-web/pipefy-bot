@@ -115,25 +115,22 @@ async function runRgpRobot(req, res) {
   }
 
   const { dados = {}, autuacoes = [] } = req.body;
-const cpf = dados['CPF'] || '';
-const placa = dados['Placa'] || req.body.placa || '';
-const arquivos = req.files?.autuacoes?.map(f => f.path) || [];
-const caminhoPDF = normalizarArquivo('autuacao', arquivos[0]);
+  const cpf = dados['CPF'] || '';
+  const placa = dados['Placa'] || req.body.placa || '';
+  const arquivos = req.files?.autuacoes?.map(f => f.path) || [];
+  const caminhoPDF = normalizarArquivo('autuacao', arquivos[0]);
 
-// Pegando direto do req.body (vem do oráculo)
-const ait = req.body.ait?.trim() || '';
-const orgao = req.body.orgao?.trim() || '';
-const prazo = req.body.prazo || '';
+  const ait = req.body.ait?.trim() || '';
+  const orgao = req.body.orgao?.trim() || '';
+  const prazo = req.body.prazo || '';
 
-// Criando estrutura compatível com o restante do código
-autuacoes[0] = { ait, orgao, prazo, arquivo: arquivos[0] || '' };
+  autuacoes[0] = { ait, orgao, prazo, arquivo: arquivos[0] || '' };
 
-// Validação antes de seguir
-if (!ait || !orgao) {
-  log('❌ AIT ou Órgão não informado. Abortando.');
-  releaseLock();
-  return res.end('</pre>');
-}
+  if (!ait || !orgao) {
+    log('❌ AIT ou Órgão não informado. Abortando.');
+    releaseLock();
+    return res.end('</pre>');
+  }
 
   let browser, page;
   try {
@@ -153,7 +150,6 @@ if (!ait || !orgao) {
       await page.waitForTimeout(8000);
     }
 
-    // Fluxo blindado
     await withRetry(() => abrirNovoCardPreCadastro(page, log));
     await withRetry(() => selecionarClienteComFallback(page, cpf, placa, log));
     await withRetry(() => selecionarCRLVComRetry(page, placa, log));
@@ -202,7 +198,6 @@ if (!ait || !orgao) {
   }
 }
 
-// Aproveitando suas funções já existentes
 async function abrirNovoCardPreCadastro(page, log) {
   log('📂 Abrindo novo card em "Pré-cadastro"...');
   const botaoNovoCard = page
@@ -233,40 +228,79 @@ async function preencherOrgao(page, orgao, log) {
   log(`✅ Órgão preenchido: ${orgao}`);
 }
 
-async function preencherPrazoParaProtocoloComTeclado(page, prazo, log) {
-  log('🗓️ Preenchendo Prazo...');
-  const campos = [
-    '[data-testid="day-input"]',
-    '[data-testid="month-input"]',
-    '[data-testid="year-input"]',
-    '[data-testid="hour-input"]',
-    '[data-testid="minute-input"]'
-  ];
+// Função de preenchimento de prazo híbrida
+async function preencherPrazoParaProtocoloComTeclado(page, prazo, log = console.log) {
+  log('🗓️ Preenchendo "Prazo para Protocolo"...');
 
-  let valores = ['01', '01', '2025', '00', '00'];
-  try {
-    const dt = new Date(prazo);
-    if (!isNaN(dt)) {
-      valores = [
-        String(dt.getDate()).padStart(2, '0'),
-        String(dt.getMonth() + 1).padStart(2, '0'),
-        String(dt.getFullYear()),
-        '00',
-        '00'
-      ];
+  let d;
+  if (prazo) {
+    const iso = prazo.length === 10 ? `${prazo}T00:00` : prazo;
+    const tryDate = new Date(iso);
+    if (!isNaN(tryDate)) d = tryDate;
+  }
+  if (!d) d = new Date();
+
+  const DD = String(d.getDate()).padStart(2, '0');
+  const MM = String(d.getMonth() + 1).padStart(2, '0');
+  const YYYY = String(d.getFullYear());
+  const HH = '00';
+  const MI = '00';
+  const masked = `${DD}/${MM}/${YYYY}, ${HH}:${MI}`;
+
+  const day = page.locator('[data-testid="day-input"]').first();
+  if (await day.count()) {
+    const fields = [
+      ['[data-testid="day-input"]', DD],
+      ['[data-testid="month-input"]', MM],
+      ['[data-testid="year-input"]', YYYY],
+      ['[data-testid="hour-input"]', HH],
+      ['[data-testid="minute-input"]', MI],
+    ];
+
+    for (const [sel, val] of fields) {
+      const el = page.locator(sel).first();
+      await el.waitFor({ state: 'visible', timeout: 8000 });
+      await el.click({ force: true });
+      await page.keyboard.press(process.platform === 'darwin' ? 'Meta+A' : 'Control+A');
+      await page.keyboard.press('Backspace');
+      await el.type(val, { delay: 60 });
+      await page.waitForTimeout(80);
     }
-  } catch {
-    log('⚠️ Data inválida, usando padrão.');
+
+    await page.keyboard.press('Tab');
+    await page.waitForTimeout(300);
+
+    const got = await Promise.all(fields.map(async ([sel]) => (await page.locator(sel).first().inputValue()).trim()));
+    const ok = got[0] === DD && got[1] === MM && got[2] === YYYY && got[3] === HH && got[4] === MI;
+    if (!ok) {
+      throw new Error(`Campo data/hora não aceitou os valores (obtido: ${got.join('-')}, esperado: ${DD}-${MM}-${YYYY}-${HH}-${MI})`);
+    }
+
+    log(`✅ Prazo preenchido (inputs separados): ${DD}/${MM}/${YYYY} ${HH}:${MI}`);
+    return;
   }
 
-  for (let i = 0; i < campos.length; i++) {
-    const el = await page.locator(campos[i]).first();
-    await el.waitFor({ state: 'visible', timeout: 5000 });
-    await el.click();
-    await page.keyboard.type(valores[i], { delay: 100 });
+  const inputMask =
+    page.getByLabel('Prazo para Protocolo', { exact: false }).first()
+      .or(page.locator('input[placeholder*="DD"][placeholder*="MM"][placeholder*="AAAA"]')).first();
+
+  await inputMask.waitFor({ state: 'visible', timeout: 8000 });
+  await inputMask.click({ force: true });
+
+  await page.keyboard.press(process.platform === 'darwin' ? 'Meta+A' : 'Control+A');
+  await page.keyboard.press('Backspace');
+  await inputMask.type(masked, { delay: 60 });
+
+  await page.keyboard.press('Enter').catch(() => {});
+  await page.keyboard.press('Tab').catch(() => {});
+  await page.waitForTimeout(300);
+
+  const finalValue = (await inputMask.inputValue()).trim();
+  if (!finalValue.startsWith(`${DD}/${MM}/${YYYY}`)) {
+    throw new Error(`Campo com máscara não aceitou o valor (obtido: "${finalValue}", esperado começar com: "${DD}/${MM}/${YYYY}")`);
   }
 
-  log(`✅ Prazo preenchido: ${valores.slice(0, 3).join('/')} às ${valores[3]}:${valores[4]}`);
+  log(`✅ Prazo preenchido (input único): ${finalValue}`);
 }
 
 module.exports = { runRgpRobot };
