@@ -228,79 +228,40 @@ async function preencherOrgao(page, orgao, log) {
   log(`✅ Órgão preenchido: ${orgao}`);
 }
 
-// Função de preenchimento de prazo híbrida
+// ✅ Função original (sem o bloco extra)
 async function preencherPrazoParaProtocoloComTeclado(page, prazo, log = console.log) {
   log('🗓️ Preenchendo "Prazo para Protocolo"...');
+  const campos = [
+    '[data-testid="day-input"]',
+    '[data-testid="month-input"]',
+    '[data-testid="year-input"]',
+    '[data-testid="hour-input"]',
+    '[data-testid="minute-input"]'
+  ];
 
-  let d;
-  if (prazo) {
-    const iso = prazo.length === 10 ? `${prazo}T00:00` : prazo;
-    const tryDate = new Date(iso);
-    if (!isNaN(tryDate)) d = tryDate;
-  }
-  if (!d) d = new Date();
-
-  const DD = String(d.getDate()).padStart(2, '0');
-  const MM = String(d.getMonth() + 1).padStart(2, '0');
-  const YYYY = String(d.getFullYear());
-  const HH = '00';
-  const MI = '00';
-  const masked = `${DD}/${MM}/${YYYY}, ${HH}:${MI}`;
-
-  const day = page.locator('[data-testid="day-input"]').first();
-  if (await day.count()) {
-    const fields = [
-      ['[data-testid="day-input"]', DD],
-      ['[data-testid="month-input"]', MM],
-      ['[data-testid="year-input"]', YYYY],
-      ['[data-testid="hour-input"]', HH],
-      ['[data-testid="minute-input"]', MI],
-    ];
-
-    for (const [sel, val] of fields) {
-      const el = page.locator(sel).first();
-      await el.waitFor({ state: 'visible', timeout: 8000 });
-      await el.click({ force: true });
-      await page.keyboard.press(process.platform === 'darwin' ? 'Meta+A' : 'Control+A');
-      await page.keyboard.press('Backspace');
-      await el.type(val, { delay: 60 });
-      await page.waitForTimeout(80);
+  let valores = ['01', '01', '2025', '00', '00'];
+  try {
+    const dt = new Date(prazo);
+    if (!isNaN(dt)) {
+      valores = [
+        String(dt.getDate()).padStart(2, '0'),
+        String(dt.getMonth() + 1).padStart(2, '0'),
+        String(dt.getFullYear()),
+        '00',
+        '00'
+      ];
     }
-
-    await page.keyboard.press('Tab');
-    await page.waitForTimeout(300);
-
-    const got = await Promise.all(fields.map(async ([sel]) => (await page.locator(sel).first().inputValue()).trim()));
-    const ok = got[0] === DD && got[1] === MM && got[2] === YYYY && got[3] === HH && got[4] === MI;
-    if (!ok) {
-      throw new Error(`Campo data/hora não aceitou os valores (obtido: ${got.join('-')}, esperado: ${DD}-${MM}-${YYYY}-${HH}-${MI})`);
-    }
-
-    log(`✅ Prazo preenchido (inputs separados): ${DD}/${MM}/${YYYY} ${HH}:${MI}`);
-    return;
+  } catch (err) {
+    log('⚠️ Erro ao interpretar data. Usando padrão.');
   }
 
-  const inputMask =
-    page.getByLabel('Prazo para Protocolo', { exact: false }).first()
-      .or(page.locator('input[placeholder*="DD"][placeholder*="MM"][placeholder*="AAAA"]')).first();
-
-  await inputMask.waitFor({ state: 'visible', timeout: 8000 });
-  await inputMask.click({ force: true });
-
-  await page.keyboard.press(process.platform === 'darwin' ? 'Meta+A' : 'Control+A');
-  await page.keyboard.press('Backspace');
-  await inputMask.type(masked, { delay: 60 });
-
-  await page.keyboard.press('Enter').catch(() => {});
-  await page.keyboard.press('Tab').catch(() => {});
-  await page.waitForTimeout(300);
-
-  const finalValue = (await inputMask.inputValue()).trim();
-  if (!finalValue.startsWith(`${DD}/${MM}/${YYYY}`)) {
-    throw new Error(`Campo com máscara não aceitou o valor (obtido: "${finalValue}", esperado começar com: "${DD}/${MM}/${YYYY}")`);
+  for (let i = 0; i < campos.length; i++) {
+    const el = await page.locator(campos[i]).first();
+    await el.waitFor({ state: 'visible', timeout: 5000 });
+    await el.click();
+    await page.keyboard.type(valores[i], { delay: 100 });
   }
 
-  log(`✅ Prazo preenchido (input único): ${finalValue}`);
+  log(`✅ Prazo preenchido: ${valores.slice(0, 3).join('/')} às ${valores[3]}:${valores[4]}`);
 }
-
 module.exports = { runRgpRobot };
