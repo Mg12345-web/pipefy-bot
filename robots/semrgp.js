@@ -115,10 +115,25 @@ async function runSemRgpRobot(req, res) {
   }
 
   const { dados = {}, autuacoes = [] } = req.body;
-  const cpf = dados['CPF'] || '';
-  const placa = dados['Placa'] || req.body.placa || '';
-  const arquivos = req.files?.autuacoes?.map(f => f.path) || [];
-  const caminhoPDF = normalizarArquivo('autuacao', arquivos[0]); 
+const cpf = dados['CPF'] || '';
+const placa = dados['Placa'] || req.body.placa || '';
+const arquivos = req.files?.autuacoes?.map(f => f.path) || [];
+const caminhoPDF = normalizarArquivo('autuacao', arquivos[0]);
+
+// Pegando direto do req.body que veio do oráculo
+const ait = req.body.ait?.trim() || '';
+const orgao = req.body.orgao?.trim() || '';
+const prazo = req.body.prazo || '';
+
+// Garantindo que autuacoes[0] esteja no formato certo
+autuacoes[0] = { ait, orgao, prazo, arquivo: arquivos[0] || '' };
+
+// Validação antes de seguir
+if (!ait || !orgao) {
+  log('❌ AIT ou Órgão não informado. Abortando.');
+  releaseLock();
+  return res.end('</pre>');
+}
 
   let browser, page;
   try {
