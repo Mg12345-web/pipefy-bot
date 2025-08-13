@@ -1,4 +1,3 @@
-// queue.js
 const path = require('path');
 const fs = require('fs');
 const { runClientRobot } = require('./client');
@@ -10,87 +9,76 @@ const { runProcessoAdministrativoRobot } = require('./processoAdministrativo');
 let fila = [];
 let emExecucao = false;
 
-/* ==================== Fila ==================== */
 function addToQueue(tarefa) {
   console.log('📦 Tarefa recebida no addToQueue:', JSON.stringify(tarefa, null, 2));
   fila.push(tarefa);
   if (tarefa.tipoServico)
     console.log(`📥 Tarefa adicionada à fila. Total na fila: ${fila.length}`);
-
-  // dispara o processamento se estiver ocioso
-  if (!emExecucao) processQueue();
 }
 
 function startQueue() {
-  // dispara o worker se houver tarefas e não estiver rodando
-  if (!emExecucao && fila.length > 0) processQueue();
-}
+  setInterval(async () => {
+    if (emExecucao || fila.length === 0) return;
 
-async function processQueue() {
-  if (emExecucao) return; // já está processando
-  emExecucao = true;
+    console.log(`⏳ Verificando fila... emExecucao: ${emExecucao} | Tarefas pendentes: ${fila.length}`);
 
-  try {
-    while (fila.length > 0) {
-      console.log(`⏳ Processando fila... Tarefas pendentes: ${fila.length}`);
-      const tarefa = fila.shift(); // FIFO garantido
-      try {
-        console.log('🚀 Iniciando tarefa...');
-        const tipo = (tarefa.tipoServico || '').trim().toLowerCase();
+    const tarefa = fila.shift();
+    emExecucao = true;
 
-        // mesmo comportamento anterior de espera para Processo Administrativo
-        if (tipo === 'processo administrativo') {
-          console.log('⏳ Aguardando 5 minutos antes de iniciar Processo Administrativo...');
-          await new Promise(r => setTimeout(r, 5 * 60 * 1000));
-        }
+    try {
+  console.log('🚀 Iniciando tarefa da fila...');
 
-        await processarTarefa(tarefa);
-      } catch (err) {
-        console.error('❌ Erro ao processar tarefa:', err?.message || err);
-      } finally {
-        console.log('⏱️ Aguardando 5 minutos antes de iniciar próxima tarefa...');
-        await new Promise(r => setTimeout(r, 5 * 60 * 1000));
-        console.log('✅ Pronto para a próxima da fila.');
-      }
-    }
-  } finally {
-    emExecucao = false;
+  const tipo = (tarefa.tipoServico || '').trim().toLowerCase();
+  if (tipo === 'processo administrativo') {
+    console.log('⏳ Aguardando 5 minutos antes de iniciar Processo Administrativo...');
+    await new Promise(resolve => setTimeout(resolve, 5 * 60 * 1000));
   }
+
+  await processarTarefa(tarefa);
+} catch (err) {
+      console.error('❌ Erro ao processar tarefa:', err.message);
+    } finally {
+      console.log('⏱️ Aguardando 5 minutos antes de iniciar próxima tarefa...');
+      await new Promise(resolve => setTimeout(resolve, 5 * 60 * 1000));
+      console.log('✅ Fila liberada.');
+      emExecucao = false;
+    }
+  }, 3000);
 }
 
-/* ============== Processamento da tarefa ============== */
 async function processarTarefa(tarefa) {
   const fakeRes = criarRespostaSimples();
 
   const pastaDoCliente = path.join(__dirname, '..', 'temp', `tarefa_${Date.now()}`);
-  fs.mkdirSync(pastaDoCliente, { recursive: true });
-  console.log('📁 Pasta temporária criada para a tarefa:', pastaDoCliente);
+fs.mkdirSync(pastaDoCliente, { recursive: true });
+console.log('📁 Pasta temporária criada para a tarefa:', pastaDoCliente);
 
-  // Copiar os arquivos de autuação para a pasta da tarefa
-  if (tarefa.autuacoes && tarefa.autuacoes.length) {
-    for (const autuacao of tarefa.autuacoes) {
-      const origem = autuacao.arquivo;
-      const destino = path.join(pastaDoCliente, path.basename(origem || ''));
-      try {
-        fs.copyFileSync(origem, destino);
-        autuacao.arquivo = destino;
-      } catch (e) {
-        console.warn(`⚠️ Erro ao copiar arquivo de autuação: ${origem} → ${destino}`, e.message);
-      }
+// Copiar os arquivos de autuação para a pasta da tarefa
+if (tarefa.autuacoes && tarefa.autuacoes.length) {
+  for (const autuacao of tarefa.autuacoes) {
+    const origem = autuacao.arquivo;
+    const destino = path.join(pastaDoCliente, path.basename(origem));
+    try {
+      fs.copyFileSync(origem, destino);
+      autuacao.arquivo = destino;
+    } catch (e) {
+      console.warn(`⚠️ Erro ao copiar arquivo de autuação: ${origem} → ${destino}`, e.message);
     }
   }
+}
 
-  // (removido mkdirSync duplicado)
+  fs.mkdirSync(pastaDoCliente, { recursive: true });
+  console.log('📁 Pasta do cliente isolada:', pastaDoCliente);
 
   const req = {
     query: { observacao: 'Cadastro via site' },
     body: tarefa,
-    files: tarefa.arquivos || {}
+    files: tarefa.arquivos
   };
 
   req.body.tempPath = pastaDoCliente;
 
-  console.log('📤 Dados do cliente recebidos:', req.body.dados || {});
+  console.log('📤 Dados do cliente recebidos:', req.body.dados);
 
   try {
     console.log('\n📌 Executando robô de CLIENTES...');
@@ -113,28 +101,27 @@ async function processarTarefa(tarefa) {
 
   if (tarefa.tipoServico) {
     const tipo = (tarefa.tipoServico || '').trim().toLowerCase();
-    const ait = tarefa.dados?.numeroAIT || '0000000';
-    const orgao = tarefa.dados?.orgaoAutuador || 'SPTRANS';
+    const ait = tarefa.dados.numeroAIT || '0000000';
+    const orgao = tarefa.dados.orgaoAutuador || 'SPTRANS';
 
-    if (tipo === 'processo administrativo') {
-      console.log('\n📍 Executando robô de Processo Administrativo...');
+        if (tipo === 'processo administrativo') {
+        console.log('\n📍 Executando robô de Processo Administrativo...');
 
-      // Ajustar req.body com os dados corretos
-      req.body.cpf = tarefa.dados?.CPF;
-      req.body.numeroProcesso = tarefa.dados?.['Número do Processo'];
-      req.body.orgao = tarefa.dados?.['Órgão'];
-      req.body.prazo = tarefa.dados?.['Prazo para Protocolo'];
-      req.body.documento = tarefa.arquivos?.documento?.[0];
+  // ✅ Ajustar req.body com os dados corretos
+  req.body.cpf = tarefa.dados.CPF;
+  req.body.numeroProcesso = tarefa.dados['Número do Processo'];
+  req.body.orgao = tarefa.dados['Órgão'];
+  req.body.prazo = tarefa.dados['Prazo para Protocolo'];
+  req.body.documento = tarefa.arquivos?.documento?.[0];
 
-      try {
-        await runProcessoAdministrativoRobot(req, fakeRes);
-        await aguardarEstabilizacao('Processo Administrativo');
-      } catch (err) {
-        console.error('❌ Erro no robô de Processo Administrativo:', err.message);
-      }
-      return; // Encerra aqui, pois processo administrativo é único
-    }
-
+  try {
+    await runProcessoAdministrativoRobot(req, fakeRes);
+    await aguardarEstabilizacao('Processo Administrativo');
+  } catch (err) {
+    console.error('❌ Erro no robô de Processo Administrativo:', err.message);
+  }
+  return; // Encerra aqui, pois processo administrativo é único
+}
     const fakeReq = {
       files: {
         autuacoes: (tarefa.autuacoes || []).map(a => ({ path: a.arquivo }))
@@ -148,11 +135,11 @@ async function processarTarefa(tarefa) {
     };
 
     try {
-      if (tipo === 'rgp') {
+      if (tipo === 'RGP') {
         console.log('\n📍 Executando robô de RGP (tipo global)...');
         await runRgpRobot(fakeReq, fakeRes);
         await aguardarEstabilizacao('RGP');
-      } else if (tipo === 'sem rgp') {
+      } else if (tipo === 'Sem RGP') {
         console.log('\n📍 Executando robô de Sem RGP (tipo global)...');
         await runSemRgpRobot(fakeReq, fakeRes);
         await aguardarEstabilizacao('Sem RGP');
@@ -163,39 +150,38 @@ async function processarTarefa(tarefa) {
   }
 
   for (const autuacao of autuacoesValidas) {
-    const tipo = (autuacao.tipo || '').trim().toLowerCase();
-    const ait = autuacao.ait || tarefa.dados?.numeroAIT || '';
-    const orgao = autuacao.orgao || tarefa.dados?.orgaoAutuador || '';
+    const tipo = autuacao.tipo;
+    const ait = autuacao.ait || tarefa.dados.numeroAIT || '';
+    const orgao = autuacao.orgao || tarefa.dados.orgaoAutuador || '';
 
     if (!ait || !orgao) {
-      console.warn(`⚠️ Dados incompletos para autuação ${autuacao.tipo}. Pulando execução.`);
+      console.warn(`⚠️ Dados incompletos para autuação ${tipo}. Pulando execução.`);
       continue;
     }
 
     const fakeReq = {
       files: { autuacoes: [{ path: autuacao.arquivo }] },
-      body: { ait, orgao, dados: tarefa.dados || {} }
+      body: { ait, orgao, dados: tarefa.dados }
     };
 
     try {
-      if (tipo === 'rgp') {
+      if (tipo === 'RGP') {
         console.log('\n📍 Executando robô de RGP (individual)...');
         await runRgpRobot(fakeReq, fakeRes);
         await aguardarEstabilizacao('RGP');
-      } else if (tipo === 'sem rgp') {
+      } else if (tipo === 'Sem RGP') {
         console.log('\n📍 Executando robô de Sem RGP (individual)...');
         await runSemRgpRobot(fakeReq, fakeRes);
         await aguardarEstabilizacao('Sem RGP');
       }
     } catch (err) {
-      console.error(`❌ Erro no robô individual de ${autuacao.tipo}: ${err.message}`);
+      console.error(`❌ Erro no robô individual de ${tipo}: ${err.message}`);
     }
   }
 
   console.log('\n✅ Tarefa finalizada.');
 }
 
-/* ============== Utilitários comuns ============== */
 function criarRespostaSimples() {
   return {
     setHeader: () => {},
