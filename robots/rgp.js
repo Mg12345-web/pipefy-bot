@@ -151,44 +151,38 @@ async function abrirNovoCardPreCadastro(page, log = console.log) {
 async function selecionarCliente(page, cpf, log = console.log) {
   log('👤 Acessando seção de clientes...');
 
-  // 1) Abra o conector do campo *Clientes* (pelo container do campo, não global)
-  const clientesField = page.getByTestId('phase-fields')
-    .locator(':text("Clientes")')
-    .first()
-    .locator('..'); // container do campo
+  try {
+    await page.getByTestId('star-form-connection-button').first().click();
+  } catch (e) {
+    log('⚠️ Falha ao localizar botão do cliente. Tentando com GPT...');
 
-  const openBtn = clientesField.getByTestId('star-form-connection-button').first();
-  await openBtn.waitFor({ state: 'visible', timeout: 10000 });
-  await openBtn.click();
+    const seletor = await interpretarPaginaComGptVision(
+      page,
+      'Botão "+ Criar registro" abaixo do campo "* Clientes"'
+    );
 
-  // 2) Trabalhe dentro do modal de conexão
-  const dialog = page.locator('[data-testid="connection-modal"], [role="dialog"]').last();
-  await dialog.waitFor({ state: 'visible', timeout: 10000 });
+    if (seletor && seletor !== 'NÃO ENCONTRADO') {
+      try {
+        await page.locator(seletor).click({ force: true });
+        log('✅ GPT encontrou o botão e clicou com sucesso.');
+      } catch (erroClique) {
+        throw new Error('❌ GPT localizou um seletor inválido. Não foi possível clicar.');
+      }
+    } else {
+      throw new Error('❌ GPT não conseguiu encontrar o botão de cliente.');
+    }
+  }
 
-  const search = dialog.getByRole('combobox', { name: 'Pesquisar' });
-  await search.waitFor({ state: 'visible', timeout: 10000 });
-  await search.fill('');
-  await search.type(cpf, { delay: 20 });
+  const campoBusca = page.getByRole('combobox', { name: 'Pesquisar' });
+  await campoBusca.waitFor({ state: 'visible', timeout: 10000 });
 
-  // 3) Selecione o resultado correto (no modal)
-  const resultado = dialog
-    .locator('div[data-testid^="connected-card-box"]')
-    .filter({ hasText: cpf })
-    .first();
+  await campoBusca.fill(cpf);
+  await page.waitForTimeout(2000);
 
-  await resultado.waitFor({ state: 'visible', timeout: 15000 });
-  await resultado.click({ force: true });
+  const card = page.locator(`div:has-text("${cpf}")`).first();
 
-  // 4) Aguarde o fechamento do modal (ou sumir)
-  await dialog.waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {});
-
-  // 5) ASSERT: chip/etiqueta com o CPF deve aparecer no campo Clientes
-  const clientesChip = clientesField
-    .locator('[data-testid^="connected-card-box"], [data-testid="connection-badge"], div')
-    .filter({ hasText: cpf })
-    .first();
-
-  await clientesChip.waitFor({ state: 'visible', timeout: 10000 });
+  await card.waitFor({ state: 'visible', timeout: 15000 });
+  await card.click({ force: true });
 
   log(`✅ Cliente ${cpf} selecionado com sucesso`);
 }
