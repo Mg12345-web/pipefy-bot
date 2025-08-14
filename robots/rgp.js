@@ -176,8 +176,14 @@ async function selecionarCliente(page, cpf, log = console.log) {
   const campoBusca = page.getByRole('combobox', { name: 'Pesquisar' });
   await campoBusca.waitFor({ state: 'visible', timeout: 10000 });
 
-  await campoBusca.fill(cpf);
-  await page.waitForTimeout(2000);
+  await campoBusca.click({ delay: 50 });
+await campoBusca.fill(''); // limpa antes
+await page.waitForTimeout(200);
+
+for (const char of cpf) {
+  await campoBusca.type(char, { delay: 50 }); // digita caractere por caractere
+}
+await page.waitForTimeout(1500); // espera autocomplete abrir
 
   const card = page.locator(`div:has-text("${cpf}")`).first();
 
