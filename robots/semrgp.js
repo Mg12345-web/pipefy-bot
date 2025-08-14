@@ -4,6 +4,7 @@ const fs = require('fs');
 const { acquireLock, releaseLock } = require('../utils/lock');
 const { loginPipefy } = require('../utils/auth');
 const { normalizarArquivo } = require('../utils/normalizarArquivo');
+const { interpretarPaginaComGptVision } = require('../utils/interpretadorPaginaGPT');
 
 async function runSemRgpRobot(req, res) {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -138,25 +139,51 @@ async function abrirNovoCardPreCadastro(page, log = console.log) {
     .getByTestId('phase-328258743-container')
     .getByTestId('new-card-button');
 
+  await botaoNovoCard.waitFor({ state: 'visible', timeout: 20000 });
+  await botaoNovoCard.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(500);
   await botaoNovoCard.click();
+
   log('✅ Novo card criado com sucesso.');
 }
 
 async function selecionarCliente(page, cpf, log = console.log) {
   log('👤 Acessando seção de clientes...');
-  await page.getByText('Clientes').click();
-  await page.getByTestId('star-form-connection-button').first().click();
-  await page.getByRole('textbox', { name: 'Pesquisar' }).fill(cpf);
+
+  try {
+    // Tentativa com seletor mais genérico e confiável
+    await page.getByTestId('star-form-connection-button').first().click();
+  } catch (e) {
+    log('⚠️ Falha ao localizar botão do cliente. Tentando com GPT...');
+
+    const seletor = await interpretarPaginaComGptVision(
+      page,
+      'Botão "+ Criar registro" abaixo do campo "Clientes"'
+    );
+
+    if (seletor && seletor !== 'NÃO ENCONTRADO') {
+      try {
+        await page.locator(seletor).click({ force: true });
+        log('✅ GPT encontrou o botão e clicou com sucesso.');
+      } catch {
+        throw new Error('❌ GPT localizou um seletor inválido. Não foi possível clicar.');
+      }
+    } else {
+      throw new Error('❌ GPT não conseguiu encontrar o botão de cliente.');
+    }
+  }
+
+  const campoBusca = page.getByRole('combobox', { name: 'Pesquisar' });
+  await campoBusca.waitFor({ state: 'visible', timeout: 10000 });
+
+  await campoBusca.fill(cpf);
   await page.waitForTimeout(10000);
 
-  const card = page
-    .locator('div[data-testid^="connected-card-box"]')
-    .filter({ hasText: cpf })
-    .first();
+  const card = page.locator(`div:has-text("${cpf}")`).first();
 
   await card.waitFor({ state: 'visible', timeout: 15000 });
   await card.click({ force: true });
-  await page.getByText('Clientes').click();
+
   log(`✅ Cliente ${cpf} selecionado com sucesso`);
 }
 
@@ -164,7 +191,7 @@ async function selecionarCRLV(page, placa, log = console.log) {
   log('🚗 Selecionando CRLV...');
   await page.getByText('Veículo (CRLV)').click();
   await page.getByTestId('star-form-connection-button').nth(1).click();
-  await page.getByRole('textbox', { name: 'Pesquisar' }).fill(placa);
+  await page.getByRole('combobox', { name: 'Pesquisar' }).fill(placa);
   await page.waitForTimeout(1500);
 
   const card = page
