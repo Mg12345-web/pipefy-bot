@@ -151,46 +151,61 @@ async function abrirNovoCardPreCadastro(page, log = console.log) {
 async function selecionarCliente(page, cpf, log = console.log) {
   log('👤 Acessando seção de clientes...');
 
+  // Abre o modal/conexão do campo Clientes (mantém seu fallback)
   try {
     await page.getByTestId('star-form-connection-button').first().click();
   } catch (e) {
     log('⚠️ Falha ao localizar botão do cliente. Tentando com GPT...');
-
     const seletor = await interpretarPaginaComGptVision(
-      page,
-      'Botão "+ Criar registro" abaixo do campo "* Clientes"'
+      page, 'Botão "+ Criar registro" abaixo do campo "* Clientes"'
     );
-
-    if (seletor && seletor !== 'NÃO ENCONTRADO') {
-      try {
-        await page.locator(seletor).click({ force: true });
-        log('✅ GPT encontrou o botão e clicou com sucesso.');
-      } catch (erroClique) {
-        throw new Error('❌ GPT localizou um seletor inválido. Não foi possível clicar.');
-      }
-    } else {
-      throw new Error('❌ GPT não conseguiu encontrar o botão de cliente.');
+    if (!seletor || seletor === 'NÃO ENCONTRADO') {
+      throw new Error('❌ Não encontrei o botão para selecionar cliente.');
     }
+    await page.locator(seletor).click({ force: true });
+    log('✅ GPT encontrou o botão e clicou com sucesso.');
   }
 
+  // Garante formato válido (com pontuação)
+  const cpfFmt = String(cpf || '').trim();
+  if (!/^\d{3}\.\d{3}\.\d{3}-\d{2}$/.test(cpfFmt)) {
+    throw new Error(`❌ CPF inválido/sem pontuação: "${cpfFmt}"`);
+  }
+
+  // Digita com eventos (mantendo sua lógica)
   const campoBusca = page.getByRole('combobox', { name: 'Pesquisar' });
   await campoBusca.waitFor({ state: 'visible', timeout: 10000 });
-
   await campoBusca.click({ delay: 50 });
-await campoBusca.fill(''); // limpa antes
-await page.waitForTimeout(200);
+  await campoBusca.fill('');
+  await page.waitForTimeout(200);
+  for (const c of cpfFmt) await campoBusca.type(c, { delay: 50 });
+  await page.waitForTimeout(1500);
 
-for (const char of cpf) {
-  await campoBusca.type(char, { delay: 50 }); // digita caractere por caractere
-}
-await page.waitForTimeout(1500); // espera autocomplete abrir
+  // Aguarda item correspondente (mais específico) e clica
+  const item = page
+    .locator('div[role="option"], div[data-testid^="connected-card-box"]')
+    .filter({ hasText: cpfFmt })
+    .first();
 
-  const card = page.locator(`div:has-text("${cpf}")`).first();
+  try {
+    await item.waitFor({ state: 'visible', timeout: 15000 });
+  } catch {
+    const dump = await campoBusca.inputValue();
+    throw new Error(`❌ Cliente não apareceu no autocomplete para CPF "${cpfFmt}". Valor no campo: "${dump}"`);
+  }
+  await item.click({ force: true });
 
-  await card.waitFor({ state: 'visible', timeout: 15000 });
-  await card.click({ force: true });
+  // 🔒 Validação de vínculo: ajuste o seletor do “chip”/resumo conforme a sua UI
+  const chipCliente = page.locator(
+    '[data-testid="cliente-chip"], [data-testid^="connected-card-box"]'
+  ).first();
 
-  log(`✅ Cliente ${cpf} selecionado com sucesso`);
+  try {
+    await chipCliente.waitFor({ state: 'visible', timeout: 5000 });
+    log(`✅ Cliente ${cpfFmt} vinculado com sucesso`);
+  } catch {
+    throw new Error('❌ Cliquei no resultado, mas o vínculo do cliente não apareceu (chip/ID ausente).');
+  }
 }
 
 async function selecionarCRLV(page, placa, log = console.log) {
