@@ -83,17 +83,33 @@ async function runRgpRobot(req, res) {
     await anexarAutuacao(page, caminhoPDF, log);
 
     log('🚀 Finalizando card...');
-    const botoesFinal = await page.locator('button:has-text("Create new card")');
-    for (let i = 0; i < await botoesFinal.count(); i++) {
-      const b = botoesFinal.nth(i);
-      const box = await b.boundingBox();
-      if (box && box.width > 200) {
-        await b.scrollIntoViewIfNeeded();
-        await page.waitForTimeout(500);
-        await b.click();
-        break;
-      }
-    }
+
+// >>> COLOCA AQUI <<< 
+log('🧪 Validações finais antes de enviar...');
+
+// cliente e CRLV vinculados?
+const vincClienteOK = await page.locator('[data-testid="cliente-chip"], [data-testid^="connected-card-box"]').first().isVisible().catch(() => false);
+const vincCRLVOK    = await page.locator('[data-testid="veiculo-chip"], [data-testid^="connected-card-box"]').nth(1).isVisible().catch(() => false);
+
+// anexo presente? (ajuste o seletor do “chip” de arquivo conforme a sua UI)
+const anexoOK = await page.locator('[data-testid="attachment-chip"], [data-testid="attachment-list"] >> text=pdf').isVisible().catch(() => false);
+
+if (!vincClienteOK) throw new Error('❌ Cliente não vinculado — cancelando envio para evitar Rascunho.');
+if (!vincCRLVOK)    throw new Error('❌ CRLV não vinculado — cancelando envio para evitar Rascunho.');
+if (!anexoOK)       throw new Error('❌ Anexo de autuação não visível — cancelando envio para evitar Rascunho.');
+// <<< ATÉ AQUI <<<
+
+const botoesFinal = await page.locator('button:has-text("Create new card")');
+for (let i = 0; i < await botoesFinal.count(); i++) {
+  const b = botoesFinal.nth(i);
+  const box = await b.boundingBox();
+  if (box && box.width > 200) {
+    await b.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(500);
+    await b.click();
+    break;
+  }
+}
 
     const printPath = path.resolve(__dirname, '../../prints/print_final_rgp.png');
     fs.mkdirSync(path.dirname(printPath), { recursive: true });
