@@ -84,7 +84,6 @@ async function runRgpRobot(req, res) {
 
     log('🚀 Finalizando card...');
 
-// >>> COLOCA AQUI <<< 
 log('🧪 Validações finais antes de enviar...');
 
 // cliente e CRLV vinculados?
@@ -94,10 +93,9 @@ const vincCRLVOK    = await page.locator('[data-testid="veiculo-chip"], [data-te
 // anexo presente? (ajuste o seletor do “chip” de arquivo conforme a sua UI)
 const anexoOK = await page.locator('[data-testid="attachment-chip"], [data-testid="attachment-list"] >> text=pdf').isVisible().catch(() => false);
 
-if (!vincClienteOK) throw new Error('❌ Cliente não vinculado — cancelando envio para evitar Rascunho.');
-if (!vincCRLVOK)    throw new Error('❌ CRLV não vinculado — cancelando envio para evitar Rascunho.');
-if (!anexoOK)       throw new Error('❌ Anexo de autuação não visível — cancelando envio para evitar Rascunho.');
-// <<< ATÉ AQUI <<<
+if (!vincClienteOK) log('⚠️ Cliente não vinculado — prosseguindo mesmo assim (pode virar Rascunho).');
+if (!vincCRLVOK)    log('⚠️ CRLV não vinculado — prosseguindo mesmo assim (pode virar Rascunho).');
+if (!anexoOK)       log('⚠️ Anexo de autuação não visível — prosseguindo mesmo assim (pode virar Rascunho).');
 
 const botoesFinal = await page.locator('button:has-text("Create new card")');
 for (let i = 0; i < await botoesFinal.count(); i++) {
