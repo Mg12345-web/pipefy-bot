@@ -269,15 +269,21 @@ async function preencherPrazoParaProtocoloComTeclado(page, prazo, log = console.
 
 async function anexarAutuacao(page, caminhoPDF, log = console.log) {
   log('📎 Anexando arquivo da autuação...');
-  const botaoUpload = await page.locator('button[data-testid="attachments-dropzone-button"]').last();
-  await botaoUpload.scrollIntoViewIfNeeded();
 
-  const [fileChooser] = await Promise.all([
-    page.waitForEvent('filechooser'),
-    botaoUpload.click({ force: true })
-  ]);
+  // Garante que o botão de upload está visível (opcional, para dar tempo do DOM carregar)
+  await page.getByTestId('attachments-dropzone-button').last().waitFor({ state: 'visible', timeout: 15000 });
 
-  await fileChooser.setFiles(caminhoPDF);
+  // Localiza o input[type=file] associado
+  const inputFile = page.locator('input[type="file"]');
+
+  if (await inputFile.count() === 0) {
+    throw new Error('Nenhum campo <input type="file"> encontrado para upload.');
+  }
+
+  // Envia o arquivo diretamente
+  await inputFile.first().setInputFiles(caminhoPDF, { timeout: 60000 });
+
+  // Pequena espera para o upload concluir (opcional, pode trocar por waitForSelector de um elemento que indique o upload)
   await page.waitForTimeout(3000);
 
   log(`✅ Autuação anexada: ${caminhoPDF}`);
